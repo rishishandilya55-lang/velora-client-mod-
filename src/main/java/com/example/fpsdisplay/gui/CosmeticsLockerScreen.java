@@ -9,32 +9,37 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.text.Text;
 
 /**
- * CosmeticsLockerScreen — Velora Cosmetics Locker.
+ * Velora Cosmetics Locker.
  *
- * Player preview works both in-game (live player model) and from the Main Menu
- * (beautiful pixel-art silhouette with animated cape). Cape card thumbnails show
- * realistic cape shapes instead of plain rectangles with text.
+ * Right-panel 3D preview uses InventoryScreen.drawEntity() — the SAME call
+ * Minecraft uses for the inventory screen — which renders the full player model
+ * with skin, cape, and all equipped items at full 3D quality.
+ *
+ * Works in-game only (no player entity exists on main menu).
+ * From the main menu a clean "Launch a world to preview" message is shown.
  */
 public class CosmeticsLockerScreen extends Screen {
 
-    private int activeCategory = 0;
-    private int activeEnv = 0;
-    private boolean showSettingsModal = false;
+    // State
+    private int activeCategory  = 0;
+    private int activeEnv       = 0;
+    private boolean showOptions = false;
+    private int selectedItem    = 0;
+    private String searchQuery  = "";
     private TextFieldWidget searchBox;
-    private String searchQuery = "";
-    private int selectedCosmetic = 0;
 
-    // 3D preview drag state
+    // Preview rotation (drag-to-rotate)
     private static boolean isLockerOpen = false;
-    private float previewYaw = 200.0f;
-    private float previewPitch = -5.0f;
-    private boolean isDraggingPreview = false;
-    private double lastMouseX = 0;
-    private double lastMouseY = 0;
-    private boolean autoRotate = false;
-
-    // Subtle idle sway animation for the silhouette
+    private float yaw   = 210f; // start showing the back so cape is visible
+    private float pitch = -5f;
+    private boolean dragging = false;
+    private boolean autoSpin = false;
     private float animTick = 0f;
+
+    // Cosmetics data
+    private static final String[] COS_NAMES  = {"Velora Cape", "Classic Cape", "Wave Cape"};
+    private static final String[] COS_TYPES  = {"HD Animated", "Vintage",      "Particle"};
+    private static final int[]    COS_COLORS = {0xFF8B21F7,    0xFF2563EB,     0xFF059669};
 
     public CosmeticsLockerScreen() {
         super(Text.literal("Velora Locker"));
@@ -42,21 +47,17 @@ public class CosmeticsLockerScreen extends Screen {
 
     public static boolean isPreviewingCape() { return isLockerOpen; }
 
+    // ──────────────────────────────────────────────────────────────────────────
     @Override
     protected void init() {
         super.init();
         isLockerOpen = true;
-        int cx = this.width / 2;
-        int panelW = Math.min(720, this.width - 20);
-        int panelH = Math.min(430, this.height - 20);
-        int panelX = cx - panelW / 2;
-        int panelY = this.height / 2 - panelH / 2;
-        int sideW = 140;
-        int previewW = 200;
-        int centerW = panelW - sideW - previewW - 12;
-        int centerX = panelX + sideW + 6;
-        searchBox = new TextFieldWidget(this.textRenderer, centerX + 10, panelY + 44, centerW - 20, 20,
-                Text.literal("Search..."));
+        int layout[] = getLayout();
+        int centerX = layout[0] + layout[2] + 6; // panelX + sideW + gap
+        int centerW = layout[4];
+        int panelY  = layout[1];
+        searchBox = new TextFieldWidget(this.textRenderer,
+                centerX + 8, panelY + 44, centerW - 16, 18, Text.literal("Search"));
         searchBox.setPlaceholder(Text.literal("Search cosmetics..."));
         searchBox.setMaxLength(32);
         searchBox.setChangedListener(t -> searchQuery = t != null ? t.toLowerCase().trim() : "");
@@ -66,54 +67,58 @@ public class CosmeticsLockerScreen extends Screen {
     @Override
     public void close() { isLockerOpen = false; super.close(); }
 
-    @Override
-    public void renderBackground(DrawContext ctx, int mx, int my, float delta) {
-        ctx.fill(0, 0, this.width, this.height, 0xCC080A12);
+    // Returns [panelX, panelY, sideW, previewW, centerW, panelW, panelH]
+    private int[] getLayout() {
+        int panelW   = Math.min(760, this.width  - 20);
+        int panelH   = Math.min(440, this.height - 20);
+        int panelX   = (this.width  - panelW) / 2;
+        int panelY   = (this.height - panelH) / 2;
+        int sideW    = 130;
+        int previewW = 210;
+        int centerW  = panelW - sideW - previewW - 12;
+        return new int[]{panelX, panelY, sideW, previewW, centerW, panelW, panelH};
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // RENDER
+    @Override
+    public void renderBackground(DrawContext ctx, int mx, int my, float delta) {
+        ctx.fill(0, 0, this.width, this.height, 0xBB040410);
+    }
+
     // ══════════════════════════════════════════════════════════════════════════
     @Override
     public void render(DrawContext ctx, int mx, int my, float delta) {
         renderBackground(ctx, mx, my, delta);
         animTick += delta;
-        if (autoRotate) previewYaw = (previewYaw + delta * 1.4f) % 360f;
+        if (autoSpin) yaw = (yaw + delta * 1.5f) % 360f;
 
-        int cx = this.width / 2;
-        int cy = this.height / 2;
-        int panelW = Math.min(720, this.width - 20);
-        int panelH = Math.min(430, this.height - 20);
-        int panelX = cx - panelW / 2;
-        int panelY = cy - panelH / 2;
+        int[] L   = getLayout();
+        int panelX = L[0], panelY = L[1], sideW = L[2], previewW = L[3],
+            centerW = L[4], panelW = L[5], panelH = L[6];
+        int centerX = panelX + sideW + 6;
+        int rightX  = centerX + centerW + 6;
 
-        // ── Outer window ──────────────────────────────────────────────────────
-        ctx.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xFF0E0E1A);
-        VeloraRenderUtil.drawGlowBorder(ctx, panelX, panelY, panelW, panelH, 0x66A855F7, 4);
-        ctx.drawBorder(panelX, panelY, panelW, panelH, 0xFFA855F7);
+        // ── Outer panel ──────────────────────────────────────────────────────
+        ctx.fill(panelX + 3, panelY + 3, panelX + panelW + 3, panelY + panelH + 3, 0x55000000);
+        ctx.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xFF0D0D1E);
+        ctx.drawBorder(panelX, panelY, panelW, panelH, 0xFF8B21F7);
+        ctx.drawBorder(panelX + 1, panelY + 1, panelW - 2, panelH - 2, 0x334C1D95);
 
         // ── Title bar ─────────────────────────────────────────────────────────
-        ctx.fill(panelX, panelY, panelX + panelW, panelY + 36, 0xFF0A0A16);
-        ctx.fill(panelX, panelY + 35, panelX + panelW, panelY + 36, 0xFF7E22CE);
-        ctx.drawText(this.textRenderer, "✦  VELORA COSMETICS LOCKER", panelX + 16, panelY + 13, 0xFFFFFFFF, true);
+        ctx.fill(panelX, panelY, panelX + panelW, panelY + 36, 0xFF08081A);
+        ctx.fill(panelX, panelY + 35, panelX + panelW, panelY + 36, 0xFF7C3AED);
+        ctx.drawText(this.textRenderer, "✦  VELORA COSMETICS", panelX + 14, panelY + 13, 0xFFFFFFFF, true);
 
         // X close
-        int xBtnX = panelX + panelW - 24, xBtnY = panelY + 9;
-        boolean xHov = mx >= xBtnX && mx <= xBtnX + 16 && my >= xBtnY && my <= xBtnY + 18;
-        ctx.drawCenteredTextWithShadow(this.textRenderer, "✕", xBtnX + 8, xBtnY + 2, xHov ? 0xFFEF4444 : 0xFF664466);
-
-        int sideW   = 140;
-        int previewW = 200;
-        int centerW  = panelW - sideW - previewW - 12;
-        int centerX  = panelX + sideW + 6;
-        int rightX   = centerX + centerW + 6;
+        int xbX = panelX + panelW - 22, xbY = panelY + 10;
+        boolean xHov = mx >= xbX && mx <= xbX + 14 && my >= xbY && my <= xbY + 16;
+        ctx.drawCenteredTextWithShadow(this.textRenderer, "✕", xbX + 7, xbY + 2,
+                xHov ? 0xFFFF4444 : 0xFF553355);
 
         drawSidebar(ctx, mx, my, panelX, panelY, sideW, panelW, panelH);
         drawCenterGrid(ctx, mx, my, panelX, panelY, panelH, centerX, centerW);
-        drawPreviewPanel(ctx, mx, my, panelX, panelY, panelW, panelH, rightX, previewW, delta);
+        drawPreviewPanel(ctx, mx, my, panelX, panelY, panelH, rightX, previewW, delta);
 
-        // Settings modal
-        if (showSettingsModal) drawSettingsModal(ctx, mx, my, cx, cy);
+        if (showOptions) drawOptionsModal(ctx, mx, my);
 
         super.render(ctx, mx, my, delta);
     }
@@ -122,429 +127,326 @@ public class CosmeticsLockerScreen extends Screen {
     // SIDEBAR
     // ══════════════════════════════════════════════════════════════════════════
     private void drawSidebar(DrawContext ctx, int mx, int my,
-                             int panelX, int panelY, int sideW, int panelW, int panelH) {
-        ctx.fill(panelX, panelY + 36, panelX + sideW, panelY + panelH, 0xFF0A0A14);
-        ctx.fill(panelX + sideW - 1, panelY + 36, panelX + sideW, panelY + panelH, 0xFF7E22CE);
+                             int px, int py, int sideW, int panelW, int panelH) {
+        ctx.fill(px, py + 36, px + sideW, py + panelH, 0xFF09091A);
+        ctx.fill(px + sideW - 1, py + 36, px + sideW, py + panelH, 0xFF5B21B6);
 
-        String[] cats = {"All (3)", "Favorites (1)", "Capes (2)", "Hats (0)", "Face (0)", "Wings (0)", "Aura (0)"};
-        int sideY = panelY + 44;
+        String[] cats = {"All", "Favorites", "Capes", "Hats", "Face", "Wings", "Aura"};
         for (int i = 0; i < cats.length; i++) {
-            int ry = sideY + i * 28;
+            int ry = py + 44 + i * 26;
             boolean sel = (activeCategory == i);
-            boolean hov = mx >= panelX + 6 && mx <= panelX + sideW - 6 && my >= ry && my <= ry + 24;
-            int bg = sel ? 0xFF2A0E54 : (hov ? 0xFF1A1A30 : 0xFF0E0E1A);
-            ctx.fill(panelX + 6, ry, panelX + sideW - 6, ry + 24, bg);
-            ctx.drawBorder(panelX + 6, ry, sideW - 12, 24, sel ? 0xFFA855F7 : 0xFF1E1E38);
-            if (sel) ctx.fill(panelX + 6, ry, panelX + 9, ry + 24, 0xFFA855F7);
-            ctx.drawText(this.textRenderer, cats[i], panelX + 16, ry + 8, sel ? 0xFFFFFFFF : 0xFFAAAAAA, true);
+            boolean hov = mx >= px + 4 && mx <= px + sideW - 4 && my >= ry && my <= ry + 22;
+            ctx.fill(px + 4, ry, px + sideW - 4, ry + 22,
+                    sel ? 0xFF21104A : (hov ? 0xFF160E30 : 0xFF0D0D1A));
+            ctx.drawBorder(px + 4, ry, sideW - 8, 22,
+                    sel ? 0xFF8B21F7 : (hov ? 0xFF3D1D6A : 0xFF1A1830));
+            if (sel) ctx.fill(px + 4, ry, px + 7, ry + 22, 0xFF8B21F7);
+            ctx.drawText(this.textRenderer, cats[i], px + 12, ry + 7,
+                    sel ? 0xFFFFFFFF : (hov ? 0xFFD8B4FE : 0xFF7766AA), sel);
         }
 
         // Options button
-        int settBtnY = panelY + panelH - 34;
-        boolean settHov = mx >= panelX + 8 && mx <= panelX + sideW - 8 && my >= settBtnY && my <= settBtnY + 24;
-        VeloraRenderUtil.drawPillButton(ctx, panelX + 8, settBtnY, sideW - 16, 24, "⚙ Options", settHov, 0xFF7E22CE, this.textRenderer);
+        int opY = py + panelH - 30;
+        boolean opHov = mx >= px + 6 && mx <= px + sideW - 6 && my >= opY && my <= opY + 22;
+        ctx.fill(px + 6, opY, px + sideW - 6, opY + 22,
+                opHov ? 0xFF21104A : 0xFF120A28);
+        ctx.drawBorder(px + 6, opY, sideW - 12, 22,
+                opHov ? 0xFF8B21F7 : 0xFF3D1D6A);
+        ctx.drawCenteredTextWithShadow(this.textRenderer, "⚙  Options",
+                px + sideW / 2, opY + 7,
+                opHov ? 0xFFD8B4FE : 0xFF8855BB);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // CENTER GRID — proper cape thumbnails
+    // CENTER GRID — cosmetic item cards with proper cape thumbnails
     // ══════════════════════════════════════════════════════════════════════════
     private void drawCenterGrid(DrawContext ctx, int mx, int my,
                                 int panelX, int panelY, int panelH,
-                                int centerX, int centerW) {
-        ctx.fill(centerX, panelY + 36, centerX + centerW, panelY + panelH, 0xFF101020);
-        ctx.fill(centerX, panelY + 36, centerX + 1, panelY + panelH, 0xFF1E1E38);
+                                int cx, int cw) {
+        ctx.fill(cx, panelY + 36, cx + cw, panelY + panelH, 0xFF0C0C1E);
 
+        // Search box
         if (searchBox != null) searchBox.render(ctx, mx, my, 0f);
 
-        int gridY = panelY + 74;
-        int cardW = 86, cardH = 114, gap = 8;
-        String[] names = {"Velora Cape", "Vanilla Cape", "Velora Waves"};
-        String[] types = {"HD Animated",  "Mojang Cape",  "Particle Aura"};
-        int[] capeColors = {0xFF8B3CE8, 0xFF2563EB, 0xFF059669};
+        // Grid
+        int gridY = panelY + 70;
+        int cardW = 88, cardH = 118, gap = 8;
 
-        for (int i = 0; i < names.length; i++) {
-            if (!searchQuery.isEmpty() && !names[i].toLowerCase().contains(searchQuery)) continue;
+        for (int i = 0; i < COS_NAMES.length; i++) {
+            if (!searchQuery.isEmpty() && !COS_NAMES[i].toLowerCase().contains(searchQuery)) continue;
+
             int col = i % 3, row = i / 3;
-            int cardX = centerX + 10 + col * (cardW + gap);
+            int cardX = cx + 8 + col * (cardW + gap);
             int cardY = gridY + row * (cardH + gap);
 
-            boolean sel = (selectedCosmetic == i);
+            boolean sel = (selectedItem == i);
             boolean hov = mx >= cardX && mx <= cardX + cardW && my >= cardY && my <= cardY + cardH;
 
-            ctx.fill(cardX, cardY, cardX + cardW, cardY + cardH, sel ? 0xFF1E0A3A : (hov ? 0xFF1A1A2E : 0xFF12121E));
-            ctx.drawBorder(cardX, cardY, cardW, cardH, sel ? 0xFFA855F7 : (hov ? 0xFF55336A : 0xFF1E1E38));
-            if (sel) ctx.fill(cardX, cardY, cardX + cardW, cardY + 2, 0xFF22C55E);
+            // Card
+            ctx.fill(cardX, cardY, cardX + cardW, cardY + cardH,
+                    sel ? 0xFF1E1040 : (hov ? 0xFF16102C : 0xFF100E20));
+            ctx.drawBorder(cardX, cardY, cardW, cardH,
+                    sel ? 0xFF8B21F7 : (hov ? 0xFF4C2880 : 0xFF221A40));
+            if (sel) ctx.fill(cardX, cardY, cardX + cardW, cardY + 2, 0xFF4ADE80);
 
-            // Favorite star
-            ctx.drawText(this.textRenderer, "★", cardX + 5, cardY + 5, i == 0 ? 0xFFEAB308 : 0x44FFFFFF, false);
+            // Star
+            ctx.drawText(this.textRenderer, "★", cardX + 4, cardY + 4,
+                    i == 0 ? 0xFFFBBF24 : 0x33AAAAAA, false);
 
-            // ── Cape thumbnail ── (looks like an actual cape, not a rectangle)
-            drawCapeThumbnail(ctx, cardX, cardY, cardW, capeColors[i], i);
+            // Cape thumbnail (proper shaped preview)
+            drawCapeThumbnail(ctx, cardX, cardY + 16, cardW, COS_COLORS[i], i);
 
-            // Name + type label
-            ctx.drawCenteredTextWithShadow(this.textRenderer, names[i], cardX + cardW / 2, cardY + 84, 0xFFFFFFFF);
-            ctx.drawCenteredTextWithShadow(this.textRenderer, types[i],  cardX + cardW / 2, cardY + 96, 0xFF8866AA);
+            // Name & type
+            ctx.drawCenteredTextWithShadow(this.textRenderer, COS_NAMES[i],
+                    cardX + cardW / 2, cardY + 94, 0xFFFFFFFF);
+            ctx.drawCenteredTextWithShadow(this.textRenderer, COS_TYPES[i],
+                    cardX + cardW / 2, cardY + 106, 0xFF7755AA);
         }
     }
 
     /**
-     * Draws a stylised cape shape inside a card — looks like a real flowing cape preview
-     * rather than a plain rectangle with text.
+     * Draws a shaped cape thumbnail — looks like an actual cape hanging,
+     * with gradient, pattern, and clasp detail.
      */
-    private void drawCapeThumbnail(DrawContext ctx, int cardX, int cardY, int cardW, int mainColor, int idx) {
-        int capeW = 44, capeH = 58;
-        int cx = cardX + (cardW - capeW) / 2;
-        int cy = cardY + 14;
+    private void drawCapeThumbnail(DrawContext ctx, int cx, int cy, int cw, int color, int idx) {
+        int capeW = 52, capeH = 64;
+        int x = cx + (cw - capeW) / 2;
+        int y = cy;
 
-        // Cape body gradient (darker at bottom = flowing look)
-        int topColor = mainColor;
-        int botColor = (mainColor & 0x00FFFFFF) | 0x88000000;
-        VeloraRenderUtil.drawGradient(ctx, cx, cy, cx + capeW, cy + capeH, topColor, botColor);
-
-        // Cape border
-        ctx.drawBorder(cx, cy, capeW, capeH, mainColor);
-
-        // Subtle inside stitching lines (horizontal)
-        for (int row = 1; row <= 4; row++) {
-            int ly = cy + row * (capeH / 5);
-            ctx.fill(cx + 2, ly, cx + capeW - 2, ly + 1, (mainColor & 0x00FFFFFF) | 0x44000000);
+        // Gradient body (brighter top, fades at bottom)
+        for (int row = 0; row < capeH; row++) {
+            float t = (float) row / capeH;
+            int alpha = (int) (255 * (1f - t * 0.45f));
+            int c = (alpha << 24) | (color & 0x00FFFFFF);
+            ctx.fill(x, y + row, x + capeW, y + row + 1, c);
         }
 
-        // Cape top edge fold shadow (darker strip at top)
-        ctx.fill(cx, cy, cx + capeW, cy + 4, 0x44000000);
+        // Border
+        ctx.drawBorder(x, y, capeW, capeH, color);
 
-        // Cape clasp/clip center-top
-        int clipW = 10;
-        ctx.fill(cx + (capeW - clipW) / 2, cy - 3, cx + (capeW + clipW) / 2, cy + 1, 0xFF888888);
-        ctx.drawBorder(cx + (capeW - clipW) / 2, cy - 3, clipW, 4, 0xFFCCCCCC);
+        // Horizontal fabric lines
+        for (int r = 1; r < 4; r++) {
+            int ly = y + r * (capeH / 4);
+            ctx.fill(x + 2, ly, x + capeW - 2, ly + 1, 0x33FFFFFF);
+        }
 
-        // Pattern overlay depending on cape
+        // Top fold shadow
+        ctx.fill(x, y, x + capeW, y + 5, 0x44000000);
+
+        // Clasp at top center
+        int clipW = 12;
+        ctx.fill(x + (capeW - clipW) / 2, y - 4, x + (capeW + clipW) / 2, y + 1, 0xFF888888);
+        ctx.drawBorder(x + (capeW - clipW) / 2, y - 4, clipW, 5, 0xFFCCCCCC);
+
+        // Pattern per cape
         switch (idx) {
-            case 0 -> drawVeloraPattern(ctx, cx, cy, capeW, capeH);   // Velora: V symbol
-            case 1 -> drawMojangPattern(ctx, cx, cy, capeW, capeH);   // Vanilla: simple cross
-            case 2 -> drawWavesPattern(ctx, cx, cy, capeW, capeH);    // Waves: wavy lines
-        }
-
-        // Small glow under cape
-        VeloraRenderUtil.drawGlowBorder(ctx, cx, cy, capeW, capeH, (mainColor & 0x00FFFFFF) | 0x33000000, 2);
-    }
-
-    /** Velora Cape: draws a small V in the center */
-    private void drawVeloraPattern(DrawContext ctx, int x, int y, int w, int h) {
-        int white = 0x88FFFFFF;
-        int midX = x + w / 2;
-        int midY = y + h / 2 - 4;
-        // Left arm of V
-        for (int i = 0; i < 7; i++) {
-            ctx.fill(midX - 7 + i, midY + i, midX - 7 + i + 2, midY + i + 2, white);
-        }
-        // Right arm of V
-        for (int i = 0; i < 7; i++) {
-            ctx.fill(midX + 7 - i - 1, midY + i, midX + 7 - i + 1, midY + i + 2, white);
-        }
-    }
-
-    /** Vanilla Cape: draws a simple thin cross */
-    private void drawMojangPattern(DrawContext ctx, int x, int y, int w, int h) {
-        int white = 0x66FFFFFF;
-        int midX = x + w / 2, midY = y + h / 2;
-        ctx.fill(midX - 8, midY - 1, midX + 8, midY + 1, white);
-        ctx.fill(midX - 1, midY - 8, midX + 1, midY + 8, white);
-    }
-
-    /** Waves Cape: draws three horizontal sine-like wavy lines */
-    private void drawWavesPattern(DrawContext ctx, int x, int y, int w, int h) {
-        int white = 0x77FFFFFF;
-        for (int row = 0; row < 3; row++) {
-            int baseY = y + 12 + row * 14;
-            for (int px = 2; px < w - 2; px += 4) {
-                int waveY = baseY + (int)(Math.sin((px * 0.4f) + row * 2f) * 2f);
-                ctx.fill(x + px, waveY, x + px + 3, waveY + 2, white);
+            case 0 -> { // Velora: V logo
+                int w = 0x88FFFFFF, mx2 = x + capeW / 2, my2 = y + 22;
+                for (int i = 0; i < 8; i++) {
+                    ctx.fill(mx2 - 8 + i, my2 + i, mx2 - 8 + i + 2, my2 + i + 2, w);
+                    ctx.fill(mx2 + 8 - i - 1, my2 + i, mx2 + 8 - i + 1, my2 + i + 2, w);
+                }
+            }
+            case 1 -> { // Classic: thin cross
+                int w = 0x66FFFFFF, mx2 = x + capeW / 2, my2 = y + capeH / 2;
+                ctx.fill(mx2 - 10, my2 - 1, mx2 + 10, my2 + 1, w);
+                ctx.fill(mx2 - 1, my2 - 10, mx2 + 1, my2 + 10, w);
+            }
+            case 2 -> { // Wave: 3 wavy lines
+                for (int row = 0; row < 3; row++) {
+                    int by = y + 14 + row * 16;
+                    for (int px = 2; px < capeW - 2; px += 3) {
+                        int wy = by + (int)(Math.sin(px * 0.5f + row * 2) * 2f);
+                        ctx.fill(x + px, wy, x + px + 2, wy + 2, 0x77FFFFFF);
+                    }
+                }
             }
         }
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // RIGHT PREVIEW PANEL
+    // RIGHT PREVIEW PANEL — uses real InventoryScreen.drawEntity()
     // ══════════════════════════════════════════════════════════════════════════
     private void drawPreviewPanel(DrawContext ctx, int mx, int my,
-                                  int panelX, int panelY, int panelW, int panelH,
+                                  int panelX, int panelY, int panelH,
                                   int rightX, int previewW, float delta) {
         ctx.fill(rightX, panelY + 36, rightX + previewW, panelY + panelH, 0xFF0C0C1A);
-        ctx.fill(rightX, panelY + 36, rightX + 1, panelY + panelH, 0xFF1E1E38);
+        ctx.fill(rightX, panelY + 36, rightX + 1, panelY + panelH, 0xFF3D1D6A);
 
-        // Env tabs
-        String[] envs = {"Default", "World", "Nether", "End"};
+        // ── Env tabs ──────────────────────────────────────────────────────────
+        String[] envs = {"Sun", "World", "Hell", "End"};
         int envW = previewW / 4;
         for (int i = 0; i < envs.length; i++) {
             int ex = rightX + i * envW;
             boolean sel = (activeEnv == i);
-            boolean hov = mx >= ex && mx <= ex + envW && my >= panelY + 36 && my <= panelY + 54;
-            ctx.fill(ex, panelY + 36, ex + envW, panelY + 54,
-                    sel ? 0xFF2A0E54 : (hov ? 0xFF141428 : 0xFF0C0C1A));
-            if (sel) ctx.fill(ex, panelY + 52, ex + envW, panelY + 54, 0xFFA855F7);
-            ctx.drawCenteredTextWithShadow(this.textRenderer,
-                    envs[i].substring(0, Math.min(3, envs[i].length())),
-                    ex + envW / 2, panelY + 41,
-                    sel ? 0xFFD8B4FE : (hov ? 0xFF8888AA : 0xFF554466));
+            boolean hov = mx >= ex && mx <= ex + envW && my >= panelY + 36 && my <= panelY + 52;
+            ctx.fill(ex, panelY + 36, ex + envW, panelY + 52,
+                    sel ? 0xFF1A0E3A : (hov ? 0xFF130A28 : 0xFF0C0C1A));
+            if (sel) ctx.fill(ex, panelY + 50, ex + envW, panelY + 52, 0xFF8B21F7);
+            ctx.drawCenteredTextWithShadow(this.textRenderer, envs[i],
+                    ex + envW / 2, panelY + 40,
+                    sel ? 0xFFD8B4FE : (hov ? 0xFF8855BB : 0xFF443355));
         }
 
-        // Preview box
-        int pBoxW = 176, pBoxH = 240;
-        int pBoxX = rightX + (previewW - pBoxW) / 2;
-        int pBoxY = panelY + 58;
+        // ── 3D Preview viewport ───────────────────────────────────────────────
+        int pW = previewW - 16, pH = 220;
+        int pX = rightX + 8, pY = panelY + 56;
 
-        // Gradient floor in preview
-        VeloraRenderUtil.drawGradient(ctx, pBoxX, pBoxY, pBoxX + pBoxW, pBoxY + pBoxH, 0xFF0E0E20, 0xFF16123A);
-        // Grid lines on floor (gives depth)
-        for (int gx = 0; gx < pBoxW; gx += 20)
-            ctx.fill(pBoxX + gx, pBoxY, pBoxX + gx + 1, pBoxY + pBoxH, 0x0AFFFFFF);
-        for (int gy = 0; gy < pBoxH; gy += 20)
-            ctx.fill(pBoxX, pBoxY + gy, pBoxX + pBoxW, pBoxY + gy + 1, 0x0AFFFFFF);
+        // Viewport background — environment color hint
+        int[] envBg = {0xFF0C0C1E, 0xFF081A0C, 0xFF1A0808, 0xFF0A0A0A};
+        ctx.fill(pX, pY, pX + pW, pY + pH, envBg[activeEnv]);
 
-        boolean pBoxHov = mx >= pBoxX && mx <= pBoxX + pBoxW && my >= pBoxY && my <= pBoxY + pBoxH;
-        ctx.drawBorder(pBoxX, pBoxY, pBoxW, pBoxH, pBoxHov ? 0xFFA855F7 : 0xFF3A2A6A);
+        // Grid floor lines (depth illusion)
+        for (int gx = 0; gx <= pW; gx += 18)
+            ctx.fill(pX + gx, pY, pX + gx + 1, pY + pH, 0x0AFFFFFF);
+        for (int gy = 0; gy <= pH; gy += 18)
+            ctx.fill(pX, pY + gy, pX + pW, pY + gy + 1, 0x0AFFFFFF);
 
-        // ── Try live player render first (works in-game) ──────────────────────
-        LivingEntity entity = (this.client != null) ? this.client.player : null;
-        if (entity != null) {
-            try {
-                float origBodyYaw  = entity.bodyYaw;
-                float origYaw      = entity.getYaw();
-                float origPitch    = entity.getPitch();
-                float origPrevBY   = entity.prevBodyYaw;
-                float origPrevYaw  = entity.prevYaw;
-                float origPrevPit  = entity.prevPitch;
-                float origHeadYaw  = entity.headYaw;
-                float origPrevHY   = entity.prevHeadYaw;
+        // Viewport border + glow
+        ctx.drawBorder(pX, pY, pW, pH, 0xFF5B21B6);
+        ctx.drawBorder(pX - 1, pY - 1, pW + 2, pH + 2, 0x338B21F7);
 
-                entity.bodyYaw      = previewYaw;
-                entity.setYaw(previewYaw);
-                entity.setPitch(previewPitch);
-                entity.prevBodyYaw  = previewYaw;
-                entity.prevYaw      = previewYaw;
-                entity.prevPitch    = previewPitch;
-                entity.headYaw      = previewYaw;
-                entity.prevHeadYaw  = previewYaw;
+        // ── Player model or fallback ──────────────────────────────────────────
+        LivingEntity player = (client != null) ? client.player : null;
+        if (player != null) {
+            // ✅ REAL 3D player model with skin, cape, and items
+            // Save original rotation state
+            float origBodyYaw   = player.bodyYaw;
+            float origYaw       = player.getYaw();
+            float origPitch     = player.getPitch();
+            float origPrevBY    = player.prevBodyYaw;
+            float origPrevYaw   = player.prevYaw;
+            float origPrevPitch = player.prevPitch;
+            float origHeadYaw   = player.headYaw;
+            float origPrevHY    = player.prevHeadYaw;
 
-                InventoryScreen.drawEntity(ctx,
-                        pBoxX + 10, pBoxY + 10, pBoxX + pBoxW - 10, pBoxY + pBoxH - 10,
-                        56, 0.0625f, 0.0f, 0.0f, entity);
+            // Set preview rotation
+            player.bodyYaw      = yaw;
+            player.setYaw(yaw);
+            player.setPitch(pitch);
+            player.prevBodyYaw  = yaw;
+            player.prevYaw      = yaw;
+            player.prevPitch    = pitch;
+            player.headYaw      = yaw;
+            player.prevHeadYaw  = yaw;
 
-                entity.bodyYaw     = origBodyYaw;
-                entity.setYaw(origYaw);
-                entity.setPitch(origPitch);
-                entity.prevBodyYaw = origPrevBY;
-                entity.prevYaw     = origPrevYaw;
-                entity.prevPitch   = origPrevPit;
-                entity.headYaw     = origHeadYaw;
-                entity.prevHeadYaw = origPrevHY;
-            } catch (Exception ex) {
-                drawSilhouette(ctx, pBoxX, pBoxY, pBoxW, pBoxH);
-            }
+            // drawEntity(context, x1, y1, x2, y2, scale, yOffset, mouseX, mouseY, entity)
+            // We pass 0,0 for mouse so the head doesn't track — it stays at the yaw we set
+            InventoryScreen.drawEntity(ctx,
+                    pX + 4, pY + 4, pX + pW - 4, pY + pH - 4,
+                    60,          // scale (bigger = zoomed in)
+                    0.0625f,     // vertical offset
+                    0f, 0f,      // no mouse-based head tracking
+                    player);
+
+            // Restore rotation
+            player.bodyYaw      = origBodyYaw;
+            player.setYaw(origYaw);
+            player.setPitch(origPitch);
+            player.prevBodyYaw  = origPrevBY;
+            player.prevYaw      = origPrevYaw;
+            player.prevPitch    = origPrevPitch;
+            player.headYaw      = origHeadYaw;
+            player.prevHeadYaw  = origPrevHY;
+
         } else {
-            // Main menu: no player entity — draw animated silhouette
-            drawSilhouette(ctx, pBoxX, pBoxY, pBoxW, pBoxH);
+            // Main menu — no player entity exists yet
+            ctx.drawCenteredTextWithShadow(this.textRenderer,
+                    "✦", pX + pW / 2, pY + pH / 2 - 18, 0xFF6D28D9);
+            ctx.drawCenteredTextWithShadow(this.textRenderer,
+                    "Preview available", pX + pW / 2, pY + pH / 2, 0xFF7755AA);
+            ctx.drawCenteredTextWithShadow(this.textRenderer,
+                    "in-game only", pX + pW / 2, pY + pH / 2 + 14, 0xFF443355);
         }
 
         // Drag hint
-        if (pBoxHov) {
-            ctx.drawCenteredTextWithShadow(this.textRenderer, "✦ Drag to rotate ✦",
-                    pBoxX + pBoxW / 2, pBoxY + pBoxH - 16, 0x99D8B4FE);
-        } else {
-            ctx.drawCenteredTextWithShadow(this.textRenderer, "Drag to rotate",
-                    pBoxX + pBoxW / 2, pBoxY + pBoxH - 16, 0x44A855F7);
+        boolean pBoxHov = mx >= pX && mx <= pX + pW && my >= pY && my <= pY + pH;
+        if (pBoxHov && player != null) {
+            ctx.drawCenteredTextWithShadow(this.textRenderer, "drag to rotate",
+                    pX + pW / 2, pY + pH - 14, 0x88D8B4FE);
         }
 
-        // Controls
-        int ctrlY = panelY + panelH - 82;
-        boolean rstHov = mx >= rightX + 12 && mx <= rightX + 88 && my >= ctrlY && my <= ctrlY + 20;
-        VeloraRenderUtil.drawPillButton(ctx, rightX + 12, ctrlY, 76, 20, "⟲ Reset", rstHov, 0xFF3A3A5A, this.textRenderer);
+        // ── Controls ─────────────────────────────────────────────────────────
+        int ctrlY = panelY + panelH - 76;
+        // Reset
+        boolean rstHov = mx >= rightX + 8 && mx <= rightX + 80 && my >= ctrlY && my <= ctrlY + 18;
+        ctx.fill(rightX + 8, ctrlY, rightX + 80, ctrlY + 18,
+                rstHov ? 0xFF21104A : 0xFF110822);
+        ctx.drawBorder(rightX + 8, ctrlY, 72, 18,
+                rstHov ? 0xFF8B21F7 : 0xFF3D1D6A);
+        ctx.drawCenteredTextWithShadow(this.textRenderer, "⟲ Reset",
+                rightX + 44, ctrlY + 5, rstHov ? 0xFFD8B4FE : 0xFF8855BB);
 
-        boolean spinHov = mx >= rightX + 100 && mx <= rightX + 188 && my >= ctrlY && my <= ctrlY + 20;
-        VeloraRenderUtil.drawPillButton(ctx, rightX + 100, ctrlY, 88, 20,
-                autoRotate ? "⏸ Pause" : "↻ Spin", spinHov,
-                autoRotate ? 0xFFD97706 : 0xFF7C3AED, this.textRenderer);
-
-        // Equip button
-        int eqBtnW = 160, eqBtnH = 26;
-        int eqBtnX = rightX + (previewW - eqBtnW) / 2;
-        int eqBtnY = panelY + panelH - 54;
-        boolean isEquipped = (selectedCosmetic == 0 && ModConfig.enableCape);
-        boolean eqHov = mx >= eqBtnX && mx <= eqBtnX + eqBtnW && my >= eqBtnY && my <= eqBtnY + eqBtnH;
-        VeloraRenderUtil.drawPillButton(ctx, eqBtnX, eqBtnY, eqBtnW, eqBtnH,
-                isEquipped ? "✕ Unequip" : "✓ Equip Cosmetic",
-                eqHov, isEquipped ? 0xFFDC2626 : 0xFF16A34A, this.textRenderer);
-
-        String[] cosNames = {"Velora Cape", "Vanilla Cape", "Velora Waves"};
+        // Auto spin
+        boolean spinHov = mx >= rightX + 86 && mx <= rightX + previewW - 8 && my >= ctrlY && my <= ctrlY + 18;
+        ctx.fill(rightX + 86, ctrlY, rightX + previewW - 8, ctrlY + 18,
+                autoSpin ? (spinHov ? 0xFF3A1F04 : 0xFF2A1402) : (spinHov ? 0xFF1E104A : 0xFF130828));
+        ctx.drawBorder(rightX + 86, ctrlY, previewW - 94, 18,
+                autoSpin ? 0xFFF59E0B : (spinHov ? 0xFF8B21F7 : 0xFF3D1D6A));
         ctx.drawCenteredTextWithShadow(this.textRenderer,
-                "Selected: " + cosNames[selectedCosmetic],
-                rightX + previewW / 2, panelY + panelH - 22, 0xFF8844AA);
-    }
+                autoSpin ? "⏸ Stop" : "↻ Spin",
+                rightX + 86 + (previewW - 94) / 2, ctrlY + 5,
+                autoSpin ? 0xFFFBBF24 : (spinHov ? 0xFFD8B4FE : 0xFF8855BB));
 
-    /**
-     * Pixel-art player silhouette with animated cape — shown when no world is loaded
-     * (i.e. from the main menu). The character sways slightly and the cape waves.
-     *
-     * Layout (all coords relative to pBoxX, pBoxY):
-     *   Head     : 10×10 px at center-top
-     *   Torso    : 10×14 px below head
-     *   Arms     : 4×12 px left/right of torso
-     *   Legs     : 5×14 px below torso
-     *   Cape     : drawn behind the torso with wave offset
-     */
-    private void drawSilhouette(DrawContext ctx, int pBoxX, int pBoxY, int pBoxW, int pBoxH) {
-        // Figure center
-        int figCX = pBoxX + pBoxW / 2;
-        int figTopY = pBoxY + 28;
+        // ── Equip button ─────────────────────────────────────────────────────
+        int eqY = panelY + panelH - 50;
+        boolean equipped = (selectedItem == 0 && ModConfig.enableCape);
+        boolean eqHov = mx >= rightX + 8 && mx <= rightX + previewW - 8 && my >= eqY && my <= eqY + 22;
+        ctx.fill(rightX + 8, eqY, rightX + previewW - 8, eqY + 22,
+                equipped ? (eqHov ? 0xFF3A0808 : 0xFF220606)
+                         : (eqHov ? 0xFF0A3A14 : 0xFF06200C));
+        ctx.drawBorder(rightX + 8, eqY, previewW - 16, 22,
+                equipped ? 0xFFEF4444 : 0xFF22C55E);
+        ctx.drawCenteredTextWithShadow(this.textRenderer,
+                equipped ? "✕  Unequip" : "✓  Equip Cape",
+                rightX + previewW / 2, eqY + 7,
+                equipped ? 0xFFFCA5A5 : 0xFF86EFAC);
 
-        // Sway: subtle left-right movement
-        float sway = (float) Math.sin(animTick * 0.04f) * 2f;
-        int sw = (int) sway;
-
-        // Color palette (same as default Steve/Alex skin tones for realism)
-        int skinColor  = 0xFFF5C998; // skin
-        int darkSkin   = 0xFFD4A76A; // shadow skin
-        int hairColor  = 0xFF3A2010; // hair/head top
-        int shirtColor = 0xFF4A6EA8; // shirt / torso
-        int pantColor  = 0xFF334466; // pants
-        int shoeColor  = 0xFF222233; // shoes
-
-        // ── HEAD ──────────────────────────────────────────────────────────────
-        int hx = figCX - 6 + sw, hy = figTopY;
-        ctx.fill(hx, hy, hx + 12, hy + 12, skinColor);         // face
-        ctx.fill(hx, hy, hx + 12, hy + 4,  hairColor);          // hair top
-        ctx.fill(hx, hy + 4, hx + 2, hy + 9, hairColor);        // hair left
-        ctx.fill(hx + 10, hy + 4, hx + 12, hy + 9, hairColor);  // hair right
-        ctx.fill(hx + 3, hy + 7, hx + 5, hy + 9, 0xFF3A3A3A);  // left eye
-        ctx.fill(hx + 7, hy + 7, hx + 9, hy + 9, 0xFF3A3A3A);  // right eye
-        ctx.fill(hx + 4, hy + 10, hx + 8, hy + 11, 0xFFAA6644); // mouth
-        ctx.drawBorder(hx, hy, 12, 12, 0x44000000);
-
-        // ── NECK ──────────────────────────────────────────────────────────────
-        ctx.fill(figCX - 2 + sw, figTopY + 12, figCX + 2 + sw, figTopY + 14, skinColor);
-
-        // ── CAPE (behind torso, drawn first so it appears behind) ─────────────
-        int torsoY = figTopY + 14;
-        drawSilhouetteCape(ctx, figCX + sw, torsoY, 14);
-
-        // ── TORSO ─────────────────────────────────────────────────────────────
-        ctx.fill(figCX - 6 + sw, torsoY, figCX + 6 + sw, torsoY + 14, shirtColor);
-        // Shirt buttons (faux detail)
-        ctx.fill(figCX + sw, torsoY + 3, figCX + sw + 1, torsoY + 12, 0x44FFFFFF);
-        ctx.drawBorder(figCX - 6 + sw, torsoY, 12, 14, 0x33000000);
-
-        // ── LEFT ARM ──────────────────────────────────────────────────────────
-        float armSwingL = (float) Math.sin(animTick * 0.04f) * 3f;
-        int lax = figCX - 10 + sw, lay = torsoY;
-        ctx.fill(lax, lay, lax + 4, lay + 12, shirtColor);
-        ctx.fill(lax, lay + 12, lax + 4, lay + 14, skinColor);   // wrist
-        ctx.drawBorder(lax, lay, 4, 14, 0x33000000);
-
-        // ── RIGHT ARM ─────────────────────────────────────────────────────────
-        int rax = figCX + 6 + sw, ray = torsoY;
-        ctx.fill(rax, ray, rax + 4, ray + 12, shirtColor);
-        ctx.fill(rax, ray + 12, rax + 4, ray + 14, skinColor);
-        ctx.drawBorder(rax, ray, 4, 14, 0x33000000);
-
-        // ── LEGS ──────────────────────────────────────────────────────────────
-        int legY = torsoY + 14;
-        float legSwingL = (float) Math.sin(animTick * 0.04f) * 2f;
-        float legSwingR = -legSwingL;
-
-        // Left leg
-        int llx = figCX - 6 + sw, lly = legY;
-        ctx.fill(llx, lly, llx + 5, lly + 12, pantColor);
-        ctx.fill(llx, lly + 12, llx + 5, lly + 14, shoeColor);
-        ctx.drawBorder(llx, lly, 5, 14, 0x33000000);
-
-        // Right leg
-        int rlx = figCX + 1 + sw, rly = legY;
-        ctx.fill(rlx, rly, rlx + 5, rly + 12, pantColor);
-        ctx.fill(rlx, rly + 12, rlx + 5, rly + 14, shoeColor);
-        ctx.drawBorder(rlx, rly, 5, 14, 0x33000000);
-
-        // ── SHADOW ────────────────────────────────────────────────────────────
-        int shadowY = legY + 14 + 2;
-        for (int i = -10; i <= 10; i++) {
-            int alpha = (int) (50 * (1f - Math.abs(i) / 11f));
-            ctx.fill(figCX + i + sw, shadowY, figCX + i + sw + 1, shadowY + 3,
-                    (alpha << 24) | 0x00A855F7);
-        }
-    }
-
-    /**
-     * Draws a waving cape behind the player silhouette.
-     * The cape waves sinusoidally — simulates fabric in wind.
-     */
-    private void drawSilhouetteCape(DrawContext ctx, int figCX, int torsoY, int torsoH) {
-        int[] capeColors = {0xFF8B3CE8, 0xFF2563EB, 0xFF059669};
-        int capeColor = capeColors[selectedCosmetic];
-        int capeW = 10, capeH = torsoH + 10;
-
-        // Cape hangs from shoulders, 1px behind torso center
-        int capeX = figCX - capeW / 2 - 1;
-        int capeY = torsoY;
-
-        // Wave columns — each column offset by sin to make it flow
-        for (int col = 0; col < capeW; col++) {
-            float wave = (float) Math.sin(animTick * 0.06f + col * 0.4f) * 2f;
-            int colX = capeX + col;
-            for (int row = 0; row < capeH; row++) {
-                // Taper bottom of cape (gets narrower)
-                int taper = (row * 3) / (capeH * 2);
-                if (col < taper || col >= capeW - taper) continue;
-
-                float t = (float) row / capeH;
-                int alpha = (int) (200 * (1f - t * 0.3f));
-                int finalColor = (alpha << 24) | (capeColor & 0x00FFFFFF);
-                ctx.fill(colX + (int) wave, capeY + row, colX + (int) wave + 1, capeY + row + 1, finalColor);
-            }
-        }
-
-        // Cape border outline
-        ctx.drawBorder(capeX, capeY, capeW, capeH - 2, (capeColor & 0x00FFFFFF) | 0x99000000);
-
-        // Velora pattern on cape
-        if (selectedCosmetic == 0) {
-            // Small V in purple lighter
-            int pv = 0x77FFFFFF;
-            int midX = figCX - 1, midY = torsoY + 6;
-            for (int i = 0; i < 4; i++) {
-                ctx.fill(midX - 3 + i, midY + i, midX - 3 + i + 1, midY + i + 1, pv);
-                ctx.fill(midX + 3 - i, midY + i, midX + 3 - i + 1, midY + i + 1, pv);
-            }
-        }
+        // Selected name
+        ctx.drawCenteredTextWithShadow(this.textRenderer,
+                COS_NAMES[selectedItem],
+                rightX + previewW / 2, panelY + panelH - 18, 0xFF7744AA);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // SETTINGS MODAL
+    // OPTIONS MODAL
     // ══════════════════════════════════════════════════════════════════════════
-    private void drawSettingsModal(DrawContext ctx, int mx, int my, int cx, int cy) {
-        int modalW = 360, modalH = 220;
-        int modalX = cx - modalW / 2, modalY = cy - modalH / 2;
-        ctx.fill(modalX, modalY, modalX + modalW, modalY + modalH, 0xFF0E0E1E);
-        VeloraRenderUtil.drawGlowBorder(ctx, modalX, modalY, modalW, modalH, 0x88A855F7, 4);
-        ctx.drawBorder(modalX, modalY, modalW, modalH, 0xFFA855F7);
-        ctx.drawText(this.textRenderer, "⚙  CAPE & PHYSICS OPTIONS", modalX + 16, modalY + 14, 0xFFFFFFFF, true);
+    private void drawOptionsModal(DrawContext ctx, int mx, int my) {
+        int mW = 360, mH = 200;
+        int mX = (this.width - mW) / 2, mY = (this.height - mH) / 2;
 
-        int mRowY = modalY + 42, mRowH = 32;
-        renderModalToggle(ctx, mx, my, modalX + 16, mRowY,      modalW - 32, mRowH, "Cloth Cape Physics (Wavey Capes)", ModConfig.enableCapePhysics);
-        renderModalToggle(ctx, mx, my, modalX + 16, mRowY + 38, modalW - 32, mRowH, "Override Account / Vanilla Capes", ModConfig.overrideDefaultCape);
-        renderModalToggle(ctx, mx, my, modalX + 16, mRowY + 76, modalW - 32, mRowH, "Apply Cape to Local Player Only",  ModConfig.capeOnlyLocal);
+        ctx.fill(mX - 4, mY - 4, mX + mW + 4, mY + mH + 4, 0x88000000);
+        ctx.fill(mX, mY, mX + mW, mY + mH, 0xFF0D0D1E);
+        ctx.drawBorder(mX, mY, mW, mH, 0xFF8B21F7);
+        ctx.drawText(this.textRenderer, "⚙  Cape & Physics Options",
+                mX + 14, mY + 12, 0xFFFFFFFF, true);
 
-        int closeM = modalX + modalW - 80, closeMY = modalY + modalH - 34;
-        boolean mHov = mx >= closeM && mx <= closeM + 68 && my >= closeMY && my <= closeMY + 22;
-        VeloraRenderUtil.drawPillButton(ctx, closeM, closeMY, 68, 22, "Done", mHov, 0xFF7E22CE, this.textRenderer);
+        drawModalRow(ctx, mx, my, mX + 14, mY + 38,  mW - 28, "Cloth Physics (Wavey Capes)", ModConfig.enableCapePhysics);
+        drawModalRow(ctx, mx, my, mX + 14, mY + 74,  mW - 28, "Override Vanilla Capes",       ModConfig.overrideDefaultCape);
+        drawModalRow(ctx, mx, my, mX + 14, mY + 110, mW - 28, "Local Player Only",            ModConfig.capeOnlyLocal);
+
+        // Done
+        int doneX = mX + mW - 80, doneY = mY + mH - 32;
+        boolean dHov = mx >= doneX && mx <= doneX + 68 && my >= doneY && my <= doneY + 22;
+        ctx.fill(doneX, doneY, doneX + 68, doneY + 22, dHov ? 0xFF21104A : 0xFF130828);
+        ctx.drawBorder(doneX, doneY, 68, 22, dHov ? 0xFF8B21F7 : 0xFF3D1D6A);
+        ctx.drawCenteredTextWithShadow(this.textRenderer, "Done",
+                doneX + 34, doneY + 7, dHov ? 0xFFD8B4FE : 0xFFAA88DD);
     }
 
-    private void renderModalToggle(DrawContext ctx, int mx, int my,
-                                   int x, int y, int w, int h, String title, boolean enabled) {
-        boolean hov = mx >= x && mx <= x + w && my >= y && my <= y + h;
-        ctx.fill(x, y, x + w, y + h, hov ? 0xFF1A1A30 : 0xFF121220);
-        ctx.drawBorder(x, y, w, h, 0xFF2A2A44);
-        ctx.drawText(this.textRenderer, title, x + 10, y + (h - 8) / 2, 0xFFFFFFFF, true);
-        VeloraRenderUtil.drawSwitch(ctx, x + w - 38, y + (h - 14) / 2, 28, 14, enabled, hov);
+    private void drawModalRow(DrawContext ctx, int mx, int my,
+                              int x, int y, int w, String label, boolean on) {
+        boolean hov = mx >= x && mx <= x + w && my >= y && my <= y + 28;
+        ctx.fill(x, y, x + w, y + 28, hov ? 0xFF16103A : 0xFF0D0D20);
+        ctx.drawBorder(x, y, w, 28, hov ? 0xFF3D1D6A : 0xFF1A1830);
+        ctx.drawText(this.textRenderer, label, x + 10, y + 10, 0xFFE8E0FF, false);
+
+        // Switch
+        int swX = x + w - 36, swY = y + 7;
+        ctx.fill(swX, swY, swX + 30, swY + 14, on ? 0xFF6D28D9 : 0xFF1E1A34);
+        ctx.drawBorder(swX, swY, 30, 14, on ? 0xFFA855F7 : 0xFF3D2A6A);
+        int kx = on ? swX + 16 : swX + 2;
+        ctx.fill(kx, swY + 2, kx + 12, swY + 12, 0xFFFFFFFF);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -554,76 +456,88 @@ public class CosmeticsLockerScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != 0) return super.mouseClicked(mouseX, mouseY, button);
 
-        int cx = this.width / 2, cy = this.height / 2;
-        int panelW = Math.min(720, this.width - 20);
-        int panelH = Math.min(430, this.height - 20);
-        int panelX = cx - panelW / 2, panelY = cy - panelH / 2;
+        int[] L = getLayout();
+        int panelX = L[0], panelY = L[1], sideW = L[2], previewW = L[3],
+            centerW = L[4], panelW = L[5], panelH = L[6];
+        int centerX = panelX + sideW + 6;
+        int rightX  = centerX + centerW + 6;
         int mx = (int) mouseX, my = (int) mouseY;
 
-        // ── Modal ─────────────────────────────────────────────────────────────
-        if (showSettingsModal) {
-            int modalW = 360, modalH = 220;
-            int modalX = cx - modalW / 2, modalY = cy - modalH / 2;
-            int mRowY = modalY + 42, mRowH = 32;
-            if (mx >= modalX + 16 && mx <= modalX + modalW - 16) {
-                if (my >= mRowY && my <= mRowY + mRowH)            { ModConfig.enableCapePhysics = !ModConfig.enableCapePhysics; ModConfig.saveConfig(); return true; }
-                if (my >= mRowY + 38 && my <= mRowY + 38 + mRowH) { ModConfig.overrideDefaultCape = !ModConfig.overrideDefaultCape; ModConfig.saveConfig(); return true; }
-                if (my >= mRowY + 76 && my <= mRowY + 76 + mRowH) { ModConfig.capeOnlyLocal = !ModConfig.capeOnlyLocal; ModConfig.saveConfig(); return true; }
+        // Options modal intercepts all clicks
+        if (showOptions) {
+            int mW = 360, mH = 200, mX = (this.width - mW) / 2, mY = (this.height - mH) / 2;
+            int mRowH = 28;
+            if (mx >= mX + 14 && mx <= mX + mW - 14) {
+                if (my >= mY + 38  && my <= mY + 38  + mRowH) { ModConfig.enableCapePhysics    = !ModConfig.enableCapePhysics;    ModConfig.saveConfig(); return true; }
+                if (my >= mY + 74  && my <= mY + 74  + mRowH) { ModConfig.overrideDefaultCape  = !ModConfig.overrideDefaultCape;  ModConfig.saveConfig(); return true; }
+                if (my >= mY + 110 && my <= mY + 110 + mRowH) { ModConfig.capeOnlyLocal        = !ModConfig.capeOnlyLocal;        ModConfig.saveConfig(); return true; }
             }
-            int closeM = modalX + modalW - 80, closeMY = modalY + modalH - 34;
-            if (mx >= closeM && mx <= closeM + 68 && my >= closeMY && my <= closeMY + 22) { showSettingsModal = false; return true; }
+            if (mx >= mX + mW - 80 && mx <= mX + mW - 12 && my >= mY + mH - 32 && my <= mY + mH - 10) {
+                showOptions = false; return true;
+            }
             return true;
         }
 
-        // ── X close ───────────────────────────────────────────────────────────
-        if (mx >= panelX + panelW - 24 && mx <= panelX + panelW - 8 && my >= panelY + 6 && my <= panelY + 24) { this.close(); return true; }
+        // Close
+        if (mx >= panelX + panelW - 22 && mx <= panelX + panelW - 8 && my >= panelY + 8 && my <= panelY + 26) {
+            this.close(); return true;
+        }
 
-        int sideW = 140, sideY = panelY + 44;
-        // ── Categories ────────────────────────────────────────────────────────
+        // Sidebar categories
         for (int i = 0; i < 7; i++) {
-            int ry = sideY + i * 28;
-            if (mx >= panelX + 6 && mx <= panelX + sideW - 6 && my >= ry && my <= ry + 24) { activeCategory = i; return true; }
+            int ry = panelY + 44 + i * 26;
+            if (mx >= panelX + 4 && mx <= panelX + sideW - 4 && my >= ry && my <= ry + 22) {
+                activeCategory = i; return true;
+            }
         }
-        // ── Settings btn ──────────────────────────────────────────────────────
-        int settBtnY = panelY + panelH - 34;
-        if (mx >= panelX + 8 && mx <= panelX + sideW - 8 && my >= settBtnY && my <= settBtnY + 24) { showSettingsModal = true; return true; }
+        // Options btn
+        int opY = panelY + panelH - 30;
+        if (mx >= panelX + 6 && mx <= panelX + sideW - 6 && my >= opY && my <= opY + 22) {
+            showOptions = true; return true;
+        }
 
-        // ── Cosmetic cards ────────────────────────────────────────────────────
-        int previewW = 200, centerW = panelW - sideW - previewW - 12;
-        int centerX = panelX + sideW + 6;
-        int gridY = panelY + 74, cardW = 86, cardH = 114, gap = 8;
-        for (int i = 0; i < 3; i++) {
+        // Cosmetic cards
+        int gridY = panelY + 70;
+        int cardW = 88, cardH = 118, gap = 8;
+        for (int i = 0; i < COS_NAMES.length; i++) {
             int col = i % 3, row = i / 3;
-            int cardX = centerX + 10 + col * (cardW + gap);
+            int cardX = centerX + 8 + col * (cardW + gap);
             int cardY = gridY + row * (cardH + gap);
-            if (mx >= cardX && mx <= cardX + cardW && my >= cardY && my <= cardY + cardH) { selectedCosmetic = i; return true; }
+            if (mx >= cardX && mx <= cardX + cardW && my >= cardY && my <= cardY + cardH) {
+                selectedItem = i; return true;
+            }
         }
 
-        // ── Preview box drag ─────────────────────────────────────────────────
-        int rightX  = centerX + centerW + 6;
-        int pBoxW = 176, pBoxH = 240;
-        int pBoxX = rightX + (previewW - pBoxW) / 2, pBoxY = panelY + 58;
-        if (mx >= pBoxX && mx <= pBoxX + pBoxW && my >= pBoxY && my <= pBoxY + pBoxH) {
-            isDraggingPreview = true; lastMouseX = mouseX; lastMouseY = mouseY; return true;
-        }
-
-        // ── Env tabs ──────────────────────────────────────────────────────────
+        // Env tabs
         int envW = previewW / 4;
         for (int i = 0; i < 4; i++) {
             int ex = rightX + i * envW;
-            if (mx >= ex && mx <= ex + envW && my >= panelY + 36 && my <= panelY + 54) { activeEnv = i; return true; }
+            if (mx >= ex && mx <= ex + envW && my >= panelY + 36 && my <= panelY + 52) {
+                activeEnv = i; return true;
+            }
         }
 
-        // ── Controls ─────────────────────────────────────────────────────────
-        int ctrlY = panelY + panelH - 82;
-        if (mx >= rightX + 12 && mx <= rightX + 88 && my >= ctrlY && my <= ctrlY + 20) { previewYaw = 200f; previewPitch = -5f; autoRotate = false; return true; }
-        if (mx >= rightX + 100 && mx <= rightX + 188 && my >= ctrlY && my <= ctrlY + 20) { autoRotate = !autoRotate; return true; }
+        // Drag on preview box
+        int pW = previewW - 16, pH = 220;
+        int pX = rightX + 8, pY = panelY + 56;
+        if (mx >= pX && mx <= pX + pW && my >= pY && my <= pY + pH) {
+            dragging = true; return true;
+        }
 
-        // ── Equip ─────────────────────────────────────────────────────────────
-        int eqBtnW = 160, eqBtnH = 26;
-        int eqBtnX = rightX + (previewW - eqBtnW) / 2, eqBtnY = panelY + panelH - 54;
-        if (mx >= eqBtnX && mx <= eqBtnX + eqBtnW && my >= eqBtnY && my <= eqBtnY + eqBtnH) {
-            if (selectedCosmetic == 0) { ModConfig.enableCape = !ModConfig.enableCape; ModConfig.saveConfig(); }
+        // Reset
+        int ctrlY = panelY + panelH - 76;
+        if (mx >= rightX + 8 && mx <= rightX + 80 && my >= ctrlY && my <= ctrlY + 18) {
+            yaw = 210f; pitch = -5f; autoSpin = false; return true;
+        }
+        // Spin toggle
+        if (mx >= rightX + 86 && mx <= rightX + previewW - 8 && my >= ctrlY && my <= ctrlY + 18) {
+            autoSpin = !autoSpin; return true;
+        }
+
+        // Equip
+        int eqY = panelY + panelH - 50;
+        if (mx >= rightX + 8 && mx <= rightX + previewW - 8 && my >= eqY && my <= eqY + 22) {
+            if (selectedItem == 0) { ModConfig.enableCape = !ModConfig.enableCape; ModConfig.saveConfig(); }
             return true;
         }
 
@@ -632,15 +546,15 @@ public class CosmeticsLockerScreen extends Screen {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (button == 0) isDraggingPreview = false;
+        if (button == 0) dragging = false;
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
-        if (isDraggingPreview && button == 0) {
-            previewYaw   = (previewYaw + (float) dx * 1.8f) % 360f;
-            previewPitch = Math.max(-50f, Math.min(50f, previewPitch + (float) dy * 1.5f));
+        if (dragging && button == 0 && client != null && client.player != null) {
+            yaw   = (yaw + (float) dx * 2f) % 360f;
+            pitch = Math.max(-60f, Math.min(60f, pitch + (float) dy * 1.5f));
             return true;
         }
         return super.mouseDragged(mouseX, mouseY, button, dx, dy);
