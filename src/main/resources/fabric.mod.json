@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "fpsdisplay",
+  "version": "${version}",
+  "name": "Velora Client",
+  "description": "Velora Client - Next-Gen Client Suite by ItsRealRishi!",
+  "authors": [
+    "ItsRealRishi"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.example.fpsdisplay.client.FpsDisplayClient"
+    ]
+  },
+  "mixins": [
+    "fpsdisplay.mixins.json"
+  ],
+  "accessWidener": "fpsdisplay.accesswidener",
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.4",
+    "java": ">=21"
+  }
+}

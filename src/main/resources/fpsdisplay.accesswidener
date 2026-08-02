@@ -1,0 +1,5 @@
+accessWidener   v2   named
+
+# Allow Camera yaw/pitch fields for FreeLook @Shadow write
+accessible  field   net/minecraft/client/render/Camera  pitch  F
+accessible  field   net/minecraft/client/render/Camera  yaw  F

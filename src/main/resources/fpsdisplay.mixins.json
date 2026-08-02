@@ -1,0 +1,22 @@
+{
+  "required": true,
+  "package": "com.example.fpsdisplay.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+  ],
+  "client": [
+    "GameRendererMixin",
+    "MouseMixin",
+    "LightmapTextureManagerMixin",
+    "SimpleOptionMixin",
+    "WorldRendererMixin",
+    "AbstractClientPlayerEntityMixin",
+    "PlayerEntityMixin",
+    "TitleScreenMixin",
+    "CameraMixin",
+    "EntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
