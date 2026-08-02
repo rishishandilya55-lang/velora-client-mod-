@@ -1,38 +1,43 @@
 package com.example.fpsdisplay.mixin;
 
 import com.example.fpsdisplay.config.ModConfig;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.LightmapTextureManager;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImageBackedTexture;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Fullbright implementation for Minecraft 1.21.4.
- * Overrides lightmap texture updates to force maximum brightness (100% white) across all sky and block light levels.
+ * Fullbright for Minecraft 1.21.4.
+ *
+ * Instead of @Shadow-ing the NativeImage field (which was restructured in 1.21.4),
+ * we temporarily override the gamma option to 16.0 before LightmapTextureManager
+ * runs its update — making the entire lightmap compute at maximum brightness.
+ * When fullbright is turned off we restore the previous gamma value.
  */
 @Mixin(LightmapTextureManager.class)
 public class LightmapTextureManagerMixin {
 
-    @Shadow @Final private NativeImage image;
-    @Shadow @Final private NativeImageBackedTexture texture;
+    /** Stores the user's real gamma so we can restore it when fullbright is disabled. */
+    private double velora$savedGamma = -1.0;
 
-    @Inject(method = "update", at = @At("HEAD"), cancellable = true)
-    private void onUpdate(float delta, CallbackInfo ci) {
+    @Inject(method = "update", at = @At("HEAD"))
+    private void velora$onUpdateHead(float delta, CallbackInfo ci) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.options == null) return;
+
         if (ModConfig.showFullbright) {
-            for (int b = 0; b < 16; b++) {
-                for (int s = 0; s < 16; s++) {
-                    this.image.setColorArgb(s, b, 0xFFFFFFFF);
-                }
+            // First time enabling: remember the real gamma
+            if (velora$savedGamma < 0) {
+                velora$savedGamma = client.options.getGamma().getValue();
             }
-            this.texture.upload();
-            ci.cancel();
+            // Force gamma to max so every lightmap pixel renders at full brightness
+            client.options.getGamma().setValue(16.0);
+        } else if (velora$savedGamma >= 0) {
+            // Fullbright just turned off — restore the saved gamma
+            client.options.getGamma().setValue(velora$savedGamma);
+            velora$savedGamma = -1.0;
         }
     }
 }
-
-
