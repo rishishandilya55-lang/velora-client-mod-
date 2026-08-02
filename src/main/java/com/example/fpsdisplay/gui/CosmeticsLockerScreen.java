@@ -10,28 +10,23 @@ import net.minecraft.text.Text;
 
 /**
  * Velora Cosmetics Locker.
- *
- * Right-panel 3D preview uses InventoryScreen.drawEntity() — the SAME call
- * Minecraft uses for the inventory screen — which renders the full player model
- * with skin, cape, and all equipped items at full 3D quality.
- *
- * Works in-game only (no player entity exists on main menu).
- * From the main menu a clean "Launch a world to preview" message is shown.
+ * Features 360° interactive 3D player model rotation, favorite toggling,
+ * environment backdrops, and instant equip/unequip for all capes.
  */
 public class CosmeticsLockerScreen extends Screen {
 
     // State
-    private int activeCategory  = 0;
+    private int activeCategory  = 0; // 0=All, 1=Favorites, 2=Capes, 3=Hats, 4=Face, 5=Wings, 6=Aura
     private int activeEnv       = 0;
     private boolean showOptions = false;
-    private int selectedItem    = 0;
+    private static int selectedItem = 0;
     private String searchQuery  = "";
     private TextFieldWidget searchBox;
 
     // Preview rotation (drag-to-rotate)
     private static boolean isLockerOpen = false;
-    private float yaw   = 210f; // start showing the back so cape is visible
-    private float pitch = -5f;
+    private float yaw   = 180f; // start facing backward so cape is directly visible
+    private float pitch = 0f;
     private boolean dragging = false;
     private boolean autoSpin = false;
     private float animTick = 0f;
@@ -47,13 +42,16 @@ public class CosmeticsLockerScreen extends Screen {
 
     public static boolean isPreviewingCape() { return isLockerOpen; }
 
-    // ──────────────────────────────────────────────────────────────────────────
+    public static int getPreviewingCapeIndex() {
+        return isLockerOpen ? selectedItem : -1;
+    }
+
     @Override
     protected void init() {
         super.init();
         isLockerOpen = true;
-        int layout[] = getLayout();
-        int centerX = layout[0] + layout[2] + 6; // panelX + sideW + gap
+        int[] layout = getLayout();
+        int centerX = layout[0] + layout[2] + 6;
         int centerW = layout[4];
         int panelY  = layout[1];
         searchBox = new TextFieldWidget(this.textRenderer,
@@ -67,7 +65,6 @@ public class CosmeticsLockerScreen extends Screen {
     @Override
     public void close() { isLockerOpen = false; super.close(); }
 
-    // Returns [panelX, panelY, sideW, previewW, centerW, panelW, panelH]
     private int[] getLayout() {
         int panelW   = Math.min(760, this.width  - 20);
         int panelH   = Math.min(440, this.height - 20);
@@ -89,7 +86,7 @@ public class CosmeticsLockerScreen extends Screen {
     public void render(DrawContext ctx, int mx, int my, float delta) {
         renderBackground(ctx, mx, my, delta);
         animTick += delta;
-        if (autoSpin) yaw = (yaw + delta * 1.5f) % 360f;
+        if (autoSpin) yaw = (yaw + delta * 1.8f) % 360f;
 
         int[] L   = getLayout();
         int panelX = L[0], panelY = L[1], sideW = L[2], previewW = L[3],
@@ -97,16 +94,16 @@ public class CosmeticsLockerScreen extends Screen {
         int centerX = panelX + sideW + 6;
         int rightX  = centerX + centerW + 6;
 
-        // ── Outer panel ──────────────────────────────────────────────────────
+        // Outer panel
         ctx.fill(panelX + 3, panelY + 3, panelX + panelW + 3, panelY + panelH + 3, 0x55000000);
         ctx.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xFF0D0D1E);
         ctx.drawBorder(panelX, panelY, panelW, panelH, 0xFF8B21F7);
         ctx.drawBorder(panelX + 1, panelY + 1, panelW - 2, panelH - 2, 0x334C1D95);
 
-        // ── Title bar ─────────────────────────────────────────────────────────
+        // Title bar
         ctx.fill(panelX, panelY, panelX + panelW, panelY + 36, 0xFF08081A);
         ctx.fill(panelX, panelY + 35, panelX + panelW, panelY + 36, 0xFF7C3AED);
-        ctx.drawText(this.textRenderer, "✦  VELORA COSMETICS", panelX + 14, panelY + 13, 0xFFFFFFFF, true);
+        ctx.drawText(this.textRenderer, "✦  VELORA COSMETICS LOCKER", panelX + 14, panelY + 13, 0xFFFFFFFF, true);
 
         // X close
         int xbX = panelX + panelW - 22, xbY = panelY + 10;
@@ -158,42 +155,52 @@ public class CosmeticsLockerScreen extends Screen {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // CENTER GRID — cosmetic item cards with proper cape thumbnails
+    // CENTER GRID
     // ══════════════════════════════════════════════════════════════════════════
     private void drawCenterGrid(DrawContext ctx, int mx, int my,
                                 int panelX, int panelY, int panelH,
                                 int cx, int cw) {
         ctx.fill(cx, panelY + 36, cx + cw, panelY + panelH, 0xFF0C0C1E);
 
-        // Search box
         if (searchBox != null) searchBox.render(ctx, mx, my, 0f);
 
-        // Grid
         int gridY = panelY + 70;
         int cardW = 88, cardH = 118, gap = 8;
+        int cardIndex = 0;
 
         for (int i = 0; i < COS_NAMES.length; i++) {
+            // Category filter: Favorites (1)
+            if (activeCategory == 1 && (ModConfig.favoriteCosmetics == null || !ModConfig.favoriteCosmetics[i])) {
+                continue;
+            }
+            // Category filter: Capes (2)
+            if (activeCategory >= 3) {
+                // Hats, Face, Wings, Aura - currently empty
+                continue;
+            }
             if (!searchQuery.isEmpty() && !COS_NAMES[i].toLowerCase().contains(searchQuery)) continue;
 
-            int col = i % 3, row = i / 3;
+            int col = cardIndex % 3, row = cardIndex / 3;
             int cardX = cx + 8 + col * (cardW + gap);
             int cardY = gridY + row * (cardH + gap);
 
             boolean sel = (selectedItem == i);
             boolean hov = mx >= cardX && mx <= cardX + cardW && my >= cardY && my <= cardY + cardH;
 
-            // Card
+            // Card body
             ctx.fill(cardX, cardY, cardX + cardW, cardY + cardH,
                     sel ? 0xFF1E1040 : (hov ? 0xFF16102C : 0xFF100E20));
             ctx.drawBorder(cardX, cardY, cardW, cardH,
                     sel ? 0xFF8B21F7 : (hov ? 0xFF4C2880 : 0xFF221A40));
             if (sel) ctx.fill(cardX, cardY, cardX + cardW, cardY + 2, 0xFF4ADE80);
 
-            // Star
-            ctx.drawText(this.textRenderer, "★", cardX + 4, cardY + 4,
-                    i == 0 ? 0xFFFBBF24 : 0x33AAAAAA, false);
+            // Favorite star (interactive button)
+            boolean isFav = (ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics[i]);
+            boolean starHov = mx >= cardX + 2 && mx <= cardX + 18 && my >= cardY + 2 && my <= cardY + 18;
+            int starColor = isFav ? 0xFFFBBF24 : (starHov ? 0xFFD8B4FE : 0x44AAAAAA);
+            ctx.drawText(this.textRenderer, "★", cardX + 5, cardY + 5, starColor, false);
 
-            // Cape thumbnail (proper shaped preview)
+            // Cape thumbnail
             drawCapeThumbnail(ctx, cardX, cardY + 16, cardW, COS_COLORS[i], i);
 
             // Name & type
@@ -201,19 +208,16 @@ public class CosmeticsLockerScreen extends Screen {
                     cardX + cardW / 2, cardY + 94, 0xFFFFFFFF);
             ctx.drawCenteredTextWithShadow(this.textRenderer, COS_TYPES[i],
                     cardX + cardW / 2, cardY + 106, 0xFF7755AA);
+
+            cardIndex++;
         }
     }
 
-    /**
-     * Draws a shaped cape thumbnail — looks like an actual cape hanging,
-     * with gradient, pattern, and clasp detail.
-     */
     private void drawCapeThumbnail(DrawContext ctx, int cx, int cy, int cw, int color, int idx) {
         int capeW = 52, capeH = 64;
         int x = cx + (cw - capeW) / 2;
         int y = cy;
 
-        // Gradient body (brighter top, fades at bottom)
         for (int row = 0; row < capeH; row++) {
             float t = (float) row / capeH;
             int alpha = (int) (255 * (1f - t * 0.45f));
@@ -221,38 +225,33 @@ public class CosmeticsLockerScreen extends Screen {
             ctx.fill(x, y + row, x + capeW, y + row + 1, c);
         }
 
-        // Border
         ctx.drawBorder(x, y, capeW, capeH, color);
 
-        // Horizontal fabric lines
         for (int r = 1; r < 4; r++) {
             int ly = y + r * (capeH / 4);
             ctx.fill(x + 2, ly, x + capeW - 2, ly + 1, 0x33FFFFFF);
         }
 
-        // Top fold shadow
         ctx.fill(x, y, x + capeW, y + 5, 0x44000000);
 
-        // Clasp at top center
         int clipW = 12;
         ctx.fill(x + (capeW - clipW) / 2, y - 4, x + (capeW + clipW) / 2, y + 1, 0xFF888888);
         ctx.drawBorder(x + (capeW - clipW) / 2, y - 4, clipW, 5, 0xFFCCCCCC);
 
-        // Pattern per cape
         switch (idx) {
-            case 0 -> { // Velora: V logo
+            case 0 -> {
                 int w = 0x88FFFFFF, mx2 = x + capeW / 2, my2 = y + 22;
                 for (int i = 0; i < 8; i++) {
                     ctx.fill(mx2 - 8 + i, my2 + i, mx2 - 8 + i + 2, my2 + i + 2, w);
                     ctx.fill(mx2 + 8 - i - 1, my2 + i, mx2 + 8 - i + 1, my2 + i + 2, w);
                 }
             }
-            case 1 -> { // Classic: thin cross
+            case 1 -> {
                 int w = 0x66FFFFFF, mx2 = x + capeW / 2, my2 = y + capeH / 2;
                 ctx.fill(mx2 - 10, my2 - 1, mx2 + 10, my2 + 1, w);
                 ctx.fill(mx2 - 1, my2 - 10, mx2 + 1, my2 + 10, w);
             }
-            case 2 -> { // Wave: 3 wavy lines
+            case 2 -> {
                 for (int row = 0; row < 3; row++) {
                     int by = y + 14 + row * 16;
                     for (int px = 2; px < capeW - 2; px += 3) {
@@ -265,7 +264,7 @@ public class CosmeticsLockerScreen extends Screen {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // RIGHT PREVIEW PANEL — uses real InventoryScreen.drawEntity()
+    // RIGHT PREVIEW PANEL (360° Rotating Player Model)
     // ══════════════════════════════════════════════════════════════════════════
     private void drawPreviewPanel(DrawContext ctx, int mx, int my,
                                   int panelX, int panelY, int panelH,
@@ -273,7 +272,7 @@ public class CosmeticsLockerScreen extends Screen {
         ctx.fill(rightX, panelY + 36, rightX + previewW, panelY + panelH, 0xFF0C0C1A);
         ctx.fill(rightX, panelY + 36, rightX + 1, panelY + panelH, 0xFF3D1D6A);
 
-        // ── Env tabs ──────────────────────────────────────────────────────────
+        // Env tabs
         String[] envs = {"Sun", "World", "Hell", "End"};
         int envW = previewW / 4;
         for (int i = 0; i < envs.length; i++) {
@@ -288,29 +287,24 @@ public class CosmeticsLockerScreen extends Screen {
                     sel ? 0xFFD8B4FE : (hov ? 0xFF8855BB : 0xFF443355));
         }
 
-        // ── 3D Preview viewport ───────────────────────────────────────────────
+        // 3D Preview viewport
         int pW = previewW - 16, pH = 220;
         int pX = rightX + 8, pY = panelY + 56;
 
-        // Viewport background — environment color hint
         int[] envBg = {0xFF0C0C1E, 0xFF081A0C, 0xFF1A0808, 0xFF0A0A0A};
         ctx.fill(pX, pY, pX + pW, pY + pH, envBg[activeEnv]);
 
-        // Grid floor lines (depth illusion)
         for (int gx = 0; gx <= pW; gx += 18)
             ctx.fill(pX + gx, pY, pX + gx + 1, pY + pH, 0x0AFFFFFF);
         for (int gy = 0; gy <= pH; gy += 18)
             ctx.fill(pX, pY + gy, pX + pW, pY + gy + 1, 0x0AFFFFFF);
 
-        // Viewport border + glow
         ctx.drawBorder(pX, pY, pW, pH, 0xFF5B21B6);
         ctx.drawBorder(pX - 1, pY - 1, pW + 2, pH + 2, 0x338B21F7);
 
-        // ── Player model or fallback ──────────────────────────────────────────
         LivingEntity player = (client != null) ? client.player : null;
         if (player != null) {
-            // ✅ REAL 3D player model with skin, cape, and items
-            // Save original rotation state
+            // Real 3D Player rendering
             float origBodyYaw   = player.bodyYaw;
             float origYaw       = player.getYaw();
             float origPitch     = player.getPitch();
@@ -320,7 +314,6 @@ public class CosmeticsLockerScreen extends Screen {
             float origHeadYaw   = player.headYaw;
             float origPrevHY    = player.prevHeadYaw;
 
-            // Set preview rotation
             player.bodyYaw      = yaw;
             player.setYaw(yaw);
             player.setPitch(pitch);
@@ -330,16 +323,16 @@ public class CosmeticsLockerScreen extends Screen {
             player.headYaw      = yaw;
             player.prevHeadYaw  = yaw;
 
-            // drawEntity(context, x1, y1, x2, y2, scale, yOffset, mouseX, mouseY, entity)
-            // We pass 0,0 for mouse so the head doesn't track — it stays at the yaw we set
+            // Calculate targetMouseX and targetMouseY to dynamically control yaw/pitch
+            float centerX = (pX + 4 + pX + pW - 4) / 2.0F;
+            float centerY = (pY + 4 + pY + pH - 4) / 2.0F - 30.0F;
+            float targetMouseX = centerX - (float)(Math.sin(Math.toRadians(yaw)) * 120.0F);
+            float targetMouseY = centerY - (float)(Math.sin(Math.toRadians(pitch)) * 120.0F);
+
             InventoryScreen.drawEntity(ctx,
                     pX + 4, pY + 4, pX + pW - 4, pY + pH - 4,
-                    60,          // scale (bigger = zoomed in)
-                    0.0625f,     // vertical offset
-                    0f, 0f,      // no mouse-based head tracking
-                    player);
+                    58, 0.0625f, targetMouseX, targetMouseY, player);
 
-            // Restore rotation
             player.bodyYaw      = origBodyYaw;
             player.setYaw(origYaw);
             player.setPitch(origPitch);
@@ -350,32 +343,25 @@ public class CosmeticsLockerScreen extends Screen {
             player.prevHeadYaw  = origPrevHY;
 
         } else {
-            // Main menu — no player entity exists yet
-            ctx.drawCenteredTextWithShadow(this.textRenderer,
-                    "✦", pX + pW / 2, pY + pH / 2 - 18, 0xFF6D28D9);
-            ctx.drawCenteredTextWithShadow(this.textRenderer,
-                    "Preview available", pX + pW / 2, pY + pH / 2, 0xFF7755AA);
-            ctx.drawCenteredTextWithShadow(this.textRenderer,
-                    "in-game only", pX + pW / 2, pY + pH / 2 + 14, 0xFF443355);
+            ctx.drawCenteredTextWithShadow(this.textRenderer, "✦", pX + pW / 2, pY + pH / 2 - 18, 0xFF6D28D9);
+            ctx.drawCenteredTextWithShadow(this.textRenderer, "Preview available", pX + pW / 2, pY + pH / 2, 0xFF7755AA);
+            ctx.drawCenteredTextWithShadow(this.textRenderer, "in-game only", pX + pW / 2, pY + pH / 2 + 14, 0xFF443355);
         }
 
-        // Drag hint
+        // Drag instruction hint
         boolean pBoxHov = mx >= pX && mx <= pX + pW && my >= pY && my <= pY + pH;
         if (pBoxHov && player != null) {
-            ctx.drawCenteredTextWithShadow(this.textRenderer, "drag to rotate",
+            ctx.drawCenteredTextWithShadow(this.textRenderer, "drag to rotate 360°",
                     pX + pW / 2, pY + pH - 14, 0x88D8B4FE);
         }
 
-        // ── Controls ─────────────────────────────────────────────────────────
+        // Controls
         int ctrlY = panelY + panelH - 76;
         // Reset
         boolean rstHov = mx >= rightX + 8 && mx <= rightX + 80 && my >= ctrlY && my <= ctrlY + 18;
-        ctx.fill(rightX + 8, ctrlY, rightX + 80, ctrlY + 18,
-                rstHov ? 0xFF21104A : 0xFF110822);
-        ctx.drawBorder(rightX + 8, ctrlY, 72, 18,
-                rstHov ? 0xFF8B21F7 : 0xFF3D1D6A);
-        ctx.drawCenteredTextWithShadow(this.textRenderer, "⟲ Reset",
-                rightX + 44, ctrlY + 5, rstHov ? 0xFFD8B4FE : 0xFF8855BB);
+        ctx.fill(rightX + 8, ctrlY, rightX + 80, ctrlY + 18, rstHov ? 0xFF21104A : 0xFF110822);
+        ctx.drawBorder(rightX + 8, ctrlY, 72, 18, rstHov ? 0xFF8B21F7 : 0xFF3D1D6A);
+        ctx.drawCenteredTextWithShadow(this.textRenderer, "⟲ Reset", rightX + 44, ctrlY + 5, rstHov ? 0xFFD8B4FE : 0xFF8855BB);
 
         // Auto spin
         boolean spinHov = mx >= rightX + 86 && mx <= rightX + previewW - 8 && my >= ctrlY && my <= ctrlY + 18;
@@ -383,28 +369,25 @@ public class CosmeticsLockerScreen extends Screen {
                 autoSpin ? (spinHov ? 0xFF3A1F04 : 0xFF2A1402) : (spinHov ? 0xFF1E104A : 0xFF130828));
         ctx.drawBorder(rightX + 86, ctrlY, previewW - 94, 18,
                 autoSpin ? 0xFFF59E0B : (spinHov ? 0xFF8B21F7 : 0xFF3D1D6A));
-        ctx.drawCenteredTextWithShadow(this.textRenderer,
-                autoSpin ? "⏸ Stop" : "↻ Spin",
-                rightX + 86 + (previewW - 94) / 2, ctrlY + 5,
-                autoSpin ? 0xFFFBBF24 : (spinHov ? 0xFFD8B4FE : 0xFF8855BB));
+        ctx.drawCenteredTextWithShadow(this.textRenderer, autoSpin ? "⏸ Stop" : "↻ Spin",
+                rightX + 86 + (previewW - 94) / 2, ctrlY + 5, autoSpin ? 0xFFFBBF24 : (spinHov ? 0xFFD8B4FE : 0xFF8855BB));
 
-        // ── Equip button ─────────────────────────────────────────────────────
+        // Equip / Unequip button for ANY selected cosmetic
         int eqY = panelY + panelH - 50;
-        boolean equipped = (selectedItem == 0 && ModConfig.enableCape);
+        boolean isCurrentItemEquipped = ModConfig.enableCape && (ModConfig.selectedCape == selectedItem);
         boolean eqHov = mx >= rightX + 8 && mx <= rightX + previewW - 8 && my >= eqY && my <= eqY + 22;
-        ctx.fill(rightX + 8, eqY, rightX + previewW - 8, eqY + 22,
-                equipped ? (eqHov ? 0xFF3A0808 : 0xFF220606)
-                         : (eqHov ? 0xFF0A3A14 : 0xFF06200C));
-        ctx.drawBorder(rightX + 8, eqY, previewW - 16, 22,
-                equipped ? 0xFFEF4444 : 0xFF22C55E);
-        ctx.drawCenteredTextWithShadow(this.textRenderer,
-                equipped ? "✕  Unequip" : "✓  Equip Cape",
-                rightX + previewW / 2, eqY + 7,
-                equipped ? 0xFFFCA5A5 : 0xFF86EFAC);
 
-        // Selected name
+        ctx.fill(rightX + 8, eqY, rightX + previewW - 8, eqY + 22,
+                isCurrentItemEquipped ? (eqHov ? 0xFF3A0808 : 0xFF220606) : (eqHov ? 0xFF0A3A14 : 0xFF06200C));
+        ctx.drawBorder(rightX + 8, eqY, previewW - 16, 22,
+                isCurrentItemEquipped ? 0xFFEF4444 : 0xFF22C55E);
         ctx.drawCenteredTextWithShadow(this.textRenderer,
-                COS_NAMES[selectedItem],
+                isCurrentItemEquipped ? "✕  Unequip" : "✓  Equip Cape",
+                rightX + previewW / 2, eqY + 7,
+                isCurrentItemEquipped ? 0xFFFCA5A5 : 0xFF86EFAC);
+
+        // Selected cosmetic title
+        ctx.drawCenteredTextWithShadow(this.textRenderer, COS_NAMES[selectedItem],
                 rightX + previewW / 2, panelY + panelH - 18, 0xFF7744AA);
     }
 
@@ -418,20 +401,17 @@ public class CosmeticsLockerScreen extends Screen {
         ctx.fill(mX - 4, mY - 4, mX + mW + 4, mY + mH + 4, 0x88000000);
         ctx.fill(mX, mY, mX + mW, mY + mH, 0xFF0D0D1E);
         ctx.drawBorder(mX, mY, mW, mH, 0xFF8B21F7);
-        ctx.drawText(this.textRenderer, "⚙  Cape & Physics Options",
-                mX + 14, mY + 12, 0xFFFFFFFF, true);
+        ctx.drawText(this.textRenderer, "⚙  Cape & Physics Options", mX + 14, mY + 12, 0xFFFFFFFF, true);
 
         drawModalRow(ctx, mx, my, mX + 14, mY + 38,  mW - 28, "Cloth Physics (Wavey Capes)", ModConfig.enableCapePhysics);
         drawModalRow(ctx, mx, my, mX + 14, mY + 74,  mW - 28, "Override Vanilla Capes",       ModConfig.overrideDefaultCape);
         drawModalRow(ctx, mx, my, mX + 14, mY + 110, mW - 28, "Local Player Only",            ModConfig.capeOnlyLocal);
 
-        // Done
         int doneX = mX + mW - 80, doneY = mY + mH - 32;
         boolean dHov = mx >= doneX && mx <= doneX + 68 && my >= doneY && my <= doneY + 22;
         ctx.fill(doneX, doneY, doneX + 68, doneY + 22, dHov ? 0xFF21104A : 0xFF130828);
         ctx.drawBorder(doneX, doneY, 68, 22, dHov ? 0xFF8B21F7 : 0xFF3D1D6A);
-        ctx.drawCenteredTextWithShadow(this.textRenderer, "Done",
-                doneX + 34, doneY + 7, dHov ? 0xFFD8B4FE : 0xFFAA88DD);
+        ctx.drawCenteredTextWithShadow(this.textRenderer, "Done", doneX + 34, doneY + 7, dHov ? 0xFFD8B4FE : 0xFFAA88DD);
     }
 
     private void drawModalRow(DrawContext ctx, int mx, int my,
@@ -441,7 +421,6 @@ public class CosmeticsLockerScreen extends Screen {
         ctx.drawBorder(x, y, w, 28, hov ? 0xFF3D1D6A : 0xFF1A1830);
         ctx.drawText(this.textRenderer, label, x + 10, y + 10, 0xFFE8E0FF, false);
 
-        // Switch
         int swX = x + w - 36, swY = y + 7;
         ctx.fill(swX, swY, swX + 30, swY + 14, on ? 0xFF6D28D9 : 0xFF1E1A34);
         ctx.drawBorder(swX, swY, 30, 14, on ? 0xFFA855F7 : 0xFF3D2A6A);
@@ -463,7 +442,7 @@ public class CosmeticsLockerScreen extends Screen {
         int rightX  = centerX + centerW + 6;
         int mx = (int) mouseX, my = (int) mouseY;
 
-        // Options modal intercepts all clicks
+        // Options modal clicks
         if (showOptions) {
             int mW = 360, mH = 200, mX = (this.width - mW) / 2, mY = (this.height - mH) / 2;
             int mRowH = 28;
@@ -478,7 +457,7 @@ public class CosmeticsLockerScreen extends Screen {
             return true;
         }
 
-        // Close
+        // Close button
         if (mx >= panelX + panelW - 22 && mx <= panelX + panelW - 8 && my >= panelY + 8 && my <= panelY + 26) {
             this.close(); return true;
         }
@@ -496,16 +475,37 @@ public class CosmeticsLockerScreen extends Screen {
             showOptions = true; return true;
         }
 
-        // Cosmetic cards
+        // Cosmetic cards & Star Favorite clicks
         int gridY = panelY + 70;
         int cardW = 88, cardH = 118, gap = 8;
+        int cardIndex = 0;
+
         for (int i = 0; i < COS_NAMES.length; i++) {
-            int col = i % 3, row = i / 3;
+            if (activeCategory == 1 && (ModConfig.favoriteCosmetics == null || !ModConfig.favoriteCosmetics[i])) continue;
+            if (activeCategory >= 3) continue;
+            if (!searchQuery.isEmpty() && !COS_NAMES[i].toLowerCase().contains(searchQuery)) continue;
+
+            int col = cardIndex % 3, row = cardIndex / 3;
             int cardX = centerX + 8 + col * (cardW + gap);
             int cardY = gridY + row * (cardH + gap);
-            if (mx >= cardX && mx <= cardX + cardW && my >= cardY && my <= cardY + cardH) {
-                selectedItem = i; return true;
+
+            // Favorite Star click
+            if (mx >= cardX + 2 && mx <= cardX + 22 && my >= cardY + 2 && my <= cardY + 22) {
+                if (ModConfig.favoriteCosmetics == null) {
+                    ModConfig.favoriteCosmetics = new boolean[]{true, false, false};
+                }
+                ModConfig.favoriteCosmetics[i] = !ModConfig.favoriteCosmetics[i];
+                ModConfig.saveConfig();
+                return true;
             }
+
+            // Card click -> Select cosmetic
+            if (mx >= cardX && mx <= cardX + cardW && my >= cardY && my <= cardY + cardH) {
+                selectedItem = i;
+                return true;
+            }
+
+            cardIndex++;
         }
 
         // Env tabs
@@ -517,27 +517,33 @@ public class CosmeticsLockerScreen extends Screen {
             }
         }
 
-        // Drag on preview box
+        // Preview Box Drag
         int pW = previewW - 16, pH = 220;
         int pX = rightX + 8, pY = panelY + 56;
         if (mx >= pX && mx <= pX + pW && my >= pY && my <= pY + pH) {
             dragging = true; return true;
         }
 
-        // Reset
+        // Reset button
         int ctrlY = panelY + panelH - 76;
         if (mx >= rightX + 8 && mx <= rightX + 80 && my >= ctrlY && my <= ctrlY + 18) {
-            yaw = 210f; pitch = -5f; autoSpin = false; return true;
+            yaw = 180f; pitch = 0f; autoSpin = false; return true;
         }
         // Spin toggle
         if (mx >= rightX + 86 && mx <= rightX + previewW - 8 && my >= ctrlY && my <= ctrlY + 18) {
             autoSpin = !autoSpin; return true;
         }
 
-        // Equip
+        // Equip / Unequip Button for ANY selected cosmetic
         int eqY = panelY + panelH - 50;
         if (mx >= rightX + 8 && mx <= rightX + previewW - 8 && my >= eqY && my <= eqY + 22) {
-            if (selectedItem == 0) { ModConfig.enableCape = !ModConfig.enableCape; ModConfig.saveConfig(); }
+            if (ModConfig.enableCape && ModConfig.selectedCape == selectedItem) {
+                ModConfig.enableCape = false;
+            } else {
+                ModConfig.enableCape = true;
+                ModConfig.selectedCape = selectedItem;
+            }
+            ModConfig.saveConfig();
             return true;
         }
 
@@ -552,8 +558,8 @@ public class CosmeticsLockerScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
-        if (dragging && button == 0 && client != null && client.player != null) {
-            yaw   = (yaw + (float) dx * 2f) % 360f;
+        if (dragging && button == 0) {
+            yaw   = (yaw + (float) dx * 2.2f) % 360f;
             pitch = Math.max(-60f, Math.min(60f, pitch + (float) dy * 1.5f));
             return true;
         }

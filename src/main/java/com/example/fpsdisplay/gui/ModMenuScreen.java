@@ -44,7 +44,6 @@ public class ModMenuScreen extends Screen {
         {"Fullbright",    "Visual",   "BRT",  0xFFFDE68A},
         {"No Hurt Cam",   "Visual",   "CAM",  0xFFF87171},
         {"Minimap",       "Visual",   "MAP",  0xFF93C5FD},
-        {"Capes Locker",  "Visual",   "CAPE", 0xFFE879F9},
     };
 
     public ModMenuScreen() {
@@ -349,7 +348,6 @@ public class ModMenuScreen extends Screen {
             case 13 -> ModConfig.showFullbright;
             case 14 -> ModConfig.showNoHurtCam;
             case 15 -> ModConfig.showMinimap;
-            case 16 -> ModConfig.enableCape;
             default -> false;
         };
     }
@@ -372,7 +370,6 @@ public class ModMenuScreen extends Screen {
             case 13 -> ModConfig.showFullbright    = !ModConfig.showFullbright;
             case 14 -> ModConfig.showNoHurtCam     = !ModConfig.showNoHurtCam;
             case 15 -> ModConfig.showMinimap       = !ModConfig.showMinimap;
-            case 16 -> { if (client != null) client.setScreen(new CosmeticsLockerScreen()); return; }
         }
         ModConfig.saveConfig();
     }

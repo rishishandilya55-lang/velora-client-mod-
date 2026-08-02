@@ -44,9 +44,11 @@ public class ModConfig {
 
     // Capes & Cape Physics
     public static boolean enableCape = true;
+    public static int selectedCape = 0; // 0 = Velora, 1 = Classic, 2 = Wave
     public static boolean enableCapePhysics = true;
     public static boolean capeOnlyLocal = true;
     public static boolean overrideDefaultCape = true;
+    public static boolean[] favoriteCosmetics = new boolean[]{true, false, false};
 
     // Toggleable Performance Optimizations (Client Settings)
     public static boolean optiFastMath = true;

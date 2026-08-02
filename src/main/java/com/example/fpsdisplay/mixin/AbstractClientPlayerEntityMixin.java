@@ -15,6 +15,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class AbstractClientPlayerEntityMixin {
 
     private static final Identifier VELORA_CAPE = Identifier.of("fpsdisplay", "textures/cape/velora_cape.png");
+    private static final Identifier CLASSIC_CAPE = Identifier.of("fpsdisplay", "textures/cape/classic_cape.png");
+    private static final Identifier WAVE_CAPE = Identifier.of("fpsdisplay", "textures/cape/wave_cape.png");
 
     @Inject(method = "getSkinTextures", at = @At("RETURN"), cancellable = true)
     private void injectVeloraCape(CallbackInfoReturnable<SkinTextures> cir) {
@@ -26,10 +28,20 @@ public abstract class AbstractClientPlayerEntityMixin {
             if (previewingCape || !ModConfig.capeOnlyLocal || isLocalPlayer) {
                 SkinTextures original = cir.getReturnValue();
                 if (original != null) {
+                    int capeChoice = CosmeticsLockerScreen.getPreviewingCapeIndex() >= 0
+                            ? CosmeticsLockerScreen.getPreviewingCapeIndex()
+                            : ModConfig.selectedCape;
+
+                    Identifier capeTexture = switch (capeChoice) {
+                        case 1 -> CLASSIC_CAPE;
+                        case 2 -> WAVE_CAPE;
+                        default -> VELORA_CAPE;
+                    };
+
                     cir.setReturnValue(new SkinTextures(
                         original.texture(),
                         original.textureUrl(),
-                        VELORA_CAPE,
+                        capeTexture,
                         original.elytraTexture(),
                         original.model(),
                         original.secure()
@@ -39,4 +51,3 @@ public abstract class AbstractClientPlayerEntityMixin {
         }
     }
 }
-
