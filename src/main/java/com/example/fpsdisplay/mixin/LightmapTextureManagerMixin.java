@@ -26,7 +26,7 @@ public class LightmapTextureManagerMixin {
         if (ModConfig.showFullbright) {
             for (int b = 0; b < 16; b++) {
                 for (int s = 0; s < 16; s++) {
-                    this.image.setColor(s, b, 0xFFFFFFFF);
+                    this.image.setColorArgb(s, b, 0xFFFFFFFF);
                 }
             }
             this.texture.upload();
