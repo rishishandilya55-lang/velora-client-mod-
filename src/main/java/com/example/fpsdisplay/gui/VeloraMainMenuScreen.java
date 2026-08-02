@@ -153,8 +153,7 @@ public class VeloraMainMenuScreen extends Screen {
         int logoX = cx - logoSize / 2;
         int logoY = cy - 130;
 
-        // Subtle glow behind logo
-        VeloraRenderUtil.drawGlowBorder(context, logoX - 4, logoY - 4, logoSize + 8, logoSize + 8, 0x44A855F7, 6);
+        // Logo — no glow, clean render
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         context.drawTexture(RenderLayer::getGuiTextured, LOGO, logoX, logoY, 0f, 0f, logoSize, logoSize, logoSize, logoSize);
 
