@@ -16,14 +16,15 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(Camera.class)
 public class CameraMixin {
 
-    @ModifyVariable(method = "setRotation", at = @At("HEAD"), ordinal = 0)
+    @ModifyVariable(method = "setRotation", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private float modifyYaw(float yaw) {
         return FreeLookClient.active ? FreeLookClient.cameraYaw : yaw;
     }
 
-    @ModifyVariable(method = "setRotation", at = @At("HEAD"), ordinal = 1)
+    @ModifyVariable(method = "setRotation", at = @At("HEAD"), argsOnly = true, ordinal = 1)
     private float modifyPitch(float pitch) {
         return FreeLookClient.active ? FreeLookClient.cameraPitch : pitch;
     }
+
 }
 

@@ -8,7 +8,6 @@
     "GameRendererMixin",
     "MouseMixin",
     "LightmapTextureManagerMixin",
-    "SimpleOptionMixin",
     "WorldRendererMixin",
     "AbstractClientPlayerEntityMixin",
     "PlayerEntityMixin",

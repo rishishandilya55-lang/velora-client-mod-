@@ -41,13 +41,5 @@ public class GameRendererMixin {
         }
     }
 
-    /**
-     * Handles Fullbright: Forces night vision brightness to 1.0f when Fullbright is active.
-     */
-    @Inject(method = "getNightVisionStrength", at = @At("HEAD"), cancellable = true)
-    private static void onGetNightVisionStrength(net.minecraft.entity.LivingEntity entity, float tickDelta, CallbackInfoReturnable<Float> cir) {
-        if (ModConfig.showFullbright) {
-            cir.setReturnValue(1.0f);
-        }
-    }
 }
+

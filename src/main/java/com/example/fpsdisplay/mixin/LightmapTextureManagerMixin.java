@@ -2,24 +2,37 @@ package com.example.fpsdisplay.mixin;
 
 import com.example.fpsdisplay.config.ModConfig;
 import net.minecraft.client.render.LightmapTextureManager;
-import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.NativeImageBackedTexture;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Fullbright implementation for Minecraft 1.21.4.
- * Overrides lightmap brightness calculations to return maximum brightness (1.0f).
+ * Overrides lightmap texture updates to force maximum brightness (100% white) across all sky and block light levels.
  */
 @Mixin(LightmapTextureManager.class)
 public class LightmapTextureManagerMixin {
 
-    @Inject(method = "getBrightness", at = @At("HEAD"), cancellable = true)
-    private static void onGetBrightness(DimensionType type, int lightLevel, CallbackInfoReturnable<Float> cir) {
+    @Shadow @Final private NativeImage image;
+    @Shadow @Final private NativeImageBackedTexture texture;
+
+    @Inject(method = "update", at = @At("HEAD"), cancellable = true)
+    private void onUpdate(float delta, CallbackInfo ci) {
         if (ModConfig.showFullbright) {
-            cir.setReturnValue(1.0f);
+            for (int b = 0; b < 16; b++) {
+                for (int s = 0; s < 16; s++) {
+                    this.image.setColor(s, b, 0xFFFFFFFF);
+                }
+            }
+            this.texture.upload();
+            ci.cancel();
         }
     }
 }
+
 
