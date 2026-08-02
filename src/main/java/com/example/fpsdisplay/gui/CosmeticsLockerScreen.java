@@ -10,8 +10,8 @@ import net.minecraft.text.Text;
 
 /**
  * Velora Cosmetics Locker.
- * Features 360° interactive 3D player model rotation, favorite toggling,
- * environment backdrops, and instant equip/unequip for all capes.
+ * Features 360° 3D player model preview starting at 180° (showing back capes & wings clearly),
+ * favorite toggling, and instant equip/unequip for all capes.
  */
 public class CosmeticsLockerScreen extends Screen {
 
@@ -23,9 +23,9 @@ public class CosmeticsLockerScreen extends Screen {
     private String searchQuery  = "";
     private TextFieldWidget searchBox;
 
-    // Preview rotation (drag-to-rotate)
+    // Preview rotation (yaw = 0 => 180° turned around so BACK of player faces viewer)
     private static boolean isLockerOpen = false;
-    private float yaw   = 180f; // start facing backward so cape is directly visible
+    private float yaw   = 0f;
     private float pitch = 0f;
     private boolean dragging = false;
     private boolean autoSpin = false;
@@ -169,15 +169,8 @@ public class CosmeticsLockerScreen extends Screen {
         int cardIndex = 0;
 
         for (int i = 0; i < COS_NAMES.length; i++) {
-            // Category filter: Favorites (1)
-            if (activeCategory == 1 && (ModConfig.favoriteCosmetics == null || !ModConfig.favoriteCosmetics[i])) {
-                continue;
-            }
-            // Category filter: Capes (2)
-            if (activeCategory >= 3) {
-                // Hats, Face, Wings, Aura - currently empty
-                continue;
-            }
+            if (activeCategory == 1 && (ModConfig.favoriteCosmetics == null || !ModConfig.favoriteCosmetics[i])) continue;
+            if (activeCategory >= 3) continue;
             if (!searchQuery.isEmpty() && !COS_NAMES[i].toLowerCase().contains(searchQuery)) continue;
 
             int col = cardIndex % 3, row = cardIndex / 3;
@@ -194,9 +187,9 @@ public class CosmeticsLockerScreen extends Screen {
                     sel ? 0xFF8B21F7 : (hov ? 0xFF4C2880 : 0xFF221A40));
             if (sel) ctx.fill(cardX, cardY, cardX + cardW, cardY + 2, 0xFF4ADE80);
 
-            // Favorite star (interactive button)
+            // Favorite star
             boolean isFav = (ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics[i]);
-            boolean starHov = mx >= cardX + 2 && mx <= cardX + 18 && my >= cardY + 2 && my <= cardY + 18;
+            boolean starHov = mx >= cardX + 2 && mx <= cardX + 22 && my >= cardY + 2 && my <= cardY + 22;
             int starColor = isFav ? 0xFFFBBF24 : (starHov ? 0xFFD8B4FE : 0x44AAAAAA);
             ctx.drawText(this.textRenderer, "★", cardX + 5, cardY + 5, starColor, false);
 
@@ -264,7 +257,7 @@ public class CosmeticsLockerScreen extends Screen {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // RIGHT PREVIEW PANEL (360° Rotating Player Model)
+    // RIGHT PREVIEW PANEL (Player Model showing BACKSIDE with capes & wings)
     // ══════════════════════════════════════════════════════════════════════════
     private void drawPreviewPanel(DrawContext ctx, int mx, int my,
                                   int panelX, int panelY, int panelH,
@@ -304,7 +297,8 @@ public class CosmeticsLockerScreen extends Screen {
 
         LivingEntity player = (client != null) ? client.player : null;
         if (player != null) {
-            // Real 3D Player rendering
+            // Real 3D Player rendering using InventoryScreen.drawEntity
+            // At yaw = 0, player.bodyYaw = 180° turns the player around so their BACKSIDE (cape/wings) is facing the screen!
             float origBodyYaw   = player.bodyYaw;
             float origYaw       = player.getYaw();
             float origPitch     = player.getPitch();
@@ -314,24 +308,22 @@ public class CosmeticsLockerScreen extends Screen {
             float origHeadYaw   = player.headYaw;
             float origPrevHY    = player.prevHeadYaw;
 
-            player.bodyYaw      = yaw;
-            player.setYaw(yaw);
+            float previewAngle = 180f + yaw;
+            player.bodyYaw      = previewAngle;
+            player.setYaw(previewAngle);
             player.setPitch(pitch);
-            player.prevBodyYaw  = yaw;
-            player.prevYaw      = yaw;
+            player.prevBodyYaw  = previewAngle;
+            player.prevYaw      = previewAngle;
             player.prevPitch    = pitch;
-            player.headYaw      = yaw;
-            player.prevHeadYaw  = yaw;
+            player.headYaw      = previewAngle;
+            player.prevHeadYaw  = previewAngle;
 
-            // Calculate targetMouseX and targetMouseY to dynamically control yaw/pitch
-            float centerX = (pX + 4 + pX + pW - 4) / 2.0F;
-            float centerY = (pY + 4 + pY + pH - 4) / 2.0F - 30.0F;
-            float targetMouseX = centerX - (float)(Math.sin(Math.toRadians(yaw)) * 120.0F);
-            float targetMouseY = centerY - (float)(Math.sin(Math.toRadians(pitch)) * 120.0F);
+            float centerEntityX = (pX + 4 + pX + pW - 4) / 2.0F;
+            float centerEntityY = (pY + 4 + pY + pH - 4) / 2.0F - 30.0F;
 
             InventoryScreen.drawEntity(ctx,
                     pX + 4, pY + 4, pX + pW - 4, pY + pH - 4,
-                    58, 0.0625f, targetMouseX, targetMouseY, player);
+                    58, 0.0625f, centerEntityX, centerEntityY, player);
 
             player.bodyYaw      = origBodyYaw;
             player.setYaw(origYaw);
@@ -527,7 +519,7 @@ public class CosmeticsLockerScreen extends Screen {
         // Reset button
         int ctrlY = panelY + panelH - 76;
         if (mx >= rightX + 8 && mx <= rightX + 80 && my >= ctrlY && my <= ctrlY + 18) {
-            yaw = 180f; pitch = 0f; autoSpin = false; return true;
+            yaw = 0f; pitch = 0f; autoSpin = false; return true;
         }
         // Spin toggle
         if (mx >= rightX + 86 && mx <= rightX + previewW - 8 && my >= ctrlY && my <= ctrlY + 18) {

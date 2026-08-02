@@ -184,49 +184,53 @@ public class HudEditorScreen extends Screen {
             }
         }
 
-        // 3. Top Header Bar Panel
-        context.fill(0, 0, this.width, 36, 0xEE222240);
-        context.fill(0, 35, this.width, 36, 0x88A855F7);
-        context.drawText(this.textRenderer, "VELORA CLIENT - HUD EDITOR", 14, 8, 0xFFA855F7, true);
-        context.drawText(this.textRenderer, "Drag elements to move • Scroll to resize • Arrow keys to fine-tune • R to reset scale", 14, 21, 0xFFA1A1AA, false);
+        // 3. Floating Bottom Control Toolbar (Top of screen is 100% open for HUD placement!)
+        int barH = 26;
+        int barY = this.height - barH - 6;
+        int barW = 380;
+        int barX = cx - barW / 2;
 
-        // Header Action Buttons (Snap Toggle, Reset Layout, Done)
-        int snapBtnX = this.width - 290;
-        int snapBtnY = 6;
-        int snapBtnW = 90;
-        int snapBtnH = 22;
+        context.fill(barX, barY, barX + barW, barY + barH, 0xEE111122);
+        drawOutline(context, barX, barY, barW, barH, 0xFF8B21F7);
+
+        // Control Buttons (Snap, Reset, Done)
+        int snapBtnX = barX + 6;
+        int snapBtnY = barY + 3;
+        int snapBtnW = 74;
+        int snapBtnH = 20;
         boolean snapHov = isMouseOver(mouseX, mouseY, snapBtnX, snapBtnY, snapBtnW, snapBtnH);
         context.fill(snapBtnX, snapBtnY, snapBtnX + snapBtnW, snapBtnY + snapBtnH, ModConfig.hudSnap ? (snapHov ? 0xAA22C55E : 0xAA16A34A) : (snapHov ? 0xAA52525B : 0xAA3F3F46));
-        context.drawCenteredTextWithShadow(this.textRenderer, ModConfig.hudSnap ? "Snap: ON" : "Snap: OFF", snapBtnX + snapBtnW / 2, snapBtnY + 7, 0xFFFFFFFF);
+        context.drawCenteredTextWithShadow(this.textRenderer, ModConfig.hudSnap ? "Snap: ON" : "Snap: OFF", snapBtnX + snapBtnW / 2, snapBtnY + 6, 0xFFFFFFFF);
 
-        int resetBtnX = this.width - 192;
-        int resetBtnY = 6;
-        int resetBtnW = 90;
-        int resetBtnH = 22;
+        int resetBtnX = barX + 84;
+        int resetBtnY = barY + 3;
+        int resetBtnW = 82;
+        int resetBtnH = 20;
         boolean resetHov = isMouseOver(mouseX, mouseY, resetBtnX, resetBtnY, resetBtnW, resetBtnH);
         context.fill(resetBtnX, resetBtnY, resetBtnX + resetBtnW, resetBtnY + resetBtnH, resetHov ? 0xAAE11D48 : 0xAA991B1B);
-        context.drawCenteredTextWithShadow(this.textRenderer, "Reset Layout", resetBtnX + resetBtnW / 2, resetBtnY + 7, 0xFFFFFFFF);
+        context.drawCenteredTextWithShadow(this.textRenderer, "Reset Layout", resetBtnX + resetBtnW / 2, resetBtnY + 6, 0xFFFFFFFF);
 
-        int doneBtnX = this.width - 94;
-        int doneBtnY = 6;
-        int doneBtnW = 80;
-        int doneBtnH = 22;
+        int doneBtnX = barX + 170;
+        int doneBtnY = barY + 3;
+        int doneBtnW = 54;
+        int doneBtnH = 20;
         boolean doneHov = isMouseOver(mouseX, mouseY, doneBtnX, doneBtnY, doneBtnW, doneBtnH);
         context.fill(doneBtnX, doneBtnY, doneBtnX + doneBtnW, doneBtnY + doneBtnH, doneHov ? 0xAA6D28D9 : 0xAA4C1D95);
-        context.drawCenteredTextWithShadow(this.textRenderer, "Done", doneBtnX + doneBtnW / 2, doneBtnY + 7, 0xFFFFFFFF);
+        context.drawCenteredTextWithShadow(this.textRenderer, "Done", doneBtnX + doneBtnW / 2, doneBtnY + 6, 0xFFFFFFFF);
 
-        // 4. Update Hovered Element
+        // Hint text inside bottom bar
+        context.drawText(this.textRenderer, "Drag to move • Scroll resize", barX + 230, barY + 9, 0xFFA1A1AA, false);
+
+        // 4. Update Hovered Element (No Y-restriction: all areas of screen selectable!)
         hoveredElement = null;
-        if (mouseY > 36) {
-            for (HudElement elem : HudElement.values()) {
-                if (!elem.isEnabled()) continue;
-                int x = elem.getX() - 4;
-                int y = elem.getY() - 4;
-                int w = elem.getScaledWidth() + 8;
-                int h = elem.getScaledHeight() + 8;
-                if (isMouseOver(mouseX, mouseY, x, y, w, h)) {
-                    hoveredElement = elem;
-                }
+        for (HudElement elem : HudElement.values()) {
+            if (!elem.isEnabled()) continue;
+            int x = elem.getX() - 4;
+            int y = elem.getY() - 4;
+            int w = elem.getScaledWidth() + 8;
+            int h = elem.getScaledHeight() + 8;
+            if (isMouseOver(mouseX, mouseY, x, y, w, h)) {
+                hoveredElement = elem;
             }
         }
 
@@ -324,30 +328,36 @@ public class HudEditorScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) { // Left Click
-            // Header Action Buttons
-            int snapBtnX = this.width - 290;
-            int snapBtnY = 6;
-            int snapBtnW = 90;
-            int snapBtnH = 22;
+            // Bottom Floating Toolbar Buttons
+            int cx = this.width / 2;
+            int barH = 26;
+            int barY = this.height - barH - 6;
+            int barW = 380;
+            int barX = cx - barW / 2;
+
+            int snapBtnX = barX + 6;
+            int snapBtnY = barY + 3;
+            int snapBtnW = 74;
+            int snapBtnH = 20;
             if (isMouseOver(mouseX, mouseY, snapBtnX, snapBtnY, snapBtnW, snapBtnH)) {
                 ModConfig.hudSnap = !ModConfig.hudSnap;
                 return true;
             }
 
-            int resetBtnX = this.width - 192;
-            int resetBtnY = 6;
-            int resetBtnW = 90;
-            int resetBtnH = 22;
+            int resetBtnX = barX + 84;
+            int resetBtnY = barY + 3;
+            int resetBtnW = 82;
+            int resetBtnH = 20;
             if (isMouseOver(mouseX, mouseY, resetBtnX, resetBtnY, resetBtnW, resetBtnH)) {
                 ModConfig.resetHudPositions();
                 selectedElement = null;
                 return true;
             }
 
-            int doneBtnX = this.width - 94;
-            int doneBtnY = 6;
-            int doneBtnW = 80;
-            int doneBtnH = 22;
+            int doneBtnX = barX + 170;
+            int doneBtnY = barY + 3;
+            int doneBtnW = 54;
+            int doneBtnH = 20;
             if (isMouseOver(mouseX, mouseY, doneBtnX, doneBtnY, doneBtnW, doneBtnH)) {
                 this.close();
                 return true;
