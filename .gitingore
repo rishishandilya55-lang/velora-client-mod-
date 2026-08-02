@@ -1,0 +1,9 @@
+# Gradle build outputs and caches
+.gradle/
+build/
+
+# Gradle Wrapper files (only if you do not want to share Gradle versions)
+.gradlew/
+gradlew
+gradlew.bat
+gradle/wrapper/
