@@ -1,0 +1,48 @@
+# Gradle build cache & wrapper files
+.gradle/
+build/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Fabric Loom cache (local ivy repo, remapped mods, etc.)
+loom-cache/
+remapped_mods/
+.loom/
+
+# Compiled class files
+*.class
+
+# JAR files (except the one you intentionally ship)
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# Log files
+*.log
+logs/
+
+# Run directories (Minecraft run data)
+run/
+
+# Mod build outputs
+build/
+bin/
