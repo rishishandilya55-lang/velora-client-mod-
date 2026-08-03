@@ -2,14 +2,27 @@ package com.example.fpsdisplay.gui;
 
 import com.example.fpsdisplay.client.ArmorMod;
 import com.example.fpsdisplay.config.ModConfig;
+import io.wispforest.owo.ui.base.BaseOwoScreen;
+import io.wispforest.owo.ui.component.ButtonComponent;
+import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.container.FlowLayout;
+import io.wispforest.owo.ui.core.*;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
-public class HudEditorScreen extends Screen {
+/**
+ * HUD Editor Screen – OwoLib remake.
+ *
+ * OwoLib handles the bottom toolbar UI.
+ * The HUD element bounding boxes & drag logic stay as raw DrawContext
+ * because they operate in full screen-space coordinates (not component-tree relative).
+ */
+public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
 
-    // 1. Data model for manageable HUD elements
+    // ── HUD element data model ────────────────────────────────────────────────
     private enum HudElement {
         FPS("[FPS Box]") {
             @Override public boolean isEnabled() { return ModConfig.showFps; }
@@ -123,11 +136,7 @@ public class HudEditorScreen extends Screen {
         };
 
         private final String label;
-
-        HudElement(String label) {
-            this.label = label;
-        }
-
+        HudElement(String label) { this.label = label; }
         public String getLabel() { return label; }
         public abstract boolean isEnabled();
         public abstract int getX();
@@ -138,19 +147,13 @@ public class HudEditorScreen extends Screen {
         public abstract void setScale(float scale);
         public abstract int getBaseWidth();
         public abstract int getBaseHeight();
-
-        public int getScaledWidth() {
-            return (int) (getBaseWidth() * getScale());
-        }
-
-        public int getScaledHeight() {
-            return (int) (getBaseHeight() * getScale());
-        }
+        public int getScaledWidth()  { return (int)(getBaseWidth()  * getScale()); }
+        public int getScaledHeight() { return (int)(getBaseHeight() * getScale()); }
     }
 
-    // 2. Drag & Interaction state variables
+    // ── Drag state ────────────────────────────────────────────────────────────
     private HudElement selectedElement = null;
-    private HudElement hoveredElement = null;
+    private HudElement hoveredElement  = null;
     private int dragOffsetX = 0;
     private int dragOffsetY = 0;
     private boolean isDragging = false;
@@ -162,161 +165,149 @@ public class HudEditorScreen extends Screen {
     }
 
     @Override
+    protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
+        return OwoUIAdapter.create(this, Containers::verticalFlow);
+    }
+
+    @Override
+    protected void build(FlowLayout root) {
+        // Transparent root — HUD element boxes are drawn in render() override
+        root.verticalAlignment(VerticalAlignment.BOTTOM);
+        root.horizontalAlignment(HorizontalAlignment.CENTER);
+        root.surface(Surface.flat(0x00000000));
+        root.sizing(Sizing.fill(100), Sizing.fill(100));
+
+        // ── Bottom toolbar (OwoLib) ────────────────────────────────────────────
+        FlowLayout toolbar = Containers.horizontalFlow(Sizing.fixed(380), Sizing.fixed(26));
+        toolbar.surface(Surface.flat(0xEE111122));
+        toolbar.verticalAlignment(VerticalAlignment.CENTER);
+        toolbar.padding(Insets.of(3, 6, 3, 6));
+        toolbar.gap(6);
+
+        // Snap toggle button
+        ButtonComponent snapBtn = Components.button(
+            Text.literal(ModConfig.hudSnap ? "Snap: ON" : "Snap: OFF"),
+            btn -> {
+                ModConfig.hudSnap = !ModConfig.hudSnap;
+                btn.setMessage(Text.literal(ModConfig.hudSnap ? "Snap: ON" : "Snap: OFF"));
+                int bg = ModConfig.hudSnap ? 0xAA16A34A : 0xAA3F3F46;
+                btn.renderer(ButtonComponent.Renderer.flat(bg, bg, bg));
+            });
+        snapBtn.sizing(Sizing.fixed(74), Sizing.fixed(20));
+        int snapBg = ModConfig.hudSnap ? 0xAA16A34A : 0xAA3F3F46;
+        snapBtn.renderer(ButtonComponent.Renderer.flat(snapBg, snapBg, snapBg));
+
+        // Reset layout button
+        ButtonComponent resetBtn = Components.button(Text.literal("Reset Layout"), btn -> {
+            ModConfig.resetHudPositions();
+            selectedElement = null;
+        });
+        resetBtn.sizing(Sizing.fixed(82), Sizing.fixed(20));
+        resetBtn.renderer(ButtonComponent.Renderer.flat(0xAA991B1B, 0xAAE11D48, 0xAA991B1B));
+
+        // Done button
+        ButtonComponent doneBtn = Components.button(Text.literal("Done"), btn -> this.close());
+        doneBtn.sizing(Sizing.fixed(54), Sizing.fixed(20));
+        doneBtn.renderer(ButtonComponent.Renderer.flat(0xAA4C1D95, 0xAA6D28D9, 0xAA4C1D95));
+
+        // Hint text
+        var hintLabel = Components.label(Text.literal("Drag to move • Scroll resize"))
+            .color(Color.ofArgb(0xFFA1A1AA))
+            .sizing(Sizing.content(), Sizing.content());
+
+        toolbar.child(snapBtn);
+        toolbar.child(resetBtn);
+        toolbar.child(doneBtn);
+        toolbar.child(hintLabel);
+
+        // Bottom margin
+        FlowLayout toolbarWrapper = Containers.verticalFlow(Sizing.fill(100), Sizing.fixed(38));
+        toolbarWrapper.verticalAlignment(VerticalAlignment.CENTER);
+        toolbarWrapper.horizontalAlignment(HorizontalAlignment.CENTER);
+        toolbarWrapper.child(toolbar);
+
+        root.child(toolbarWrapper);
+    }
+
+    // ── Raw rendering overlay for HUD element boxes ───────────────────────────
+    @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // 1. Semi-transparent dark background
-        this.renderBackground(context, mouseX, mouseY, delta);
+        // Dim background
+        context.fill(0, 0, this.width, this.height, 0x88000000);
 
         int cx = this.width / 2;
         int cy = this.height / 2;
 
-        // Reset frame guide indicators
         snapGuideX = -1;
         snapGuideY = -1;
 
-        // 2. Alignment & Snap Grid Lines (when Snapping is Enabled)
+        // Snap grid
         if (ModConfig.hudSnap) {
             int gridStep = ModConfig.snapGridSize > 0 ? ModConfig.snapGridSize : 10;
-            for (int gx = 0; gx < this.width; gx += gridStep * 2) {
-                context.fill(gx, 0, gx + 1, this.height, 0x12FFFFFF);
-            }
-            for (int gy = 0; gy < this.height; gy += gridStep * 2) {
-                context.fill(0, gy, this.width, gy + 1, 0x12FFFFFF);
-            }
+            for (int gx = 0; gx < this.width; gx += gridStep * 2) context.fill(gx, 0, gx + 1, this.height, 0x12FFFFFF);
+            for (int gy = 0; gy < this.height; gy += gridStep * 2) context.fill(0, gy, this.width, gy + 1, 0x12FFFFFF);
         }
 
-        // 3. Floating Bottom Control Toolbar (Top of screen is 100% open for HUD placement!)
-        int barH = 26;
-        int barY = this.height - barH - 6;
-        int barW = 380;
-        int barX = cx - barW / 2;
-
-        context.fill(barX, barY, barX + barW, barY + barH, 0xEE111122);
-        drawOutline(context, barX, barY, barW, barH, 0xFF8B21F7);
-
-        // Control Buttons (Snap, Reset, Done)
-        int snapBtnX = barX + 6;
-        int snapBtnY = barY + 3;
-        int snapBtnW = 74;
-        int snapBtnH = 20;
-        boolean snapHov = isMouseOver(mouseX, mouseY, snapBtnX, snapBtnY, snapBtnW, snapBtnH);
-        context.fill(snapBtnX, snapBtnY, snapBtnX + snapBtnW, snapBtnY + snapBtnH, ModConfig.hudSnap ? (snapHov ? 0xAA22C55E : 0xAA16A34A) : (snapHov ? 0xAA52525B : 0xAA3F3F46));
-        context.drawCenteredTextWithShadow(this.textRenderer, ModConfig.hudSnap ? "Snap: ON" : "Snap: OFF", snapBtnX + snapBtnW / 2, snapBtnY + 6, 0xFFFFFFFF);
-
-        int resetBtnX = barX + 84;
-        int resetBtnY = barY + 3;
-        int resetBtnW = 82;
-        int resetBtnH = 20;
-        boolean resetHov = isMouseOver(mouseX, mouseY, resetBtnX, resetBtnY, resetBtnW, resetBtnH);
-        context.fill(resetBtnX, resetBtnY, resetBtnX + resetBtnW, resetBtnY + resetBtnH, resetHov ? 0xAAE11D48 : 0xAA991B1B);
-        context.drawCenteredTextWithShadow(this.textRenderer, "Reset Layout", resetBtnX + resetBtnW / 2, resetBtnY + 6, 0xFFFFFFFF);
-
-        int doneBtnX = barX + 170;
-        int doneBtnY = barY + 3;
-        int doneBtnW = 54;
-        int doneBtnH = 20;
-        boolean doneHov = isMouseOver(mouseX, mouseY, doneBtnX, doneBtnY, doneBtnW, doneBtnH);
-        context.fill(doneBtnX, doneBtnY, doneBtnX + doneBtnW, doneBtnY + doneBtnH, doneHov ? 0xAA6D28D9 : 0xAA4C1D95);
-        context.drawCenteredTextWithShadow(this.textRenderer, "Done", doneBtnX + doneBtnW / 2, doneBtnY + 6, 0xFFFFFFFF);
-
-        // Hint text inside bottom bar
-        context.drawText(this.textRenderer, "Drag to move • Scroll resize", barX + 230, barY + 9, 0xFFA1A1AA, false);
-
-        // 4. Update Hovered Element (No Y-restriction: all areas of screen selectable!)
+        // Update hovered element
         hoveredElement = null;
         for (HudElement elem : HudElement.values()) {
             if (!elem.isEnabled()) continue;
-            int x = elem.getX() - 4;
-            int y = elem.getY() - 4;
-            int w = elem.getScaledWidth() + 8;
-            int h = elem.getScaledHeight() + 8;
-            if (isMouseOver(mouseX, mouseY, x, y, w, h)) {
+            if (isMouseOver(mouseX, mouseY, elem.getX() - 4, elem.getY() - 4, elem.getScaledWidth() + 8, elem.getScaledHeight() + 8)) {
                 hoveredElement = elem;
             }
         }
 
-        // 5. Draw Dynamic Alignment Guides (Screen Center)
+        // Alignment guides
         if (isDragging && selectedElement != null) {
-            int elemCenterX = selectedElement.getX() + selectedElement.getScaledWidth() / 2;
-            int elemCenterY = selectedElement.getY() + selectedElement.getScaledHeight() / 2;
-
-            if (Math.abs(elemCenterX - cx) < 3) {
-                snapGuideX = cx;
-            }
-            if (Math.abs(elemCenterY - cy) < 3) {
-                snapGuideY = cy;
-            }
+            int elemCX = selectedElement.getX() + selectedElement.getScaledWidth() / 2;
+            int elemCY = selectedElement.getY() + selectedElement.getScaledHeight() / 2;
+            if (Math.abs(elemCX - cx) < 3) snapGuideX = cx;
+            if (Math.abs(elemCY - cy) < 3) snapGuideY = cy;
         }
+        if (snapGuideX != -1) context.fill(snapGuideX, 36, snapGuideX + 1, this.height, 0xAAEC4899);
+        if (snapGuideY != -1) context.fill(0, snapGuideY, this.width, snapGuideY + 1, 0xAAEC4899);
 
-        if (snapGuideX != -1) {
-            context.fill(snapGuideX, 36, snapGuideX + 1, this.height, 0xAAEC4899);
-        }
-        if (snapGuideY != -1) {
-            context.fill(0, snapGuideY, this.width, snapGuideY + 1, 0xAAEC4899);
-        }
-
-        // 6. Draw HUD Element Bounding Boxes & Selection Overlays
+        // Draw HUD element bounding boxes
         for (HudElement elem : HudElement.values()) {
             if (!elem.isEnabled()) continue;
+            int x = elem.getX(), y = elem.getY();
+            int w = elem.getScaledWidth(), h = elem.getScaledHeight();
+            boolean isSel = (selectedElement == elem), isHov = (hoveredElement == elem);
 
-            int x = elem.getX();
-            int y = elem.getY();
-            int w = elem.getScaledWidth();
-            int h = elem.getScaledHeight();
+            int fill = isSel ? 0x888B5CF6 : isHov ? 0x66A855F7 : 0x33A855F7;
+            int bx = x - 4, by = y - 4, bw = w + 8, bh = h + 8;
+            context.fill(bx, by, bx + bw, by + bh, fill);
 
-            boolean isSelected = (selectedElement == elem);
-            boolean isHovered = (hoveredElement == elem);
+            int border = isSel ? 0xFFF472B6 : isHov ? 0xFFC084FC : 0xFFA855F7;
+            drawOutline(context, bx, by, bw, bh, border);
 
-            // Bounding box fill colors
-            int fillColor;
-            if (isSelected) {
-                fillColor = 0x888B5CF6;
-            } else if (isHovered) {
-                fillColor = 0x66A855F7;
-            } else {
-                fillColor = 0x33A855F7;
-            }
-
-            // Outer box with padding
-            int boxX = x - 4;
-            int boxY = y - 4;
-            int boxW = w + 8;
-            int boxH = h + 8;
-
-            context.fill(boxX, boxY, boxX + boxW, boxY + boxH, fillColor);
-
-            // Border outline
-            int borderColor = isSelected ? 0xFFF472B6 : (isHovered ? 0xFFC084FC : 0xFFA855F7);
-            drawOutline(context, boxX, boxY, boxW, boxH, borderColor);
-
-            // Label text
             context.drawText(this.textRenderer, elem.getLabel(), x, y + (h > 18 ? 4 : (h - 8) / 2), 0xFFFFFFFF, true);
 
-            // Scale Pill Badge (on Hover / Selection)
-            if (isHovered || isSelected) {
+            if (isSel || isHov) {
                 String scaleStr = String.format("%.2fx", elem.getScale());
                 int badgeW = this.textRenderer.getWidth(scaleStr) + 6;
-                int badgeX = boxX + boxW - badgeW - 2;
-                int badgeY = boxY - 10;
-                if (badgeY < 38) badgeY = boxY + boxH + 2;
-
+                int badgeX = bx + bw - badgeW - 2;
+                int badgeY = by - 10;
+                if (badgeY < 38) badgeY = by + bh + 2;
                 context.fill(badgeX, badgeY, badgeX + badgeW, badgeY + 10, 0xDD111122);
                 drawOutline(context, badgeX, badgeY, badgeW, 10, 0x88A855F7);
                 context.drawText(this.textRenderer, scaleStr, badgeX + 3, badgeY + 1, 0xFFE9D5FF, false);
             }
         }
 
+        // Render OwoLib toolbar on top
         super.render(context, mouseX, mouseY, delta);
     }
 
-    private void drawOutline(DrawContext context, int x, int y, int w, int h, int color) {
-        context.fill(x, y, x + w, y + 1, color);
-        context.fill(x, y + h - 1, x + w, y + h, color);
-        context.fill(x, y, x + 1, y + h, color);
-        context.fill(x + w - 1, y, x + w, y + h, color);
+    private void drawOutline(DrawContext ctx, int x, int y, int w, int h, int color) {
+        ctx.fill(x, y, x + w, y + 1, color);
+        ctx.fill(x, y + h - 1, x + w, y + h, color);
+        ctx.fill(x, y, x + 1, y + h, color);
+        ctx.fill(x + w - 1, y, x + w, y + h, color);
     }
 
-    private boolean isMouseOver(double mouseX, double mouseY, int x, int y, int w, int h) {
-        return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
+    private boolean isMouseOver(double mx, double my, int x, int y, int w, int h) {
+        return mx >= x && mx <= x + w && my >= y && my <= y + h;
     }
 
     private int snapValue(int val) {
@@ -327,50 +318,12 @@ public class HudEditorScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0) { // Left Click
-            // Bottom Floating Toolbar Buttons
-            int cx = this.width / 2;
-            int barH = 26;
-            int barY = this.height - barH - 6;
-            int barW = 380;
-            int barX = cx - barW / 2;
-
-            int snapBtnX = barX + 6;
-            int snapBtnY = barY + 3;
-            int snapBtnW = 74;
-            int snapBtnH = 20;
-            if (isMouseOver(mouseX, mouseY, snapBtnX, snapBtnY, snapBtnW, snapBtnH)) {
-                ModConfig.hudSnap = !ModConfig.hudSnap;
-                return true;
-            }
-
-            int resetBtnX = barX + 84;
-            int resetBtnY = barY + 3;
-            int resetBtnW = 82;
-            int resetBtnH = 20;
-            if (isMouseOver(mouseX, mouseY, resetBtnX, resetBtnY, resetBtnW, resetBtnH)) {
-                ModConfig.resetHudPositions();
-                selectedElement = null;
-                return true;
-            }
-
-            int doneBtnX = barX + 170;
-            int doneBtnY = barY + 3;
-            int doneBtnW = 54;
-            int doneBtnH = 20;
-            if (isMouseOver(mouseX, mouseY, doneBtnX, doneBtnY, doneBtnW, doneBtnH)) {
-                this.close();
-                return true;
-            }
-
-            // Check click on HUD elements
+        if (button == 0) {
+            // Check HUD elements first (toolbar is in OwoLib layer below)
             for (HudElement elem : HudElement.values()) {
                 if (!elem.isEnabled()) continue;
-                int x = elem.getX() - 4;
-                int y = elem.getY() - 4;
-                int w = elem.getScaledWidth() + 8;
-                int h = elem.getScaledHeight() + 8;
-
+                int x = elem.getX() - 4, y = elem.getY() - 4;
+                int w = elem.getScaledWidth() + 8, h = elem.getScaledHeight() + 8;
                 if (isMouseOver(mouseX, mouseY, x, y, w, h)) {
                     selectedElement = elem;
                     isDragging = true;
@@ -379,53 +332,32 @@ public class HudEditorScreen extends Screen {
                     return true;
                 }
             }
-
-            // Clicked empty background area
             selectedElement = null;
         }
-
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
         if (isDragging && selectedElement != null) {
-            int cx = this.width / 2;
-            int cy = this.height / 2;
-
+            int cx = this.width / 2, cy = this.height / 2;
             int targetX = (int) mouseX - dragOffsetX;
             int targetY = (int) mouseY - dragOffsetY;
+            int elemW = selectedElement.getScaledWidth(), elemH = selectedElement.getScaledHeight();
 
-            int elemW = selectedElement.getScaledWidth();
-            int elemH = selectedElement.getScaledHeight();
+            int elemCX = targetX + elemW / 2, elemCY = targetY + elemH / 2;
+            if (Math.abs(elemCX - cx) <= 6) { targetX = cx - elemW / 2; snapGuideX = cx; }
+            else { targetX = snapValue(targetX); }
+            if (Math.abs(elemCY - cy) <= 6) { targetY = cy - elemH / 2; snapGuideY = cy; }
+            else { targetY = snapValue(targetY); }
 
-            // Magnetic Center Snapping
-            int elemCenterX = targetX + elemW / 2;
-            int elemCenterY = targetY + elemH / 2;
-
-            if (Math.abs(elemCenterX - cx) <= 6) {
-                targetX = cx - elemW / 2;
-                snapGuideX = cx;
-            } else {
-                targetX = snapValue(targetX);
-            }
-
-            if (Math.abs(elemCenterY - cy) <= 6) {
-                targetY = cy - elemH / 2;
-                snapGuideY = cy;
-            } else {
-                targetY = snapValue(targetY);
-            }
-
-            // Screen boundaries clamping
             targetX = Math.max(0, Math.min(this.width - elemW, targetX));
-            targetY = Math.max(38, Math.min(this.height - elemH, targetY));
+            targetY = Math.max(0, Math.min(this.height - elemH - 32, targetY));
 
             selectedElement.setX(targetX);
             selectedElement.setY(targetY);
             return true;
         }
-
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
@@ -438,17 +370,13 @@ public class HudEditorScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         HudElement target = hoveredElement != null ? hoveredElement : selectedElement;
-
         if (target != null) {
-            float deltaScale = (float) verticalAmount * 0.05f;
-            float newScale = target.getScale() + deltaScale;
+            float newScale = target.getScale() + (float) verticalAmount * 0.05f;
             newScale = Math.max(0.50f, Math.min(3.00f, newScale));
-            newScale = Math.round(newScale * 100.0f) / 100.0f; // Round to 2 decimals
-
+            newScale = Math.round(newScale * 100.0f) / 100.0f;
             target.setScale(newScale);
             return true;
         }
-
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
@@ -456,25 +384,12 @@ public class HudEditorScreen extends Screen {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (selectedElement != null) {
             int step = hasShiftDown() ? 5 : 1;
-
-            if (keyCode == GLFW.GLFW_KEY_UP) {
-                selectedElement.setY(Math.max(38, selectedElement.getY() - step));
-                return true;
-            } else if (keyCode == GLFW.GLFW_KEY_DOWN) {
-                selectedElement.setY(Math.min(this.height - selectedElement.getScaledHeight(), selectedElement.getY() + step));
-                return true;
-            } else if (keyCode == GLFW.GLFW_KEY_LEFT) {
-                selectedElement.setX(Math.max(0, selectedElement.getX() - step));
-                return true;
-            } else if (keyCode == GLFW.GLFW_KEY_RIGHT) {
-                selectedElement.setX(Math.min(this.width - selectedElement.getScaledWidth(), selectedElement.getX() + step));
-                return true;
-            } else if (keyCode == GLFW.GLFW_KEY_R) {
-                selectedElement.setScale(1.0f);
-                return true;
-            }
+            if (keyCode == GLFW.GLFW_KEY_UP)    { selectedElement.setY(Math.max(38, selectedElement.getY() - step)); return true; }
+            if (keyCode == GLFW.GLFW_KEY_DOWN)  { selectedElement.setY(Math.min(this.height - selectedElement.getScaledHeight(), selectedElement.getY() + step)); return true; }
+            if (keyCode == GLFW.GLFW_KEY_LEFT)  { selectedElement.setX(Math.max(0, selectedElement.getX() - step)); return true; }
+            if (keyCode == GLFW.GLFW_KEY_RIGHT) { selectedElement.setX(Math.min(this.width - selectedElement.getScaledWidth(), selectedElement.getX() + step)); return true; }
+            if (keyCode == GLFW.GLFW_KEY_R)     { selectedElement.setScale(1.0f); return true; }
         }
-
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 

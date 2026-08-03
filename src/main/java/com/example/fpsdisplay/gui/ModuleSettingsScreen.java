@@ -1,14 +1,23 @@
 package com.example.fpsdisplay.gui;
 
 import com.example.fpsdisplay.config.ModConfig;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
+import io.wispforest.owo.ui.base.BaseOwoScreen;
+import io.wispforest.owo.ui.component.ButtonComponent;
+import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.container.FlowLayout;
+import io.wispforest.owo.ui.core.*;
 import net.minecraft.text.Text;
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
-public class ModuleSettingsScreen extends Screen {
+public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
+
     private final String moduleName;
     private boolean listeningForKey = false;
+
+    // Root ref for key-rebind row refresh
+    private FlowLayout settingsPanel;
 
     public ModuleSettingsScreen(String moduleName) {
         super(Text.literal(moduleName + " Settings"));
@@ -16,299 +25,256 @@ public class ModuleSettingsScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-
-        int cx = this.width / 2;
-        int cy = this.height / 2;
-
-        int panelW = 460;
-        int panelH = 280;
-        int panelX = cx - panelW / 2;
-        int panelY = cy - panelH / 2;
-
-        // Dark floating panel
-        context.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xCC1A1A2E);
-
-        // Header Title
-        context.fill(panelX, panelY, panelX + panelW, panelY + 36, 0xEE222240);
-        context.drawText(this.textRenderer, moduleName + " Settings", panelX + 14, panelY + 12, 0xFFFFFFFF, true);
-
-        // Close X button
-        int xBtnX = panelX + panelW - 26;
-        int xBtnY = panelY + 8;
-        boolean xHov = mouseX >= xBtnX && mouseX <= xBtnX + 18 && mouseY >= xBtnY && mouseY <= xBtnY + 18;
-        if (xHov) context.fill(xBtnX - 2, xBtnY - 2, xBtnX + 20, xBtnY + 20, 0x55FF4444);
-        context.drawCenteredTextWithShadow(this.textRenderer, "X", xBtnX + 9, xBtnY + 5, 0xFFFFFFFF);
-
-        int contentY = panelY + 48;
-        int rowH = 32;
-
-        if ("Armor Status".equals(moduleName)) {
-            renderRow(context, mouseX, mouseY, panelX + 20, contentY, panelW - 40, rowH,
-                    "HUD Orientation: " + ModConfig.armorOrientation, "[ Click to Toggle ]", 0xFFA855F7);
-
-            renderRow(context, mouseX, mouseY, panelX + 20, contentY + 36, panelW - 40, rowH,
-                    "Background Style: " + ModConfig.armorBackgroundStyle, "[ Click to Cycle ]", 0xFFC084FC);
-
-            renderRow(context, mouseX, mouseY, panelX + 20, contentY + 72, panelW - 40, rowH,
-                    "Durability Display: " + ModConfig.armorDurabilityMode, "[ Click to Cycle ]", 0xFF38BDF8);
-
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY + 108, panelW - 40, rowH,
-                    "Show Offhand Item", ModConfig.armorShowOffhand);
-
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY + 144, panelW - 40, rowH,
-                    "Count Inventory Items (Blocks/Items)", ModConfig.armorShowCount);
-
-        } else if ("NoHurtCam".equals(moduleName)) {
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY, panelW - 40, rowH,
-                    "Enable NoHurtCam (Disable Camera Wobble)", ModConfig.showNoHurtCam);
-
-            String intensityText = ModConfig.hurtCamIntensity <= 0.0f ? "0% (No Wobble)" : (int)(ModConfig.hurtCamIntensity * 100) + "%";
-            renderRow(context, mouseX, mouseY, panelX + 20, contentY + 38, panelW - 40, rowH,
-                    "Hurt Camera Intensity: " + intensityText, "[ Click to Cycle ]", 0xFF22C55E);
-
-        } else if ("Zoom Mod".equals(moduleName)) {
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY, panelW - 40, rowH,
-                    "Smooth Zoom Animation", ModConfig.zoomSmooth);
-
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY + 38, panelW - 40, rowH,
-                    "Scale Mouse Sensitivity While Zoomed", ModConfig.zoomScaleSensitivity);
-
-            context.drawCenteredTextWithShadow(this.textRenderer, "Hold key 'C' to Zoom. Scroll Mouse Wheel to adjust Zoom level!", cx, contentY + 105, 0xFFA1A1AA);
-
-        } else if ("Free Look".equals(moduleName)) {
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY, panelW - 40, rowH,
-                    "Enable 360 Camera Free Look", ModConfig.showFreeLook);
-
-            String keyName = listeningForKey ? "> PRESS ANY KEY <" : GLFW.glfwGetKeyName(ModConfig.freeLookKey, 0);
-            if (keyName == null) keyName = "KEY " + ModConfig.freeLookKey;
-            renderRow(context, mouseX, mouseY, panelX + 20, contentY + 38, panelW - 40, rowH,
-                    "Free Look Keybind", "[ " + keyName.toUpperCase() + " ]", listeningForKey ? 0xFF00FFCC : 0xFFA855F7);
-
-            context.drawCenteredTextWithShadow(this.textRenderer, "Hold this key to rotate camera freely around player!", cx, contentY + 105, 0xFFA1A1AA);
-
-        } else if ("Snap Look".equals(moduleName)) {
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY, panelW - 40, rowH,
-                    "Enable Quick Rear View Snap", ModConfig.showSnapLook);
-
-            String keyName = listeningForKey ? "> PRESS ANY KEY <" : GLFW.glfwGetKeyName(ModConfig.snapLookKey, 0);
-            if (keyName == null) keyName = "KEY " + ModConfig.snapLookKey;
-            renderRow(context, mouseX, mouseY, panelX + 20, contentY + 38, panelW - 40, rowH,
-                    "Snap Look Keybind", "[ " + keyName.toUpperCase() + " ]", listeningForKey ? 0xFF00FFCC : 0xFFA855F7);
-
-            context.drawCenteredTextWithShadow(this.textRenderer, "Hold this key to instantly look behind your player!", cx, contentY + 105, 0xFFA1A1AA);
-
-        } else if ("CPS Counter".equals(moduleName)) {
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY, panelW - 40, rowH,
-                    "Show Right-Click CPS", ModConfig.showRightCps);
-
-        } else if ("WASD Keystrokes".equals(moduleName)) {
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY, panelW - 40, rowH,
-                    "Show Mouse Buttons (LMB / RMB)", ModConfig.showMouseStrokes);
-
-        } else if ("Minimap".equals(moduleName)) {
-            renderRow(context, mouseX, mouseY, panelX + 20, contentY, panelW - 40, rowH,
-                    "Minimap Shape: " + ModConfig.minimapShape, "[ Click to Cycle ]", 0xFFA855F7);
-
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY + 36, panelW - 40, rowH,
-                    "Show Entity Radar (Mobs, Players, Items)", ModConfig.minimapShowEntities);
-
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY + 72, panelW - 40, rowH,
-                    "Rotate Compass Bezel with Player Yaw", ModConfig.minimapRotateMap);
-
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY + 108, panelW - 40, rowH,
-                    "Show Position Coordinates Footer", ModConfig.minimapShowCoordinates);
-
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY + 144, panelW - 40, rowH,
-                    "Show Biome Name & Heading Header", ModConfig.minimapShowBiome);
-
-        } else if ("Capes & Physics".equals(moduleName)) {
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY, panelW - 40, rowH,
-                    "Enable Local Velora Cape", ModConfig.enableCape);
-
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY + 36, panelW - 40, rowH,
-                    "Enable Cape Physics Simulation", ModConfig.enableCapePhysics);
-
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY + 72, panelW - 40, rowH,
-                    "Apply Cape to Local Player Only", ModConfig.capeOnlyLocal);
-
-            renderToggleRow(context, mouseX, mouseY, panelX + 20, contentY + 108, panelW - 40, rowH,
-                    "Override Vanilla / Default Capes", ModConfig.overrideDefaultCape);
-
-        } else {
-            context.drawCenteredTextWithShadow(this.textRenderer, "Module settings for " + moduleName, cx, contentY + 40, 0xFFA855F7);
-            context.drawCenteredTextWithShadow(this.textRenderer, "Scroll mouse wheel in HUD Editor to resize this element!", cx, contentY + 65, 0xFFA1A1AA);
-        }
-    }
-
-    private void renderToggleRow(DrawContext context, int mouseX, int mouseY, int x, int y, int w, int h, String label, boolean enabled) {
-        boolean hov = mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
-        VeloraRenderUtil.drawRoundedRect(context, x, y, w, h, 6, hov ? 0x55FFFFFF : 0x33FFFFFF);
-        context.drawText(this.textRenderer, label, x + 14, y + (h - 8) / 2, 0xFFFFFFFF, false);
-
-        int sw = 32; int sh = 16;
-        int sx = x + w - sw - 14;
-        int sy = y + (h - sh) / 2;
-        VeloraRenderUtil.drawSwitch(context, sx, sy, sw, sh, enabled, hov);
-    }
-
-    private void renderRow(DrawContext context, int mouseX, int mouseY, int x, int y, int w, int h, String label, String action, int color) {
-        boolean hov = mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
-        VeloraRenderUtil.drawRoundedRect(context, x, y, w, h, 6, hov ? 0x55FFFFFF : 0x33FFFFFF);
-        context.drawText(this.textRenderer, label, x + 14, y + (h - 8) / 2, 0xFFFFFFFF, false);
-        context.drawText(this.textRenderer, action, x + w - this.textRenderer.getWidth(action) - 14, y + (h - 8) / 2, color, false);
+    protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
+        return OwoUIAdapter.create(this, Containers::verticalFlow);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        int cx = this.width / 2;
-        int cy = this.height / 2;
-        int panelW = 460;
-        int panelH = 280;
-        int panelX = cx - panelW / 2;
-        int panelY = cy - panelH / 2;
+    protected void build(FlowLayout root) {
+        root.verticalAlignment(VerticalAlignment.CENTER);
+        root.horizontalAlignment(HorizontalAlignment.CENTER);
+        root.surface(Surface.flat(0xAA000000));
+        root.sizing(Sizing.fill(100), Sizing.fill(100));
 
-        int xBtnX = panelX + panelW - 26;
-        int xBtnY = panelY + 8;
-        if (mouseX >= xBtnX && mouseX <= xBtnX + 18 && mouseY >= xBtnY && mouseY <= xBtnY + 18) {
-            this.close();
-            return true;
-        }
+        // ── Outer panel (460x280) ─────────────────────────────────────────────
+        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(460), Sizing.fixed(280));
+        panel.surface(Surface.flat(0xCC1A1A2E));
+        panel.padding(Insets.none());
 
-        int contentY = panelY + 48;
-        int rowH = 32;
-        int innerX = panelX + 20;
-        int innerW = panelW - 40;
+        // ── Header ────────────────────────────────────────────────────────────
+        FlowLayout header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(36));
+        header.surface(Surface.flat(0xEE222240));
+        header.verticalAlignment(VerticalAlignment.CENTER);
+        header.padding(Insets.of(0, 14, 0, 14));
 
-        if ("Free Look".equals(moduleName)) {
-            if (mouseX >= innerX && mouseX <= innerX + innerW) {
-                if (mouseY >= contentY && mouseY <= contentY + rowH) {
-                    ModConfig.showFreeLook = !ModConfig.showFreeLook;
-                    return true;
-                }
-                if (mouseY >= contentY + 38 && mouseY <= contentY + 38 + rowH) {
-                    listeningForKey = true;
-                    return true;
-                }
-            }
-        } else if ("Snap Look".equals(moduleName)) {
-            if (mouseX >= innerX && mouseX <= innerX + innerW) {
-                if (mouseY >= contentY && mouseY <= contentY + rowH) {
-                    ModConfig.showSnapLook = !ModConfig.showSnapLook;
-                    return true;
-                }
-                if (mouseY >= contentY + 38 && mouseY <= contentY + 38 + rowH) {
-                    listeningForKey = true;
-                    return true;
-                }
-            }
-        } else if ("Armor Status".equals(moduleName)) {
-            if (mouseX >= innerX && mouseX <= innerX + innerW) {
-                if (mouseY >= contentY && mouseY <= contentY + rowH) {
+        header.child(Components.label(Text.literal(moduleName + " Settings"))
+            .color(Color.WHITE)
+            .shadow(true)
+            .sizing(Sizing.fill(100), Sizing.content()));
+
+        // Close button
+        ButtonComponent closeBtn = Components.button(Text.literal("X"), btn -> this.close());
+        closeBtn.sizing(Sizing.fixed(18), Sizing.fixed(18));
+        closeBtn.renderer(ButtonComponent.Renderer.flat(0x00000000, 0x55FF4444, 0x00000000));
+        header.child(closeBtn);
+
+        panel.child(header);
+
+        // ── Settings content area ─────────────────────────────────────────────
+        settingsPanel = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
+        settingsPanel.padding(Insets.of(12, 20, 12, 20));
+        settingsPanel.gap(6);
+        buildSettings(settingsPanel);
+
+        panel.child(settingsPanel);
+        root.child(panel);
+    }
+
+    private void buildSettings(FlowLayout container) {
+        container.clearChildren();
+
+        if ("Armor Status".equals(moduleName)) {
+            container.child(makeCycleRow(
+                "HUD Orientation: " + ModConfig.armorOrientation,
+                "[ Click to Toggle ]", 0xFFA855F7,
+                () -> {
                     ModConfig.armorOrientation = "VERTICAL".equalsIgnoreCase(ModConfig.armorOrientation) ? "HORIZONTAL" : "VERTICAL";
-                    return true;
-                }
-                if (mouseY >= contentY + 36 && mouseY <= contentY + 36 + rowH) {
+                    ModConfig.saveConfig();
+                    rebuildSettings();
+                }));
+
+            container.child(makeCycleRow(
+                "Background Style: " + ModConfig.armorBackgroundStyle,
+                "[ Click to Cycle ]", 0xFFC084FC,
+                () -> {
                     if ("MODERN".equalsIgnoreCase(ModConfig.armorBackgroundStyle)) ModConfig.armorBackgroundStyle = "TRANSPARENT";
                     else if ("TRANSPARENT".equalsIgnoreCase(ModConfig.armorBackgroundStyle)) ModConfig.armorBackgroundStyle = "COMPACT";
                     else ModConfig.armorBackgroundStyle = "MODERN";
-                    return true;
-                }
-                if (mouseY >= contentY + 72 && mouseY <= contentY + 72 + rowH) {
+                    ModConfig.saveConfig();
+                    rebuildSettings();
+                }));
+
+            container.child(makeCycleRow(
+                "Durability Display: " + ModConfig.armorDurabilityMode,
+                "[ Click to Cycle ]", 0xFF38BDF8,
+                () -> {
                     if ("MAX_VALUE".equalsIgnoreCase(ModConfig.armorDurabilityMode)) ModConfig.armorDurabilityMode = "PERCENT";
                     else if ("PERCENT".equalsIgnoreCase(ModConfig.armorDurabilityMode)) ModConfig.armorDurabilityMode = "VALUE";
                     else ModConfig.armorDurabilityMode = "MAX_VALUE";
-                    return true;
-                }
-                if (mouseY >= contentY + 108 && mouseY <= contentY + 108 + rowH) {
-                    ModConfig.armorShowOffhand = !ModConfig.armorShowOffhand;
-                    return true;
-                }
-                if (mouseY >= contentY + 144 && mouseY <= contentY + 144 + rowH) {
-                    ModConfig.armorShowCount = !ModConfig.armorShowCount;
-                    return true;
-                }
-            }
+                    ModConfig.saveConfig();
+                    rebuildSettings();
+                }));
+
+            container.child(makeToggleRow("Show Offhand Item", ModConfig.armorShowOffhand,
+                () -> { ModConfig.armorShowOffhand = !ModConfig.armorShowOffhand; ModConfig.saveConfig(); rebuildSettings(); }));
+
+            container.child(makeToggleRow("Count Inventory Items (Blocks/Items)", ModConfig.armorShowCount,
+                () -> { ModConfig.armorShowCount = !ModConfig.armorShowCount; ModConfig.saveConfig(); rebuildSettings(); }));
+
         } else if ("NoHurtCam".equals(moduleName)) {
-            if (mouseX >= innerX && mouseX <= innerX + innerW) {
-                if (mouseY >= contentY && mouseY <= contentY + rowH) {
-                    ModConfig.showNoHurtCam = !ModConfig.showNoHurtCam;
-                    return true;
-                }
-                if (mouseY >= contentY + 38 && mouseY <= contentY + 38 + rowH) {
+            container.child(makeToggleRow("Enable NoHurtCam (Disable Camera Wobble)", ModConfig.showNoHurtCam,
+                () -> { ModConfig.showNoHurtCam = !ModConfig.showNoHurtCam; ModConfig.saveConfig(); rebuildSettings(); }));
+
+            String intensityText = ModConfig.hurtCamIntensity <= 0.0f ? "0% (No Wobble)" : (int)(ModConfig.hurtCamIntensity * 100) + "%";
+            container.child(makeCycleRow(
+                "Hurt Camera Intensity: " + intensityText,
+                "[ Click to Cycle ]", 0xFF22C55E,
+                () -> {
                     if (ModConfig.hurtCamIntensity <= 0.0f) ModConfig.hurtCamIntensity = 0.5f;
                     else if (ModConfig.hurtCamIntensity <= 0.5f) ModConfig.hurtCamIntensity = 1.0f;
                     else ModConfig.hurtCamIntensity = 0.0f;
-                    return true;
-                }
-            }
-        } else if ("Zoom Mod".equals(moduleName)) {
-            if (mouseX >= innerX && mouseX <= innerX + innerW) {
-                if (mouseY >= contentY && mouseY <= contentY + rowH) {
-                    ModConfig.zoomSmooth = !ModConfig.zoomSmooth;
-                    return true;
-                }
-                if (mouseY >= contentY + 38 && mouseY <= contentY + 38 + rowH) {
-                    ModConfig.zoomScaleSensitivity = !ModConfig.zoomScaleSensitivity;
-                    return true;
-                }
-            }
-        } else if ("CPS Counter".equals(moduleName)) {
-            if (mouseX >= innerX && mouseX <= innerX + innerW && mouseY >= contentY && mouseY <= contentY + rowH) {
-                ModConfig.showRightCps = !ModConfig.showRightCps;
-                return true;
-            }
-        } else if ("WASD Keystrokes".equals(moduleName)) {
-            if (mouseX >= innerX && mouseX <= innerX + innerW && mouseY >= contentY && mouseY <= contentY + rowH) {
-                ModConfig.showMouseStrokes = !ModConfig.showMouseStrokes;
-                return true;
-            }
-        } else if ("Capes & Physics".equals(moduleName)) {
-            if (mouseX >= innerX && mouseX <= innerX + innerW) {
-                if (mouseY >= contentY && mouseY <= contentY + rowH) {
-                    ModConfig.enableCape = !ModConfig.enableCape;
-                    return true;
-                }
-                if (mouseY >= contentY + 36 && mouseY <= contentY + 36 + rowH) {
-                    ModConfig.enableCapePhysics = !ModConfig.enableCapePhysics;
-                    return true;
-                }
-                if (mouseY >= contentY + 72 && mouseY <= contentY + 72 + rowH) {
-                    ModConfig.capeOnlyLocal = !ModConfig.capeOnlyLocal;
-                    return true;
-                }
-                if (mouseY >= contentY + 108 && mouseY <= contentY + 108 + rowH) {
-                    ModConfig.overrideDefaultCape = !ModConfig.overrideDefaultCape;
-                    return true;
-                }
-            }
-        } else if ("Minimap".equals(moduleName)) {
-            if (mouseX >= innerX && mouseX <= innerX + innerW) {
-                if (mouseY >= contentY && mouseY <= contentY + rowH) {
-                    ModConfig.minimapShape = "CIRCLE".equalsIgnoreCase(ModConfig.minimapShape) ? "SQUARE" : "CIRCLE";
-                    return true;
-                }
-                if (mouseY >= contentY + 36 && mouseY <= contentY + 36 + rowH) {
-                    ModConfig.minimapShowEntities = !ModConfig.minimapShowEntities;
-                    return true;
-                }
-                if (mouseY >= contentY + 72 && mouseY <= contentY + 72 + rowH) {
-                    ModConfig.minimapRotateMap = !ModConfig.minimapRotateMap;
-                    return true;
-                }
-                if (mouseY >= contentY + 108 && mouseY <= contentY + 108 + rowH) {
-                    ModConfig.minimapShowCoordinates = !ModConfig.minimapShowCoordinates;
-                    return true;
-                }
-                if (mouseY >= contentY + 144 && mouseY <= contentY + 144 + rowH) {
-                    ModConfig.minimapShowBiome = !ModConfig.minimapShowBiome;
-                    return true;
-                }
-            }
-        }
+                    ModConfig.saveConfig();
+                    rebuildSettings();
+                }));
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        } else if ("Zoom Mod".equals(moduleName)) {
+            container.child(makeToggleRow("Smooth Zoom Animation", ModConfig.zoomSmooth,
+                () -> { ModConfig.zoomSmooth = !ModConfig.zoomSmooth; ModConfig.saveConfig(); rebuildSettings(); }));
+
+            container.child(makeToggleRow("Scale Mouse Sensitivity While Zoomed", ModConfig.zoomScaleSensitivity,
+                () -> { ModConfig.zoomScaleSensitivity = !ModConfig.zoomScaleSensitivity; ModConfig.saveConfig(); rebuildSettings(); }));
+
+            container.child(Components.label(Text.literal("Hold key 'C' to Zoom. Scroll Mouse Wheel to adjust Zoom level!"))
+                .color(Color.ofArgb(0xFFA1A1AA))
+                .sizing(Sizing.fill(100), Sizing.content()));
+
+        } else if ("Free Look".equals(moduleName)) {
+            container.child(makeToggleRow("Enable 360 Camera Free Look", ModConfig.showFreeLook,
+                () -> { ModConfig.showFreeLook = !ModConfig.showFreeLook; ModConfig.saveConfig(); rebuildSettings(); }));
+
+            String keyName = listeningForKey ? "> PRESS ANY KEY <" : GLFW.glfwGetKeyName(ModConfig.freeLookKey, 0);
+            if (keyName == null) keyName = "KEY " + ModConfig.freeLookKey;
+            container.child(makeCycleRow(
+                "Free Look Keybind",
+                "[ " + keyName.toUpperCase() + " ]",
+                listeningForKey ? 0xFF00FFCC : 0xFFA855F7,
+                () -> { listeningForKey = true; rebuildSettings(); }));
+
+            container.child(Components.label(Text.literal("Hold this key to rotate camera freely around player!"))
+                .color(Color.ofArgb(0xFFA1A1AA))
+                .sizing(Sizing.fill(100), Sizing.content()));
+
+        } else if ("Snap Look".equals(moduleName)) {
+            container.child(makeToggleRow("Enable Quick Rear View Snap", ModConfig.showSnapLook,
+                () -> { ModConfig.showSnapLook = !ModConfig.showSnapLook; ModConfig.saveConfig(); rebuildSettings(); }));
+
+            String keyName = listeningForKey ? "> PRESS ANY KEY <" : GLFW.glfwGetKeyName(ModConfig.snapLookKey, 0);
+            if (keyName == null) keyName = "KEY " + ModConfig.snapLookKey;
+            container.child(makeCycleRow(
+                "Snap Look Keybind",
+                "[ " + keyName.toUpperCase() + " ]",
+                listeningForKey ? 0xFF00FFCC : 0xFFA855F7,
+                () -> { listeningForKey = true; rebuildSettings(); }));
+
+            container.child(Components.label(Text.literal("Hold this key to instantly look behind your player!"))
+                .color(Color.ofArgb(0xFFA1A1AA))
+                .sizing(Sizing.fill(100), Sizing.content()));
+
+        } else if ("CPS Counter".equals(moduleName)) {
+            container.child(makeToggleRow("Show Right-Click CPS", ModConfig.showRightCps,
+                () -> { ModConfig.showRightCps = !ModConfig.showRightCps; ModConfig.saveConfig(); rebuildSettings(); }));
+
+        } else if ("WASD Keystrokes".equals(moduleName)) {
+            container.child(makeToggleRow("Show Mouse Buttons (LMB / RMB)", ModConfig.showMouseStrokes,
+                () -> { ModConfig.showMouseStrokes = !ModConfig.showMouseStrokes; ModConfig.saveConfig(); rebuildSettings(); }));
+
+        } else if ("Minimap".equals(moduleName)) {
+            container.child(makeCycleRow(
+                "Minimap Shape: " + ModConfig.minimapShape,
+                "[ Click to Cycle ]", 0xFFA855F7,
+                () -> {
+                    ModConfig.minimapShape = "CIRCLE".equalsIgnoreCase(ModConfig.minimapShape) ? "SQUARE" : "CIRCLE";
+                    ModConfig.saveConfig();
+                    rebuildSettings();
+                }));
+
+            container.child(makeToggleRow("Show Entity Radar (Mobs, Players, Items)", ModConfig.minimapShowEntities,
+                () -> { ModConfig.minimapShowEntities = !ModConfig.minimapShowEntities; ModConfig.saveConfig(); rebuildSettings(); }));
+
+            container.child(makeToggleRow("Rotate Compass Bezel with Player Yaw", ModConfig.minimapRotateMap,
+                () -> { ModConfig.minimapRotateMap = !ModConfig.minimapRotateMap; ModConfig.saveConfig(); rebuildSettings(); }));
+
+            container.child(makeToggleRow("Show Position Coordinates Footer", ModConfig.minimapShowCoordinates,
+                () -> { ModConfig.minimapShowCoordinates = !ModConfig.minimapShowCoordinates; ModConfig.saveConfig(); rebuildSettings(); }));
+
+            container.child(makeToggleRow("Show Biome Name & Heading Header", ModConfig.minimapShowBiome,
+                () -> { ModConfig.minimapShowBiome = !ModConfig.minimapShowBiome; ModConfig.saveConfig(); rebuildSettings(); }));
+
+        } else if ("Capes & Physics".equals(moduleName)) {
+            container.child(makeToggleRow("Enable Local Velora Cape", ModConfig.enableCape,
+                () -> { ModConfig.enableCape = !ModConfig.enableCape; ModConfig.saveConfig(); rebuildSettings(); }));
+
+            container.child(makeToggleRow("Enable Cape Physics Simulation", ModConfig.enableCapePhysics,
+                () -> { ModConfig.enableCapePhysics = !ModConfig.enableCapePhysics; ModConfig.saveConfig(); rebuildSettings(); }));
+
+            container.child(makeToggleRow("Apply Cape to Local Player Only", ModConfig.capeOnlyLocal,
+                () -> { ModConfig.capeOnlyLocal = !ModConfig.capeOnlyLocal; ModConfig.saveConfig(); rebuildSettings(); }));
+
+            container.child(makeToggleRow("Override Vanilla / Default Capes", ModConfig.overrideDefaultCape,
+                () -> { ModConfig.overrideDefaultCape = !ModConfig.overrideDefaultCape; ModConfig.saveConfig(); rebuildSettings(); }));
+
+        } else {
+            container.child(Components.label(Text.literal("Module settings for " + moduleName))
+                .color(Color.ofArgb(0xFFA855F7))
+                .sizing(Sizing.fill(100), Sizing.content()));
+
+            container.child(Components.label(Text.literal("Scroll mouse wheel in HUD Editor to resize this element!"))
+                .color(Color.ofArgb(0xFFA1A1AA))
+                .sizing(Sizing.fill(100), Sizing.content()));
+        }
+    }
+
+    private void rebuildSettings() {
+        buildSettings(settingsPanel);
+    }
+
+    // ── Row: toggle (label + switch button) ───────────────────────────────────
+    private FlowLayout makeToggleRow(String label, boolean enabled, Runnable action) {
+        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32));
+        row.surface(Surface.flat(0x33FFFFFF));
+        row.verticalAlignment(VerticalAlignment.CENTER);
+        row.padding(Insets.of(0, 14, 0, 14));
+
+        row.child(Components.label(Text.literal(label))
+            .color(Color.WHITE)
+            .sizing(Sizing.fill(100), Sizing.content()));
+
+        // Toggle switch button
+        int sw = enabled ? 0xFF22C55E : 0xFF71717A;
+        ButtonComponent swBtn = Components.button(Text.literal(enabled ? "  ON" : " OFF"), btn -> action.run());
+        swBtn.sizing(Sizing.fixed(36), Sizing.fixed(16));
+        swBtn.renderer(ButtonComponent.Renderer.flat(sw, sw, sw));
+        row.child(swBtn);
+
+        row.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) { action.run(); return true; }
+            return false;
+        });
+
+        return row;
+    }
+
+    // ── Row: cycle option (label + right-aligned action hint) ────────────────
+    private FlowLayout makeCycleRow(String label, String action, int actionColor, Runnable onClick) {
+        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32));
+        row.surface(Surface.flat(0x33FFFFFF));
+        row.verticalAlignment(VerticalAlignment.CENTER);
+        row.padding(Insets.of(0, 14, 0, 14));
+
+        row.child(Components.label(Text.literal(label))
+            .color(Color.WHITE)
+            .sizing(Sizing.fill(100), Sizing.content()));
+
+        row.child(Components.label(Text.literal(action))
+            .color(Color.ofArgb(actionColor))
+            .sizing(Sizing.content(), Sizing.content()));
+
+        row.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) { onClick.run(); return true; }
+            return false;
+        });
+
+        return row;
     }
 
     @Override
@@ -323,9 +289,9 @@ public class ModuleSettingsScreen extends Screen {
                 ModConfig.saveConfig();
             }
             listeningForKey = false;
+            rebuildSettings();
             return true;
         }
-
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 

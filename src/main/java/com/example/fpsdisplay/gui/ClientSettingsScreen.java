@@ -1,121 +1,126 @@
 package com.example.fpsdisplay.gui;
 
 import com.example.fpsdisplay.config.ModConfig;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
+import io.wispforest.owo.ui.base.BaseOwoScreen;
+import io.wispforest.owo.ui.component.ButtonComponent;
+import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.container.Containers;
+import io.wispforest.owo.ui.container.FlowLayout;
+import io.wispforest.owo.ui.core.*;
 import net.minecraft.text.Text;
+import org.jetbrains.annotations.NotNull;
 
-public class ClientSettingsScreen extends Screen {
+public class ClientSettingsScreen extends BaseOwoScreen<FlowLayout> {
+
+    private FlowLayout settingsContainer;
+    private final net.minecraft.client.gui.RotatingCubeMapRenderer panoramaRenderer =
+        new net.minecraft.client.gui.RotatingCubeMapRenderer(
+            new net.minecraft.client.gui.CubeMapRenderer(net.minecraft.util.Identifier.ofVanilla("textures/gui/title/background/panorama"))
+        );
+
     public ClientSettingsScreen() {
         super(Text.literal("Client Settings"));
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-
-        int cx = this.width / 2;
-        int cy = this.height / 2;
-
-        int panelW = 480;
-        int panelH = 320;
-        int panelX = cx - panelW / 2;
-        int panelY = cy - panelH / 2;
-
-        // Dark floating panel
-        context.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xCC1A1A2E);
-
-        // Header Title
-        context.fill(panelX, panelY, panelX + panelW, panelY + 36, 0xEE222240);
-        context.drawText(this.textRenderer, "Velora Client - Performance & Client Settings", panelX + 14, panelY + 12, 0xFFFFFFFF, true);
-
-        // Close X button
-        int xBtnX = panelX + panelW - 26;
-        int xBtnY = panelY + 8;
-        boolean xHov = mouseX >= xBtnX && mouseX <= xBtnX + 18 && mouseY >= xBtnY && mouseY <= xBtnY + 18;
-        if (xHov) context.fill(xBtnX - 2, xBtnY - 2, xBtnX + 20, xBtnY + 20, 0x55FF4444);
-        context.drawCenteredTextWithShadow(this.textRenderer, "X", xBtnX + 9, xBtnY + 5, 0xFFFFFFFF);
-
-        // Optimization Options List
-        int startY = panelY + 46;
-        int rowH = 30;
-        int spacing = 6;
-
-        // 1. Fast Math Optimization
-        drawSettingRow(context, mouseX, mouseY, panelX + 20, startY, panelW - 40, rowH, "Fast Math & Lightweight Render", ModConfig.optiFastMath);
-
-        // 2. Low Memory Overhead Mode
-        drawSettingRow(context, mouseX, mouseY, panelX + 20, startY + (rowH + spacing), panelW - 40, rowH, "Low Memory Garbage Mode", ModConfig.optiLowMemoryMode);
-
-        // 3. Particle Limiter
-        drawSettingRow(context, mouseX, mouseY, panelX + 20, startY + (rowH + spacing) * 2, panelW - 40, rowH, "Particle Limiter (FPS Boost)", ModConfig.optiLimitParticles);
-
-        // 4. Disable Terrain Fog
-        drawSettingRow(context, mouseX, mouseY, panelX + 20, startY + (rowH + spacing) * 3, panelW - 40, rowH, "Disable Terrain Fog", ModConfig.optiDisableFog);
-
-        // 5. Entity Culling
-        drawSettingRow(context, mouseX, mouseY, panelX + 20, startY + (rowH + spacing) * 4, panelW - 40, rowH, "Entity Culling (Occlusion & FPS Boost)", ModConfig.optiEntityCulling);
-    }
-
-    private void drawSettingRow(DrawContext context, int mouseX, int mouseY, int x, int y, int w, int h, String label, boolean enabled) {
-        boolean hov = mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
-        context.fill(x, y, x + w, y + h, hov ? 0x55FFFFFF : 0x33FFFFFF);
-        context.drawText(this.textRenderer, label, x + 14, y + (h - 8) / 2, 0xFFFFFFFF, false);
-
-        int sw = 32; int sh = 16;
-        int sx = x + w - sw - 14;
-        int sy = y + (h - sh) / 2;
-        context.fill(sx, sy, sx + sw, sy + sh, enabled ? 0xFF22C55E : 0xFF71717A);
-        int kx = enabled ? sx + sw - 14 : sx + 2;
-        context.fill(kx, sy + 2, kx + 12, sy + sh - 2, 0xFFFFFFFF);
+    protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
+        return OwoUIAdapter.create(this, Containers::verticalFlow);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        int cx = this.width / 2;
-        int cy = this.height / 2;
-        int panelW = 480;
-        int panelH = 320;
-        int panelX = cx - panelW / 2;
-        int panelY = cy - panelH / 2;
+    protected void build(FlowLayout root) {
+        root.verticalAlignment(VerticalAlignment.CENTER);
+        root.horizontalAlignment(HorizontalAlignment.CENTER);
+        root.surface(Surface.flat(0x00000000));
+        root.sizing(Sizing.fill(100), Sizing.fill(100));
 
-        int xBtnX = panelX + panelW - 26;
-        int xBtnY = panelY + 8;
-        if (mouseX >= xBtnX && mouseX <= xBtnX + 18 && mouseY >= xBtnY && mouseY <= xBtnY + 18) {
-            this.close();
-            return true;
+        // ── Outer panel (480x320) ─────────────────────────────────────────────
+        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(480), Sizing.fixed(320));
+        panel.surface(Surface.flat(0xCC1A1A2E));
+
+        // ── Header ────────────────────────────────────────────────────────────
+        FlowLayout header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(36));
+        header.surface(Surface.flat(0xEE222240));
+        header.verticalAlignment(VerticalAlignment.CENTER);
+        header.padding(Insets.of(0, 14, 0, 14));
+
+        header.child(Components.label(Text.literal("Velora Client - Performance & Client Settings"))
+            .color(Color.WHITE)
+            .shadow(true)
+            .sizing(Sizing.fill(100), Sizing.content()));
+
+        ButtonComponent closeBtn = Components.button(Text.literal("X"), btn -> this.close());
+        closeBtn.sizing(Sizing.fixed(18), Sizing.fixed(18));
+        closeBtn.renderer(ButtonComponent.Renderer.flat(0x00000000, 0x55FF4444, 0x00000000));
+        header.child(closeBtn);
+
+        panel.child(header);
+
+        // ── Settings rows ─────────────────────────────────────────────────────
+        settingsContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
+        settingsContainer.padding(Insets.of(10, 20, 10, 20));
+        settingsContainer.gap(6);
+        buildRows();
+
+        panel.child(settingsContainer);
+        root.child(panel);
+    }
+
+    private void buildRows() {
+        settingsContainer.clearChildren();
+
+        settingsContainer.child(makeRow("Fast Math & Lightweight Render", ModConfig.optiFastMath,
+            () -> { ModConfig.optiFastMath = !ModConfig.optiFastMath; ModConfig.saveConfig(); buildRows(); }));
+
+        settingsContainer.child(makeRow("Low Memory Garbage Mode", ModConfig.optiLowMemoryMode,
+            () -> { ModConfig.optiLowMemoryMode = !ModConfig.optiLowMemoryMode; ModConfig.saveConfig(); buildRows(); }));
+
+        settingsContainer.child(makeRow("Particle Limiter (FPS Boost)", ModConfig.optiLimitParticles,
+            () -> { ModConfig.optiLimitParticles = !ModConfig.optiLimitParticles; ModConfig.saveConfig(); buildRows(); }));
+
+        settingsContainer.child(makeRow("Disable Terrain Fog", ModConfig.optiDisableFog,
+            () -> { ModConfig.optiDisableFog = !ModConfig.optiDisableFog; ModConfig.saveConfig(); buildRows(); }));
+
+        settingsContainer.child(makeRow("Entity Culling (Occlusion & FPS Boost)", ModConfig.optiEntityCulling,
+            () -> { ModConfig.optiEntityCulling = !ModConfig.optiEntityCulling; ModConfig.saveConfig(); buildRows(); }));
+    }
+
+    // ── Setting row: label + toggle switch ────────────────────────────────────
+    private FlowLayout makeRow(String label, boolean enabled, Runnable action) {
+        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(30));
+        row.surface(Surface.flat(enabled ? 0x44FFFFFF : 0x22FFFFFF));
+        row.verticalAlignment(VerticalAlignment.CENTER);
+        row.padding(Insets.of(0, 14, 0, 14));
+
+        row.child(Components.label(Text.literal(label))
+            .color(Color.WHITE)
+            .sizing(Sizing.fill(100), Sizing.content()));
+
+        // Toggle switch — colored rectangle with knob illusion via text
+        int swBg = enabled ? 0xFF22C55E : 0xFF71717A;
+        ButtonComponent sw = Components.button(Text.literal(enabled ? "ON " : "OFF"), btn -> action.run());
+        sw.sizing(Sizing.fixed(32), Sizing.fixed(16));
+        sw.renderer(ButtonComponent.Renderer.flat(swBg, swBg, swBg));
+        row.child(sw);
+
+        row.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) { action.run(); return true; }
+            return false;
+        });
+
+        return row;
+    }
+
+    @Override
+    public void render(net.minecraft.client.gui.DrawContext context, int mouseX, int mouseY, float delta) {
+        if (this.client == null || this.client.world == null) {
+            this.panoramaRenderer.render(context, this.width, this.height, 1.0f, delta);
+            context.fill(0, 0, this.width, this.height, 0x88060A12);
+        } else {
+            context.fill(0, 0, this.width, this.height, 0xAA000000);
         }
 
-        int startY = panelY + 46;
-        int rowH = 30;
-        int spacing = 6;
-        int innerX = panelX + 20;
-        int innerW = panelW - 40;
-
-        if (mouseX >= innerX && mouseX <= innerX + innerW) {
-            if (mouseY >= startY && mouseY <= startY + rowH) {
-                ModConfig.optiFastMath = !ModConfig.optiFastMath;
-                return true;
-            }
-            if (mouseY >= startY + (rowH + spacing) && mouseY <= startY + (rowH + spacing) + rowH) {
-                ModConfig.optiLowMemoryMode = !ModConfig.optiLowMemoryMode;
-                return true;
-            }
-            if (mouseY >= startY + (rowH + spacing) * 2 && mouseY <= startY + (rowH + spacing) * 2 + rowH) {
-                ModConfig.optiLimitParticles = !ModConfig.optiLimitParticles;
-                return true;
-            }
-            if (mouseY >= startY + (rowH + spacing) * 3 && mouseY <= startY + (rowH + spacing) * 3 + rowH) {
-                ModConfig.optiDisableFog = !ModConfig.optiDisableFog;
-                return true;
-            }
-            if (mouseY >= startY + (rowH + spacing) * 4 && mouseY <= startY + (rowH + spacing) * 4 + rowH) {
-                ModConfig.optiEntityCulling = !ModConfig.optiEntityCulling;
-                return true;
-            }
-        }
-
-        return super.mouseClicked(mouseX, mouseY, button);
+        super.render(context, mouseX, mouseY, delta);
     }
 
     @Override
