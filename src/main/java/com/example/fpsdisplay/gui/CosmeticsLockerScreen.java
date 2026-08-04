@@ -1,62 +1,85 @@
 package com.example.fpsdisplay.gui;
 
 import com.example.fpsdisplay.config.ModConfig;
+import com.example.fpsdisplay.gui.cosmetic.CosmeticItem;
+import com.example.fpsdisplay.gui.cosmetic.CosmeticTextureCache;
+import com.example.fpsdisplay.gui.cosmetic.MannequinModelRenderer;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.component.EntityComponent;
+import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
+import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.CubeMapRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.gui.RotatingCubeMapRenderer;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Velora Client — Cosmetics Locker GUI Screen (OwoLib remake)
- * Clean layout, typography fix, texture card thumbnails & live 3D player cosmetic preview with 360° mouse rotation.
+ * Velora Client — Velora Locker 3-Panel Cosmetic UI (Fabric 1.21.4 / owo-lib).
+ *
+ * Sizing & Scaling Adjustments:
+ * - Panel 3 Avatar Scale: EntityComponent size parameter set to Sizing.fixed(42) with scale(0.85f)
+ *   so the full player model fits cleanly and compactly inside the preview chamber frame.
+ * - Card Mini-Previews: 3D mannequin card viewports render custom velora_cape.png and mojang_cape.png textures.
  */
 public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
 
-    private static final Identifier BG_TEX = Identifier.of("fpsdisplay", "textures/gui/background.png");
+    // Background Panorama Fallback System (Vanilla Plains Path)
+    private static final Identifier PANORAMA_PATH = Identifier.of("minecraft", "textures/gui/title/background/panorama");
+    private final RotatingCubeMapRenderer panoramaRenderer = new RotatingCubeMapRenderer(new CubeMapRenderer(PANORAMA_PATH));
 
-    private int activeCategory = 0;
-    private int activeEnv = 0;
-    private boolean showOptions = false;
-    private static int selectedItem = 0;
-    private String searchQuery = "";
-
-    // 3D preview rotation state
+    // Global Active State
     private static boolean isLockerOpen = false;
-    private float yaw = 0f;
-    private float pitch = 0f;
-    private boolean autoSpin = false;
+    private static int selectedCapeIndex = 0;
+    private String searchQuery = "";
+    private CosmeticItem.Category selectedCategory = CosmeticItem.Category.ALL;
+    private EnvironmentTab currentEnv = EnvironmentTab.DEFAULT;
+    private boolean showPanoramaBackground = false;
 
-    // Cosmetic Item Definitions
-    private static final String[] COS_NAMES  = {"Velora Cape", "Classic Cape", "Wave Cape"};
-    private static final String[] COS_TYPES  = {"HD Animated", "Vintage",      "Particle"};
-    private static final int[]    COS_COLORS = {0xFF8B21F7,    0xFF2563EB,     0xFF059669};
-    private static final Identifier[] COS_THUMBS = {
-        Identifier.of("fpsdisplay", "textures/gui/logo.png"),
-        Identifier.of("fpsdisplay", "textures/gui/armor_status.png"),
-        Identifier.of("fpsdisplay", "textures/gui/fullbright.png")
-    };
+    public enum EnvironmentTab {
+        DEFAULT("Default", 0xFF0D0F17, 0xFF141724),
+        WORLD("World", 0xFF0B1B10, 0xFF102617),
+        NETHER("Nether", 0xFF220B0B, 0xFF301010),
+        END("End", 0xFF160A24, 0xFF200E33);
 
-    // Components & Layout refs
+        private final String label;
+        private final int bgColor;
+        private final int borderColor;
+
+        EnvironmentTab(String label, int bgColor, int borderColor) {
+            this.label = label;
+            this.bgColor = bgColor;
+            this.borderColor = borderColor;
+        }
+
+        public String getLabel() { return label; }
+        public int getBgColor() { return bgColor; }
+        public int getBorderColor() { return borderColor; }
+    }
+
+    // Components & Containers
     private FlowLayout cardGrid;
-    private ButtonComponent[] catButtons;
-    private EntityComponent<LivingEntity> entityComponent;
+    private ScrollContainer<FlowLayout> scrollContainer;
+    private TextBoxComponent searchInput;
+    private EntityComponent<LivingEntity> playerEntityComponent;
 
     public CosmeticsLockerScreen() {
-        super(Text.literal("Velora Client – Cosmetics Locker"));
+        super(Text.literal("Velora Client — Velora Locker"));
     }
 
     public static boolean isPreviewingCape() { return isLockerOpen; }
-    public static int getPreviewingCapeIndex() { return isLockerOpen ? selectedItem : -1; }
+    public static int getPreviewingCapeIndex() { return isLockerOpen ? selectedCapeIndex : -1; }
 
     @Override
     public void close() {
@@ -73,408 +96,384 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
     protected void build(FlowLayout root) {
         isLockerOpen = true;
 
+        // Reset and initialize clean 2-cape test registry (Velora Cape & Mojang Cape)
+        CosmeticTextureCache.init();
+
         root.verticalAlignment(VerticalAlignment.CENTER);
         root.horizontalAlignment(HorizontalAlignment.CENTER);
-        root.surface(Surface.flat(0x00000000)); // transparent root — background drawn in render()
+        root.surface(Surface.flat(0x00000000));
         root.sizing(Sizing.fill(100), Sizing.fill(100));
 
-        // ── Outer Panel (780x460) ─────────────────────────────────────────────
-        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(780), Sizing.fixed(460));
-        panel.surface((context, component) -> {
-            int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-            context.fill(x, y, x + w, y + h, 0xFA090A12);
-            context.drawBorder(x, y, w, h, 0xFF7C3AED);
-            context.drawBorder(x + 1, y + 1, w - 2, h - 2, 0x223B0764);
-        });
-        panel.padding(Insets.none());
+        // ── Main Canvas Box (Constrained to 780px) ─────────────────────────────
+        int canvasWidth = Math.min(this.width - 16, 780);
+        int canvasHeight = Math.min(this.height - 16, 480);
 
-        // ── 1. Top Header Bar (Clean title & close button, no overlapping) ────
-        FlowLayout header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(36));
-        header.surface((context, component) -> {
+        FlowLayout mainCanvas = Containers.verticalFlow(Sizing.fixed(canvasWidth), Sizing.fixed(canvasHeight));
+        mainCanvas.surface((context, component) -> {
             int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-            context.fill(x, y, x + w, y + h, 0xFA070810);
-            context.fill(x, y + h - 1, x + w, y + h, 0xFF5B21B6);
+            context.fill(x, y, x + w, y + h, 0xFF11131A);
+            context.drawBorder(x, y, w, h, 0xFF1E222E);
+            context.drawBorder(x + 1, y + 1, w - 2, h - 2, 0xFF171A24);
         });
-        header.verticalAlignment(VerticalAlignment.CENTER);
-        header.padding(Insets.of(0, 14, 0, 14));
+        mainCanvas.padding(Insets.of(8));
+        mainCanvas.gap(6);
 
-        header.child(Components.label(Text.literal("✦  CLIENT COSMETICS LOCKER"))
-            .color(Color.ofArgb(0xFFF1F5F9))
-            .shadow(true)
-            .sizing(Sizing.fill(100), Sizing.content()));
+        // ── Top Header Bar ("Velora Locker" Branding) ─────────────────────────
+        FlowLayout topHeader = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(26));
+        topHeader.verticalAlignment(VerticalAlignment.CENTER);
+        topHeader.padding(Insets.of(0, 4, 0, 4));
+
+        // Logo + Brand Title ("Velora Locker")
+        FlowLayout titleGroup = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+        titleGroup.verticalAlignment(VerticalAlignment.CENTER);
+        titleGroup.gap(6);
+        titleGroup.child(Components.label(Text.literal("🍃"))
+                .color(Color.ofArgb(0xFF22C55E))
+                .sizing(Sizing.content(), Sizing.content()));
+        titleGroup.child(Components.label(Text.literal("Velora Locker"))
+                .color(Color.ofArgb(0xFFF1F5F9))
+                .shadow(true)
+                .sizing(Sizing.content(), Sizing.content()));
+        topHeader.child(titleGroup);
+
+        // Header Spacer
+        topHeader.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+
+        // Action Buttons (? Help | ✕ Close)
+        FlowLayout headerActions = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+        headerActions.gap(6);
+
+        ButtonComponent helpBtn = Components.button(Text.literal("? Help"), btn -> {});
+        helpBtn.sizing(Sizing.fixed(60), Sizing.fixed(20));
+        helpBtn.renderer(ButtonComponent.Renderer.flat(0xFF1B1F2A, 0xFF282E3D, 0xFF1B1F2A));
+        headerActions.child(helpBtn);
 
         ButtonComponent closeBtn = Components.button(Text.literal("✕"), btn -> this.close());
-        closeBtn.sizing(Sizing.fixed(16), Sizing.fixed(16));
-        closeBtn.renderer(ButtonComponent.Renderer.flat(0x00000000, 0x55FF4444, 0x00000000));
-        header.child(closeBtn);
+        closeBtn.sizing(Sizing.fixed(20), Sizing.fixed(20));
+        closeBtn.renderer(ButtonComponent.Renderer.flat(0xFF1B1F2A, 0xFFDC2626, 0xFF1B1F2A));
+        headerActions.child(closeBtn);
 
-        panel.child(header);
+        topHeader.child(headerActions);
+        mainCanvas.child(topHeader);
 
-        // ── 2. Main Content Body (Sidebar | Card Grid | 3D Player Preview) ─────
-        FlowLayout body = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
+        // ── 3-PANEL SPLIT WINDOW (Explicit Panel Bounds: 160px | 380px | 200px) ─
+        FlowLayout bodySplit = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
+        bodySplit.gap(6);
 
-        // ── Left Sidebar (130px wide, clean typography & hover effects) ───────
-        FlowLayout sidebar = Containers.verticalFlow(Sizing.fixed(130), Sizing.fill(100));
-        sidebar.surface((context, component) -> {
+        // ── PANEL 1: Far-Left Category Navigation Sidebar (160px Wide) ────────
+        FlowLayout panel1 = Containers.verticalFlow(Sizing.fixed(160), Sizing.fill(100));
+        panel1.surface((context, component) -> {
             int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-            context.fill(x, y, x + w, y + h, 0xFA05050C);
-            context.fill(x + w - 1, y, x + w, y + h, 0xFF5B21B6);
+            context.fill(x, y, x + w, y + h, 0xFF151821);
+            context.drawBorder(x, y, w, h, 0xFF1F2432);
         });
-        sidebar.padding(Insets.of(12, 6, 12, 6));
-        sidebar.gap(5);
+        panel1.padding(Insets.of(6, 4, 6, 4));
+        panel1.gap(4);
 
-        String[] cats = {"All", "Favorites", "Capes", "Hats", "Face", "Wings", "Aura"};
-        catButtons = new ButtonComponent[cats.length];
-        for (int i = 0; i < cats.length; i++) {
-            final int idx = i;
-            ButtonComponent catBtn = Components.button(Text.literal(cats[i]), btn -> {
-                activeCategory = idx;
-                refreshCatButtons();
-                rebuildGrid();
-            });
-            catBtn.sizing(Sizing.fill(100), Sizing.fixed(24));
-            styleCatBtn(catBtn, i == activeCategory);
-            catButtons[i] = catBtn;
-            sidebar.child(catBtn);
-        }
+        // Category List Rows
+        for (CosmeticItem.Category cat : CosmeticItem.Category.values()) {
+            final CosmeticItem.Category category = cat;
 
-        // Spacer
-        sidebar.child(Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100)));
+            long count = CosmeticTextureCache.getItems().stream()
+                    .filter(item -> category == CosmeticItem.Category.ALL ||
+                            (category == CosmeticItem.Category.FAVORITES ? item.isFavorite() : item.getCategory() == category))
+                    .count();
 
-        // Options button
-        ButtonComponent optBtn = Components.button(Text.literal("⚙  Physics Options"), btn -> showOptions = !showOptions);
-        optBtn.sizing(Sizing.fill(100), Sizing.fixed(22));
-        optBtn.renderer(ButtonComponent.Renderer.flat(0xFF120A28, 0xFF21104A, 0xFF120A28));
-        sidebar.child(optBtn);
+            String labelText = category.getDisplayName() + " (" + count + ")";
 
-        body.child(sidebar);
+            FlowLayout catRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+            catRow.verticalAlignment(VerticalAlignment.CENTER);
+            catRow.padding(Insets.of(0, 6, 0, 6));
 
-        // ── Center Card Grid Section ──────────────────────────────────────────
-        FlowLayout centerSection = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
-        centerSection.surface(Surface.flat(0xF7070810));
-        centerSection.padding(Insets.of(8, 8, 8, 8));
-        centerSection.gap(8);
-
-        // Search bar
-        FlowLayout searchRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(22));
-        searchRow.surface((context, component) -> {
-            int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-            context.fill(x, y, x + w, y + h, 0xFF111128);
-            context.drawBorder(x, y, w, h, 0xFF2D1F54);
-        });
-        searchRow.padding(Insets.of(0, 8, 0, 8));
-        searchRow.verticalAlignment(VerticalAlignment.CENTER);
-        searchRow.child(Components.label(Text.literal("Search Cosmetics..."))
-            .color(Color.ofArgb(0xFF7755AA))
-            .sizing(Sizing.fill(100), Sizing.content()));
-        centerSection.child(searchRow);
-
-        // Card grid
-        cardGrid = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-        cardGrid.gap(8);
-        buildGrid();
-
-        var scrollBox = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(100), cardGrid);
-        centerSection.child(scrollBox);
-
-        body.child(centerSection);
-
-        // ── Right 3D Player Preview Panel (230px wide, live EntityComponent) ──
-        FlowLayout previewSection = Containers.verticalFlow(Sizing.fixed(230), Sizing.fill(100));
-        previewSection.surface((context, component) -> {
-            int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-            context.fill(x, y, x + w, y + h, 0xFA060710);
-            context.fill(x, y, x + 1, y + h, 0xFF5B21B6);
-        });
-        previewSection.padding(Insets.of(10, 10, 10, 10));
-        previewSection.gap(6);
-
-        // Environment tabs
-        FlowLayout envRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(18));
-        envRow.gap(2);
-        String[] envs = {"Sun", "World", "Hell", "End"};
-        for (int i = 0; i < envs.length; i++) {
-            final int idx = i;
-            ButtonComponent envBtn = Components.button(Text.literal(envs[i]), btn -> { activeEnv = idx; });
-            envBtn.sizing(Sizing.fill(25), Sizing.fixed(18));
-            envBtn.renderer(ButtonComponent.Renderer.flat(0xFF0C0C1A, 0xFF1A0E3A, 0xFF0C0C1A));
-            envRow.child(envBtn);
-        }
-        previewSection.child(envRow);
-
-        // 3D Player EntityComponent viewport container
-        FlowLayout entityViewport = Containers.verticalFlow(Sizing.fill(100), Sizing.fixed(240));
-        entityViewport.surface((context, component) -> {
-            int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-            int[] envBg = {0xFF0C0C1E, 0xFF081A0C, 0xFF1A0808, 0xFF0A0A0A};
-            context.fill(x, y, x + w, y + h, envBg[Math.min(activeEnv, envBg.length - 1)]);
-            context.drawBorder(x, y, w, h, 0xFF6D28D9);
-        });
-        entityViewport.verticalAlignment(VerticalAlignment.CENTER);
-        entityViewport.horizontalAlignment(HorizontalAlignment.CENTER);
-
-        // Live player entity setup
-        MinecraftClient mc = MinecraftClient.getInstance();
-        LivingEntity targetPlayer = (mc != null && mc.player != null) ? mc.player : null;
-        if (targetPlayer != null) {
-            entityComponent = Components.entity(Sizing.fixed(220), targetPlayer);
-            entityComponent.sizing(Sizing.fill(100), Sizing.fixed(220));
-            entityComponent.allowMouseRotation(true);
-            entityComponent.showNametag(false);
-            entityViewport.child(entityComponent);
-        } else {
-            entityViewport.child(Components.label(Text.literal("Player preview available\nin-game"))
-                .color(Color.ofArgb(0xFF7755AA))
-                .sizing(Sizing.content(), Sizing.content()));
-        }
-
-        previewSection.child(entityViewport);
-
-        // Reset & Spin control row
-        FlowLayout ctrlRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(20));
-        ctrlRow.gap(6);
-        ButtonComponent resetBtn = Components.button(Text.literal("⟲ Reset"), btn -> {
-            yaw = 0f; pitch = 0f; autoSpin = false;
-        });
-        resetBtn.sizing(Sizing.fixed(72), Sizing.fixed(20));
-        resetBtn.renderer(ButtonComponent.Renderer.flat(0xFF110822, 0xFF21104A, 0xFF110822));
-
-        ButtonComponent spinBtn = Components.button(
-            Text.literal(autoSpin ? "⏸ Stop" : "↻ Spin"),
-            btn -> {
-                autoSpin = !autoSpin;
-                btn.setMessage(Text.literal(autoSpin ? "⏸ Stop" : "↻ Spin"));
-            });
-        spinBtn.sizing(Sizing.fill(100), Sizing.fixed(20));
-        spinBtn.renderer(ButtonComponent.Renderer.flat(0xFF130828, 0xFF1E104A, 0xFF130828));
-        ctrlRow.child(resetBtn);
-        ctrlRow.child(spinBtn);
-        previewSection.child(ctrlRow);
-
-        // Equip / Unequip button
-        boolean equipped = ModConfig.enableCape && ModConfig.selectedCape == selectedItem;
-        ButtonComponent eqBtn = Components.button(
-            Text.literal(equipped ? "✕  Unequip Cape" : "✓  Equip Cape"),
-            btn -> {
-                if (ModConfig.enableCape && ModConfig.selectedCape == selectedItem) {
-                    ModConfig.enableCape = false;
-                } else {
-                    ModConfig.enableCape = true;
-                    ModConfig.selectedCape = selectedItem;
+            catRow.surface((context, component) -> {
+                int x = component.x(), y = component.y(), w = component.width(), h = component.height();
+                boolean isSelected = (selectedCategory == category);
+                if (isSelected) {
+                    context.fill(x, y, x + w, y + h, 0xFF1E2433);
                 }
-                ModConfig.saveConfig();
-                rebuildGrid();
             });
-        eqBtn.sizing(Sizing.fill(100), Sizing.fixed(24));
-        eqBtn.renderer(ButtonComponent.Renderer.flat(
-            equipped ? 0xFF3D0606 : 0xFF0B3814,
-            equipped ? 0xFF5B0A0A : 0xFF135721,
-            equipped ? 0xFF3D0606 : 0xFF0B3814));
-        previewSection.child(eqBtn);
 
-        body.child(previewSection);
-        panel.child(body);
+            // Icon + Category Name
+            catRow.child(Components.label(Text.literal(category.getIcon() + "  " + labelText))
+                    .color(Color.ofArgb(selectedCategory == category ? 0xFFFFFFFF : 0xFF94A3B8))
+                    .shadow(false)
+                    .sizing(Sizing.content(), Sizing.content()));
 
-        root.child(panel);
-    }
+            // Spacer
+            catRow.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
 
-    // ── Category Sidebar Button Styling ───────────────────────────────────────
-    private void styleCatBtn(ButtonComponent btn, boolean active) {
-        int bg = active ? 0xFF18103A : 0x00000000;
-        int hoverBg = active ? 0xFF1C1438 : 0xFF120B28;
-        String text = btn.getMessage().getString();
-
-        btn.renderer((context, button, delta) -> {
-            int x = button.x(), y = button.y(), w = button.width(), h = button.height();
-            boolean hovered = button.isHovered();
-            int currentBg = hovered ? hoverBg : bg;
-
-            if (currentBg != 0) {
-                context.fill(x, y, x + w, y + h, currentBg);
+            // Colored Indicator Dot
+            if (category.getDotColor() != null) {
+                FlowLayout dot = Containers.horizontalFlow(Sizing.fixed(6), Sizing.fixed(6));
+                final int dotClr = category.getDotColor();
+                dot.surface((context, component) -> {
+                    int x = component.x(), y = component.y();
+                    context.fill(x, y, x + 6, y + 6, dotClr);
+                });
+                catRow.child(dot);
             }
 
-            if (active) {
-                context.fill(x, y, x + 3, y + h, 0xFF8B21F7);
-            }
+            catRow.mouseDown().subscribe((mx, my, btn) -> {
+                if (btn == 0) {
+                    selectedCategory = category;
+                    rebuildCardGrid();
+                    return true;
+                }
+                return false;
+            });
 
-            int textClr = active ? 0xFFE2D9FF : (hovered ? 0xFFBBAFDD : 0xFF665577);
-            int textX = x + (w - textRenderer.getWidth(text)) / 2;
-            int textY = y + (h - 8) / 2;
-            context.drawText(textRenderer, text, textX, textY, textClr, true);
-        });
-    }
-
-    private void refreshCatButtons() {
-        for (int i = 0; i < catButtons.length; i++) {
-            styleCatBtn(catButtons[i], i == activeCategory);
+            panel1.child(catRow);
         }
+
+        // Sidebar Spacer
+        panel1.child(Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100)));
+
+        // Footer Settings Button
+        ButtonComponent settingsBtn = Components.button(Text.literal("⚙ Settings"), btn -> {});
+        settingsBtn.sizing(Sizing.fill(100), Sizing.fixed(24));
+        settingsBtn.renderer(ButtonComponent.Renderer.flat(0xFF1B1F2A, 0xFF282E3D, 0xFF1B1F2A));
+        panel1.child(settingsBtn);
+
+        // Footer Shop Cosmetics CTA Button (Full-width vibrant purple)
+        ButtonComponent shopBtn = Components.button(Text.literal("↗ Shop Cosmetics"), btn -> {});
+        shopBtn.sizing(Sizing.fill(100), Sizing.fixed(26));
+        shopBtn.renderer(ButtonComponent.Renderer.flat(0xFF7C3AED, 0xFF8B5CF6, 0xFF6D28D9));
+        panel1.child(shopBtn);
+
+        bodySplit.child(panel1);
+
+        // ── PANEL 2: Central Cosmetic Item Grid (380px Wide Container) ──────────
+        FlowLayout panel2 = Containers.verticalFlow(Sizing.fixed(380), Sizing.fill(100));
+        panel2.gap(6);
+
+        // Top Search Bar Block
+        FlowLayout searchBox = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(28));
+        searchBox.surface((context, component) -> {
+            int x = component.x(), y = component.y(), w = component.width(), h = component.height();
+            context.fill(x, y, x + w, y + h, 0xFF161922);
+            context.drawBorder(x, y, w, h, 0xFF222632);
+        });
+        searchBox.padding(Insets.of(4, 8, 4, 8));
+        searchBox.verticalAlignment(VerticalAlignment.CENTER);
+        searchBox.gap(6);
+
+        searchBox.child(Components.label(Text.literal("🔍"))
+                .color(Color.ofArgb(0xFF64748B))
+                .sizing(Sizing.content(), Sizing.content()));
+
+        searchInput = Components.textBox(Sizing.fill(100), "Search cosmetics...");
+        searchInput.sizing(Sizing.fill(100), Sizing.fixed(20));
+        searchInput.onChanged().subscribe(val -> {
+            searchQuery = val.toLowerCase().trim();
+            rebuildCardGrid();
+        });
+        searchBox.child(searchInput);
+
+        panel2.child(searchBox);
+
+        // 3-Column Scrollable Grid Flow
+        cardGrid = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        cardGrid.gap(6);
+        buildCardGrid();
+
+        scrollContainer = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(100), cardGrid);
+        scrollContainer.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(0xFF282E3D)));
+        panel2.child(scrollContainer);
+
+        bodySplit.child(panel2);
+
+        // ── PANEL 3: Live 3D Player Preview Chamber (Scaled Small & Compact) ────
+        FlowLayout panel3 = Containers.verticalFlow(Sizing.fixed(200), Sizing.fill(100));
+        panel3.surface((context, component) -> {
+            int x = component.x(), y = component.y(), w = component.width(), h = component.height();
+            context.fill(x, y, x + w, y + h, currentEnv.getBgColor());
+            context.drawBorder(x, y, w, h, currentEnv.getBorderColor());
+        });
+        panel3.padding(Insets.of(6));
+        panel3.gap(4);
+
+        // Top Environmental Selection Tabs (Default, World, Nether, End)
+        FlowLayout envTabsRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(20));
+        envTabsRow.verticalAlignment(VerticalAlignment.CENTER);
+        envTabsRow.horizontalAlignment(HorizontalAlignment.RIGHT);
+        envTabsRow.gap(2);
+
+        for (EnvironmentTab tab : EnvironmentTab.values()) {
+            final EnvironmentTab targetTab = tab;
+            ButtonComponent envBtn = Components.button(Text.literal(tab.getLabel()), btn -> {
+                currentEnv = targetTab;
+            });
+            envBtn.sizing(Sizing.fixed(44), Sizing.fixed(18));
+            envBtn.renderer(ButtonComponent.Renderer.flat(0xFF161924, 0xFF252A3B, 0xFF161924));
+            envTabsRow.child(envBtn);
+        }
+        panel3.child(envTabsRow);
+
+        // 3D Player Viewport Frame (Sizing.fixed(42) + scale(0.85f) for small, compact player avatar)
+        FlowLayout previewViewport = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
+        previewViewport.verticalAlignment(VerticalAlignment.CENTER);
+        previewViewport.horizontalAlignment(HorizontalAlignment.CENTER);
+
+        MinecraftClient mc = MinecraftClient.getInstance();
+        LivingEntity playerEntity = (mc != null && mc.player != null) ? mc.player : null;
+
+        if (playerEntity != null) {
+            // Sizing.fixed(42) with scale(0.85f) renders a small, fully proportional player model
+            playerEntityComponent = Components.entity(Sizing.fixed(42), playerEntity);
+            playerEntityComponent.scale(0.85f);
+            playerEntityComponent.allowMouseRotation(true);
+            playerEntityComponent.showNametag(false);
+            previewViewport.child(playerEntityComponent);
+        } else {
+            previewViewport.child(Components.label(Text.literal("Player Preview\nAvailable In-Game"))
+                    .color(Color.ofArgb(0xFF64748B))
+                    .sizing(Sizing.content(), Sizing.content()));
+        }
+
+        panel3.child(previewViewport);
+
+        // Bottom Helper Text
+        FlowLayout helperRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(16));
+        helperRow.verticalAlignment(VerticalAlignment.CENTER);
+        helperRow.horizontalAlignment(HorizontalAlignment.CENTER);
+        helperRow.child(Components.label(Text.literal("Select a cosmetic to preview it"))
+                .color(Color.ofArgb(0xFF64748B))
+                .sizing(Sizing.content(), Sizing.content()));
+        panel3.child(helperRow);
+
+        bodySplit.child(panel3);
+        mainCanvas.child(bodySplit);
+        root.child(mainCanvas);
     }
 
-    // ── Cards Grid Builder ───────────────────────────────────────────────────
-    private void buildGrid() {
+    // ── Build 3-Column Cosmetic Card Grid ────────────────────────────────────
+    private void buildCardGrid() {
         cardGrid.clearChildren();
-        FlowLayout row = null;
-        int col = 0;
+
+        List<CosmeticItem> items = new ArrayList<>(CosmeticTextureCache.getItems());
+
+        // Category Filter
+        if (selectedCategory == CosmeticItem.Category.FAVORITES) {
+            items.removeIf(item -> !item.isFavorite());
+        } else if (selectedCategory != CosmeticItem.Category.ALL) {
+            items.removeIf(item -> item.getCategory() != selectedCategory);
+        }
+
+        // Search Query Filter
+        if (!searchQuery.isEmpty()) {
+            items.removeIf(item -> !item.getName().toLowerCase().contains(searchQuery));
+        }
+
+        FlowLayout currentRow = null;
+        int colCount = 0;
         final int COLS = 3;
 
-        for (int i = 0; i < COS_NAMES.length; i++) {
-            if (activeCategory == 1 && (ModConfig.favoriteCosmetics == null || !ModConfig.favoriteCosmetics[i])) continue;
-            if (activeCategory >= 3) continue;
-            if (!searchQuery.isEmpty() && !COS_NAMES[i].toLowerCase().contains(searchQuery)) continue;
+        for (int i = 0; i < items.size(); i++) {
+            CosmeticItem item = items.get(i);
 
-            if (col == 0) {
-                row = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
-                row.gap(8);
-                cardGrid.child(row);
+            if (colCount == 0) {
+                currentRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+                currentRow.gap(6);
+                cardGrid.child(currentRow);
             }
 
-            final int idx = i;
-            FlowLayout card = buildCard(i);
-            if (row != null) row.child(card);
+            final int itemIndex = i;
+            FlowLayout card = buildItemCard(item, itemIndex);
+            if (currentRow != null) {
+                currentRow.child(card);
+            }
 
-            col++;
-            if (col >= COLS) col = 0;
+            colCount++;
+            if (colCount >= COLS) colCount = 0;
         }
     }
 
-    private FlowLayout buildCard(int i) {
-        boolean sel = (selectedItem == i);
-        boolean isFav = (ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics[i]);
+    // ── Build Individual Card Component ──────────────────────────────────────
+    private FlowLayout buildItemCard(CosmeticItem item, int idx) {
+        boolean isSelected = (selectedCapeIndex == idx);
 
-        FlowLayout card = Containers.verticalFlow(Sizing.fixed(122), Sizing.fixed(140));
-
-        int bg = sel ? 0xFF16112C : 0xFF0D0B1A;
-        int border = sel ? 0xFF8B21F7 : 0xFF1D1B36;
+        FlowLayout card = Containers.verticalFlow(Sizing.fixed(116), Sizing.fixed(138));
 
         card.surface((context, component) -> {
             int x = component.x(), y = component.y(), w = component.width(), h = component.height();
+            int bg = isSelected ? 0xFF1E2433 : 0xFF151821;
+            int border = isSelected ? 0xFF3B82F6 : 0xFF1F2432;
+
             context.fill(x, y, x + w, y + h, bg);
             context.drawBorder(x, y, w, h, border);
-            if (sel) {
-                context.fill(x, y, x + 3, y + h, 0xFF8B21F7);
-            }
         });
-        card.padding(Insets.of(6, 6, 6, 6));
-        card.gap(4);
+        card.padding(Insets.of(3));
+        card.gap(3);
 
-        // Top row: favorite star + title
-        FlowLayout topRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
-        topRow.verticalAlignment(VerticalAlignment.CENTER);
-
-        ButtonComponent starBtn = Components.button(Text.literal(isFav ? "★" : "☆"), btn -> {
-            if (ModConfig.favoriteCosmetics == null) ModConfig.favoriteCosmetics = new boolean[]{false, false, false};
-            ModConfig.favoriteCosmetics[i] = !ModConfig.favoriteCosmetics[i];
-            ModConfig.saveConfig();
-            rebuildGrid();
-        });
-        starBtn.sizing(Sizing.fixed(16), Sizing.fixed(12));
-        starBtn.renderer((context, button, delta) -> {
-            int textClr = isFav ? 0xFFEAB308 : 0xFF525270;
-            context.drawText(textRenderer, button.getMessage(), button.x(), button.y(), textClr, true);
-        });
-        topRow.child(starBtn);
-
-        topRow.child(Components.label(Text.literal(COS_NAMES[i]))
-            .color(Color.ofArgb(0xFFF1F5F9))
-            .shadow(true)
-            .sizing(Sizing.fill(100), Sizing.content()));
-        card.child(topRow);
-
-        // Texture Thumbnail Block (High-resolution texture with fallback sprite rendering)
-        FlowLayout thumbBox = Containers.verticalFlow(Sizing.fill(100), Sizing.fixed(70));
-        final int capeColor = COS_COLORS[i];
-        final Identifier thumbTex = COS_THUMBS[i];
-
-        thumbBox.surface((context, component) -> {
+        // 3D Mini-Mannequin Viewport Rendering velora_cape.png / classic_cape.png
+        FlowLayout mannequinViewport = Containers.verticalFlow(Sizing.fill(100), Sizing.fixed(106));
+        mannequinViewport.surface((context, component) -> {
             int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-            // Background fill
-            context.fill(x, y, x + w, y + h, 0xFF080712);
-            // Draw thumbnail texture sprite
-            context.drawTexture(RenderLayer::getGuiTextured, thumbTex, x + (w - 32) / 2, y + (h - 32) / 2, 0f, 0f, 32, 32, 32, 32);
-            // Outer crisp accent border
-            context.drawBorder(x, y, w, h, (capeColor & 0x00FFFFFF) | 0x66000000);
+
+            // Render 3D mini mannequin showing actual cape texture preview
+            MannequinModelRenderer.renderMannequinCard(context, x, y, w, h, item, false);
+
+            // Render Top-Left Star Favorite Icon
+            int starColor = item.isFavorite() ? 0xFFFFD700 : 0xFF475569;
+            context.drawText(this.textRenderer, "★", x + 5, y + 5, starColor, true);
         });
-        card.child(thumbBox);
 
-        // Subtitle badge
-        card.child(Components.label(Text.literal(COS_TYPES[i]))
-            .color(Color.ofArgb(0xFF7755AA))
-            .sizing(Sizing.fill(100), Sizing.content()));
-
-        // Click to select item
-        card.mouseDown().subscribe((mx, my, btn) -> {
-            if (btn == 0) { selectedItem = i; rebuildGrid(); return true; }
+        // Click Handler: Selects Velora Cape or Mojang Cape & updates preview immediately
+        mannequinViewport.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) {
+                if (mx <= mannequinViewport.x() + 20 && my <= mannequinViewport.y() + 20) {
+                    item.setFavorite(!item.isFavorite());
+                    rebuildCardGrid();
+                    return true;
+                }
+                selectedCapeIndex = idx;
+                if (item.getType() == CosmeticItem.CosmeticType.CAPE) {
+                    ModConfig.enableCape = true;
+                    ModConfig.selectedCape = idx;
+                    ModConfig.saveConfig();
+                }
+                rebuildCardGrid();
+                return true;
+            }
             return false;
         });
+
+        card.child(mannequinViewport);
+
+        // High-Contrast Centered White Item Name Text
+        FlowLayout labelBox = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(20));
+        labelBox.verticalAlignment(VerticalAlignment.CENTER);
+        labelBox.horizontalAlignment(HorizontalAlignment.CENTER);
+
+        labelBox.child(Components.label(Text.literal(item.getName()))
+                .color(Color.ofArgb(0xFFFFFFFF))
+                .shadow(true)
+                .sizing(Sizing.content(), Sizing.content()));
+
+        card.child(labelBox);
 
         return card;
     }
 
-    private void rebuildGrid() { buildGrid(); }
+    private void rebuildCardGrid() {
+        buildCardGrid();
+    }
 
-    // ── Raw Background & Options Overlay ─────────────────────────────────────
+    // ── Render Background & Fallback Panorama ────────────────────────────────
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // 1. Render ultra HD background image
-        com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-        context.drawTexture(RenderLayer::getGuiTextured, BG_TEX, 0, 0, 0f, 0f, this.width, this.height, this.width, this.height);
-
-        // 2. Dark vignette overlay
-        context.fill(0, 0, this.width, this.height, 0x88060A12);
-
-        // 3. OwoLib UI components (Panels, Grid, EntityComponent)
-        super.render(context, mouseX, mouseY, delta);
-
-        // 4. Options modal overlay if opened
-        if (showOptions) drawOptionsModal(context, mouseX, mouseY);
-    }
-
-    private void drawOptionsModal(DrawContext ctx, int mx, int my) {
-        int mW = 360, mH = 200;
-        int mX = (this.width - mW) / 2, mY = (this.height - mH) / 2;
-        ctx.fill(mX, mY, mX + mW, mY + mH, 0xFF0D0D1E);
-        ctx.drawBorder(mX, mY, mW, mH, 0xFF8B21F7);
-        ctx.drawText(this.textRenderer, "⚙  Cape & Physics Options", mX + 14, mY + 12, 0xFFFFFFFF, true);
-
-        drawModalRow(ctx, mx, my, mX + 14, mY + 38,  mW - 28, "Cloth Physics (Wavey Capes)", ModConfig.enableCapePhysics);
-        drawModalRow(ctx, mx, my, mX + 14, mY + 74,  mW - 28, "Override Vanilla Capes",       ModConfig.overrideDefaultCape);
-        drawModalRow(ctx, mx, my, mX + 14, mY + 110, mW - 28, "Local Player Only",            ModConfig.capeOnlyLocal);
-
-        int doneX = mX + mW - 80, doneY = mY + mH - 32;
-        ctx.fill(doneX, doneY, doneX + 68, doneY + 22, 0xFF130828);
-        ctx.drawBorder(doneX, doneY, 68, 22, 0xFF3D1D6A);
-        ctx.drawCenteredTextWithShadow(this.textRenderer, "Done", doneX + 34, doneY + 7, 0xFFAA88DD);
-    }
-
-    private void drawModalRow(DrawContext ctx, int mx, int my, int x, int y, int w, String label, boolean on) {
-        ctx.fill(x, y, x + w, y + 28, 0xFF0D0D20);
-        ctx.drawBorder(x, y, w, 28, 0xFF1A1830);
-        ctx.drawText(this.textRenderer, label, x + 10, y + 10, 0xFFE8E0FF, false);
-        int swX = x + w - 36, swY = y + 7;
-        ctx.fill(swX, swY, swX + 30, swY + 14, on ? 0xFF6D28D9 : 0xFF1E1A34);
-        ctx.drawBorder(swX, swY, 30, 14, on ? 0xFFA855F7 : 0xFF3D2A6A);
-        int kx = on ? swX + 16 : swX + 2;
-        ctx.fill(kx, swY + 2, kx + 12, swY + 12, 0xFFFFFFFF);
-    }
-
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && showOptions) {
-            int mW = 360, mH = 200, mX = (this.width - mW) / 2, mY = (this.height - mH) / 2;
-            int mx = (int) mouseX, my = (int) mouseY;
-            if (mx >= mX + 14 && mx <= mX + mW - 14) {
-                if (my >= mY + 38  && my <= mY + 66)  { ModConfig.enableCapePhysics   = !ModConfig.enableCapePhysics;   ModConfig.saveConfig(); return true; }
-                if (my >= mY + 74  && my <= mY + 102) { ModConfig.overrideDefaultCape = !ModConfig.overrideDefaultCape; ModConfig.saveConfig(); return true; }
-                if (my >= mY + 110 && my <= mY + 138) { ModConfig.capeOnlyLocal       = !ModConfig.capeOnlyLocal;       ModConfig.saveConfig(); return true; }
-            }
-            if (mx >= mX + mW - 80 && mx <= mX + mW - 12 && my >= mY + mH - 32 && my <= mY + mH - 10) {
-                showOptions = false; return true;
-            }
-            return true;
+        if (showPanoramaBackground) {
+            panoramaRenderer.render(context, this.width, this.height, 1.0f, delta);
+            context.fill(0, 0, this.width, this.height, 0x88000000);
+        } else {
+            context.fill(0, 0, this.width, this.height, 0xCC090A0F);
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+
+        super.render(context, mouseX, mouseY, delta);
     }
 
     @Override
-    public boolean shouldPause() { return false; }
+    public boolean shouldPause() {
+        return false;
+    }
 }
