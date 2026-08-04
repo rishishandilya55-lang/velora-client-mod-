@@ -5,9 +5,15 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KeystrokesClient implements ClientModInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+    private static int tickCounter = 0;
+
     public static void init() {
+        LOGGER.info("[Velora] Keystrokes HUD registered");
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             if (!ModConfig.showKeystrokes) {
                 return;
@@ -77,6 +83,11 @@ public class KeystrokesClient implements ClientModInitializer {
             }
 
             drawContext.getMatrices().pop();
+
+            tickCounter++;
+            if (tickCounter % 60 == 0) {
+                LOGGER.trace("[Velora] Keystrokes HUD render tick");
+            }
         });
     }
 

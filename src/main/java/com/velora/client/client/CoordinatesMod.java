@@ -5,9 +5,15 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CoordinatesMod implements ClientModInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+    private static int tickCounter = 0;
+
     public static void init() {
+        LOGGER.info("[Velora] Coordinates HUD registered");
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             if (!ModConfig.showCoordinates) return;
 
@@ -32,6 +38,10 @@ public class CoordinatesMod implements ClientModInitializer {
             drawContext.drawText(textRenderer, coordsText, x, y, 0xFFFFFFFF, true);
 
             drawContext.getMatrices().pop();
+            tickCounter++;
+            if (tickCounter % 60 == 0) {
+                LOGGER.trace("[Velora] Coords HUD: {},{},{}", px, py, pz);
+            }
         });
     }
 

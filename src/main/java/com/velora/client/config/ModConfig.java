@@ -151,28 +151,38 @@ public class ModConfig {
     public static void saveConfig() {
         try {
             File file = getConfigFile();
+            LOGGER.debug("[Velora] Saving config to {}", file.getAbsolutePath());
             ConfigData data = ConfigData.fromCurrentConfig();
             try (FileWriter writer = new FileWriter(file)) {
                 GSON.toJson(data, writer);
             }
+            LOGGER.info("[Velora] Config saved successfully");
         } catch (Exception e) {
-            LOGGER.error("Failed to save config", e);
+            LOGGER.error("[Velora] Failed to save config", e);
         }
     }
 
     public static void loadConfig() {
         try {
             File file = getConfigFile();
+            LOGGER.debug("[Velora] Loading config from {}", file.getAbsolutePath());
             if (file.exists()) {
                 try (FileReader reader = new FileReader(file)) {
                     ConfigData data = GSON.fromJson(reader, ConfigData.class);
                     if (data != null) {
                         data.applyToConfig();
+                        LOGGER.debug("[Velora] Config values applied: selectedCape={}, enableCape={}, showFullbright={}, showCps={}, showKeystrokes={}",
+                                selectedCape, enableCape, showFullbright, showCps, showKeystrokes);
+                        LOGGER.info("[Velora] Config loaded successfully from file");
+                    } else {
+                        LOGGER.warn("[Velora] Config file was empty or invalid, using defaults");
                     }
                 }
+            } else {
+                LOGGER.info("[Velora] No config file found, using defaults");
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to load config", e);
+            LOGGER.error("[Velora] Failed to load config", e);
         }
     }
 

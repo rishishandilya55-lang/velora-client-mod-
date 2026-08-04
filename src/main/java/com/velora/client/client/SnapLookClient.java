@@ -5,8 +5,12 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.Perspective;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SnapLookClient implements ClientModInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+
     public static boolean active = false;
     private static Perspective previousPerspective = Perspective.FIRST_PERSON;
 
@@ -21,11 +25,13 @@ public class SnapLookClient implements ClientModInitializer {
             if (isPressed) {
                 if (!active && !FreeLookClient.active) {
                     active = true;
+                    LOGGER.debug("[Velora] SnapLook activated");
                     previousPerspective = client.options.getPerspective();
                     client.options.setPerspective(Perspective.THIRD_PERSON_FRONT);
                 }
             } else {
                 if (active) {
+                    LOGGER.debug("[Velora] SnapLook deactivated");
                     disable(client);
                 }
             }

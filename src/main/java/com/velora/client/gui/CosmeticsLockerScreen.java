@@ -21,6 +21,8 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +36,8 @@ import java.util.List;
  * - Card Mini-Previews: 3D mannequin card viewports render custom velora_cape.png and mojang_cape.png textures.
  */
 public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
 
     // Background Panorama Fallback System (Vanilla Plains Path)
     private static final Identifier PANORAMA_PATH = Identifier.of("minecraft", "textures/gui/title/background/panorama");
@@ -84,6 +88,7 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public void close() {
+        LOGGER.info("[Velora] Cosmetic locker closing");
         isLockerOpen = false;
         super.close();
     }
@@ -96,6 +101,7 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     protected void build(FlowLayout root) {
         isLockerOpen = true;
+        LOGGER.info("[Velora] Cosmetic locker opening");
         this.root = root;
 
         // Reset and initialize clean 2-cape test registry (Velora Cape & Mojang Cape)
@@ -358,13 +364,16 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
         // Category Filter
         if (selectedCategory == CosmeticItem.Category.FAVORITES) {
             items.removeIf(item -> !item.isFavorite());
+            LOGGER.debug("[Velora] Filtering to favorites only");
         } else if (selectedCategory != CosmeticItem.Category.ALL) {
             items.removeIf(item -> item.getCategory() != selectedCategory);
+            LOGGER.debug("[Velora] Filtering by category: {}", selectedCategory.getDisplayName());
         }
 
         // Search Query Filter
         if (!searchQuery.isEmpty()) {
             items.removeIf(item -> !item.getName().toLowerCase().contains(searchQuery));
+            LOGGER.debug("[Velora] Search filter applied: query='{}', results={}", searchQuery, items.size());
         }
 
         FlowLayout currentRow = null;
@@ -389,6 +398,7 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
             colCount++;
             if (colCount >= COLS) colCount = 0;
         }
+        LOGGER.debug("[Velora] Built {} cosmetic cards", items.size());
     }
 
     // ── Build Individual Card Component ──────────────────────────────────────
@@ -426,6 +436,7 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
             if (btn == 0) {
                 if (mx <= mannequinViewport.x() + 20 && my <= mannequinViewport.y() + 20) {
                     item.setFavorite(!item.isFavorite());
+                    LOGGER.debug("[Velora] Favorite toggled for {}: isFavorite={}", item.getName(), item.isFavorite());
                     saveFavoritesToConfig();
                     rebuildCardGrid();
                     return true;
@@ -434,10 +445,12 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
                 List<CosmeticItem> allItems = CosmeticTextureCache.getItems();
                 int registryIndex = allItems.indexOf(item);
                 selectedCapeIndex = registryIndex;
+                LOGGER.info("[Velora] Cape selected: index={}, name={}", registryIndex, item.getName());
                 if (item.getType() == CosmeticItem.CosmeticType.CAPE) {
                     ModConfig.enableCape = true;
                     ModConfig.selectedCape = registryIndex;
                     ModConfig.saveConfig();
+                    LOGGER.debug("[Velora] Config saved after cape selection");
                 }
                 rebuildCardGrid();
                 return true;
@@ -474,6 +487,7 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
         }
         ModConfig.favoriteCosmetics = favorites;
         ModConfig.saveConfig();
+        LOGGER.debug("[Velora] Favorites saved to config");
     }
 
     // ── Render Background & Fallback Panorama ────────────────────────────────

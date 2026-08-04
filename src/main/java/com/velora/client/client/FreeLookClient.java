@@ -5,8 +5,12 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.Perspective;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FreeLookClient implements ClientModInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+
     public static boolean active = false;
     public static float cameraYaw = 0.0f;
     public static float cameraPitch = 0.0f;
@@ -23,6 +27,7 @@ public class FreeLookClient implements ClientModInitializer {
             if (isPressed) {
                 if (!active && !SnapLookClient.active) {
                     active = true;
+                    LOGGER.debug("[Velora] FreeLook activated");
                     previousPerspective = client.options.getPerspective();
                     cameraYaw = client.player.getYaw();
                     cameraPitch = client.player.getPitch();
@@ -30,6 +35,7 @@ public class FreeLookClient implements ClientModInitializer {
                 }
             } else {
                 if (active) {
+                    LOGGER.debug("[Velora] FreeLook deactivated");
                     disable(client);
                 }
             }

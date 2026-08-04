@@ -8,9 +8,14 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BlockInfoMod implements ClientModInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+
     public static void init() {
+        LOGGER.info("[Velora] Block info HUD registered");
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             if (!ModConfig.showBlockInfo) return;
 
@@ -21,6 +26,7 @@ public class BlockInfoMod implements ClientModInitializer {
                 BlockHitResult hitResult = (BlockHitResult) client.crosshairTarget;
                 BlockState state = client.world.getBlockState(hitResult.getBlockPos());
                 String blockName = state.getBlock().getName().getString();
+                LOGGER.trace("[Velora] Block info update: {}", blockName);
 
                 TextRenderer textRenderer = client.textRenderer;
 

@@ -6,6 +6,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.util.SkinTextures;
 import net.minecraft.util.Identifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -13,6 +15,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(AbstractClientPlayerEntity.class)
 public abstract class AbstractClientPlayerEntityMixin {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
 
     private static final Identifier VELORA_CAPE = Identifier.of("velora", "textures/cape/velora_cape.png");
     private static final Identifier CLASSIC_CAPE = Identifier.of("velora", "textures/cape/classic_cape.png");
@@ -27,6 +31,7 @@ public abstract class AbstractClientPlayerEntityMixin {
         if ((ModConfig.enableCape && ModConfig.overrideDefaultCape) || previewingCape) {
             AbstractClientPlayerEntity player = (AbstractClientPlayerEntity) (Object) this;
             boolean isLocalPlayer = (player == MinecraftClient.getInstance().player);
+            String playerName = player.getName().getString();
 
             if (previewingCape || !ModConfig.capeOnlyLocal || isLocalPlayer) {
                 SkinTextures original = cir.getReturnValue();
@@ -43,6 +48,9 @@ public abstract class AbstractClientPlayerEntityMixin {
                         case 5 -> WITHERED_ROSE_CAPE;
                         default -> VELORA_CAPE;
                     };
+
+                    LOGGER.debug("[Velora] Cape injection: player={}, choice={}, texture={}, preview={}",
+                            playerName, capeChoice, capeTexture, previewingCape);
 
                     cir.setReturnValue(new SkinTextures(
                         original.texture(),

@@ -8,13 +8,19 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ArmorMod implements ClientModInitializer {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+    private static int tickCounter = 0;
+
     public static void init() {
+        LOGGER.info("[Velora] Armor HUD registered");
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             if (!ModConfig.showArmorStatus) return;
 
@@ -22,6 +28,10 @@ public class ArmorMod implements ClientModInitializer {
             if (client.player == null || client.options.hudHidden) return;
 
             renderArmorHud(drawContext, client);
+            tickCounter++;
+            if (tickCounter % 60 == 0) {
+                LOGGER.trace("[Velora] Armor HUD render tick");
+            }
         });
     }
 

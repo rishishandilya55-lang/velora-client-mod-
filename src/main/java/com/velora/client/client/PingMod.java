@@ -5,6 +5,8 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.network.PlayerListEntry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * PingMod — renders the server ping (latency) on the HUD.
@@ -14,7 +16,10 @@ import net.minecraft.client.network.PlayerListEntry;
  */
 public class PingMod {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+
     public static void init() {
+        LOGGER.info("[Velora] Ping HUD registered");
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             if (!ModConfig.showPing) return;
 
@@ -28,6 +33,7 @@ public class PingMod {
             if (entry == null) return;
 
             int ping = entry.getLatency();
+            LOGGER.trace("[Velora] Ping update: {}ms", ping);
 
             // Choose color based on ping quality
             int pingColor;

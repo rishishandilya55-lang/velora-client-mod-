@@ -7,8 +7,12 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZoomClient implements ClientModInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+
     public static KeyBinding zoomKey;
     public static boolean isZooming = false;
     private static float currentZoomFactor = 1.0f; // 1.0 = normal, higher = zoomed in
@@ -48,6 +52,7 @@ public class ZoomClient implements ClientModInitializer {
             if (!isZooming) {
                 isZooming = true;
                 ModConfig.currentZoomScroll = 0.0f;
+                LOGGER.debug("[Velora] Zoom enabled");
             }
             float baseZoom = Math.max(1.5f, 70.0f / Math.max(5.0f, ModConfig.zoomAmount));
             targetZoomFactor = baseZoom + (ModConfig.currentZoomScroll * 0.5f);
@@ -56,6 +61,7 @@ public class ZoomClient implements ClientModInitializer {
             if (isZooming) {
                 isZooming = false;
                 ModConfig.currentZoomScroll = 0.0f;
+                LOGGER.debug("[Velora] Zoom disabled");
             }
             targetZoomFactor = 1.0f;
         }
@@ -83,6 +89,7 @@ public class ZoomClient implements ClientModInitializer {
         } else if (vertical < 0) {
             ModConfig.currentZoomScroll = Math.max(-2.0f, ModConfig.currentZoomScroll - 1.0f);
         }
+        LOGGER.debug("[Velora] Scroll zoom: scrollLevel={}", ModConfig.currentZoomScroll);
     }
 
     public static float getCurrentZoomFactor() {

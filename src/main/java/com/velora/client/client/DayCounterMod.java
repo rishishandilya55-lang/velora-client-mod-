@@ -5,9 +5,14 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DayCounterMod implements ClientModInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+
     public static void init() {
+        LOGGER.info("[Velora] Day counter HUD registered");
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             if (!ModConfig.showDayCounter) return;
 
@@ -17,6 +22,7 @@ public class DayCounterMod implements ClientModInitializer {
             TextRenderer textRenderer = client.textRenderer;
 
             long day = client.world.getTimeOfDay() / 24000L + 1;
+            LOGGER.trace("[Velora] Day calculation: day={}", day);
             String dayText = "Day: " + day;
 
             drawContext.getMatrices().push();

@@ -24,8 +24,12 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.world.Heightmap;
 import net.minecraft.world.biome.Biome;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MinimapClient implements ClientModInitializer {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
 
     public static final int MAP_SIZE = 128;
     private static NativeImage nativeImage;
@@ -37,6 +41,7 @@ public class MinimapClient implements ClientModInitializer {
     private static int lastPlayerY = Integer.MIN_VALUE;
 
     public static void init() {
+        LOGGER.info("[Velora] Minimap HUD registered");
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             if (!ModConfig.showMinimap) return;
 
@@ -60,10 +65,12 @@ public class MinimapClient implements ClientModInitializer {
             mapTexture = new NativeImageBackedTexture(nativeImage);
             textureId = Identifier.of("velora", "textures/gui/dynamic_minimap.png");
             client.getTextureManager().registerTexture(textureId, mapTexture);
+            LOGGER.debug("[Velora] Minimap texture created: {}", textureId);
         }
     }
 
     public static void close() {
+        LOGGER.debug("[Velora] Minimap resources closing");
         MinecraftClient mc = MinecraftClient.getInstance();
         if (textureId != null && mc != null) {
             mc.getTextureManager().destroyTexture(textureId);
@@ -74,6 +81,7 @@ public class MinimapClient implements ClientModInitializer {
         }
         mapTexture = null;
         textureId = null;
+        LOGGER.debug("[Velora] Minimap resources cleaned up");
     }
 
     private static void updateMapTextureIfNeeded(MinecraftClient client) {
@@ -93,6 +101,8 @@ public class MinimapClient implements ClientModInitializer {
         lastPlayerX = playerX;
         lastPlayerY = playerY;
         lastPlayerZ = playerZ;
+
+        LOGGER.trace("[Velora] Minimap update: pos={},{}", playerX, playerZ);
 
         int halfSize = MAP_SIZE / 2;
         ClientWorld world = client.world;

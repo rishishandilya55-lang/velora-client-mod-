@@ -8,8 +8,12 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ModKeybindings implements ClientModInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+
     public static KeyBinding openMenuKey;
     public static KeyBinding freeLookKey;
     public static KeyBinding snapLookKey;
@@ -36,8 +40,12 @@ public class ModKeybindings implements ClientModInitializer {
             "category.velora.general"
         ));
 
+        LOGGER.info("[Velora] Keybindings registered: menu=RIGHT_SHIFT, freelook={}, snaplook={}",
+                GLFW.glfwGetKeyName(ModConfig.freeLookKey, 0), GLFW.glfwGetKeyName(ModConfig.snapLookKey, 0));
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKey.wasPressed()) {
+                LOGGER.debug("[Velora] Open menu key pressed");
                 client.setScreen(new ModMenuScreen());
             }
         });

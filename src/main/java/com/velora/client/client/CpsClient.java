@@ -5,24 +5,31 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class CpsClient implements ClientModInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+
     private static final List<Long> leftclicks = Collections.synchronizedList(new ArrayList<>());
     private static final List<Long> rightclicks = Collections.synchronizedList(new ArrayList<>());
 
     public static void registerLeftClick() {
         leftclicks.add(System.currentTimeMillis());
+        LOGGER.trace("[Velora] Left click registered");
     }
 
     public static void registerRightClick() {
         rightclicks.add(System.currentTimeMillis());
+        LOGGER.trace("[Velora] Right click registered");
     }
 
     public static void init() {
+        LOGGER.info("[Velora] CPS HUD registered");
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             if (!ModConfig.showCps) {
                 return;

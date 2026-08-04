@@ -8,12 +8,17 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.resource.Resource;
 import net.minecraft.util.Identifier;
 import org.joml.Quaternionf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 
 public class MannequinModelRenderer {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+
     public static void renderMannequinCard(DrawContext context, int x, int y, int width, int height, CosmeticItem item, boolean hovered) {
+        LOGGER.trace("[Velora] Rendering mannequin card: name={}, type={}", item.getName(), item.getType());
         int centerX = x + width / 2;
         int centerY = y + height / 2 + 4;
 
@@ -79,10 +84,15 @@ public class MannequinModelRenderer {
 
             if (CosmeticTextureCache.isTextureValid(texture)) {
                 int[] dim = getTextureDimensions(texture);
+                LOGGER.trace("[Velora] Cape texture dimensions: {}x{} for {}", dim[0], dim[1], texture);
                 context.drawTexture(RenderLayer::getGuiTextured, texture, -10, -28, 0.0f, 0.0f, 20, 32, dim[0], dim[1]);
             } else {
+                LOGGER.debug("[Velora] Cape texture invalid, using fallback: {}", texture);
                 renderFallbackCape(context, matrices);
             }
+        } catch (Exception e) {
+            LOGGER.error("[Velora] Exception rendering cape texture: {}", texture, e);
+            renderFallbackCape(context, matrices);
         } finally {
             matrices.pop();
         }

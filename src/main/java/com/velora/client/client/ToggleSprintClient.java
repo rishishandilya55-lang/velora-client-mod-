@@ -6,8 +6,12 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ToggleSprintClient implements ClientModInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+
     public static boolean toggleSprintActive = false;
     private static boolean wasSprintKeyPressed = false;
 
@@ -20,6 +24,7 @@ public class ToggleSprintClient implements ClientModInitializer {
             boolean isSprintKeyPressed = client.options.sprintKey.isPressed();
             if (isSprintKeyPressed && !wasSprintKeyPressed) {
                 toggleSprintActive = !toggleSprintActive;
+                LOGGER.info("[Velora] Sprint toggle: {}", toggleSprintActive ? "ON" : "OFF");
             }
             wasSprintKeyPressed = isSprintKeyPressed;
 

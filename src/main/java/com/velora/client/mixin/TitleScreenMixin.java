@@ -4,6 +4,8 @@ import com.velora.client.gui.VeloraMainMenuScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.text.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -16,6 +18,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(TitleScreen.class)
 public abstract class TitleScreenMixin extends Screen {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
+
     protected TitleScreenMixin(Text title) {
         super(title);
     }
@@ -23,6 +27,7 @@ public abstract class TitleScreenMixin extends Screen {
     @Inject(method = "init", at = @At("HEAD"), cancellable = true)
     private void redirectToVeloraMenu(CallbackInfo ci) {
         if (this.client != null) {
+            LOGGER.info("[Velora] Redirecting title screen to Velora menu");
             this.client.setScreen(new VeloraMainMenuScreen());
             ci.cancel();
         }
