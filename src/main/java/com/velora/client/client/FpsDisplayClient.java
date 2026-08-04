@@ -35,6 +35,12 @@ public class FpsDisplayClient implements ClientModInitializer {
         // Clean up MinimapClient native resources on disconnect
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             MinimapClient.close();
+            FullbrightClient.onToggleOff();
+        });
+
+        // Fullbright gamma tick
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            FullbrightClient.tick();
         });
 
         // Register FPS Display HUD Render Callback

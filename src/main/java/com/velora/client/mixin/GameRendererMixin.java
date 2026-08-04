@@ -21,7 +21,6 @@ public class GameRendererMixin {
     private void onTiltViewWhenHurt(MatrixStack matrices, float tickDelta, CallbackInfo ci) {
         if (ModConfig.showNoHurtCam) {
             if (ModConfig.hurtCamIntensity <= 0.0f) {
-                // Completely disable hurt camera wobble
                 ci.cancel();
             }
         }
@@ -38,16 +37,6 @@ public class GameRendererMixin {
             if (zoomedFov != baseFov) {
                 ci.setReturnValue(zoomedFov);
             }
-        }
-    }
-
-    /**
-     * Handles Fullbright: Returns 1.0f night vision strength when Fullbright is enabled.
-     */
-    @Inject(method = "getNightVisionStrength", at = @At("HEAD"), cancellable = true)
-    private static void onGetNightVisionStrength(net.minecraft.entity.LivingEntity entity, float tickDelta, CallbackInfoReturnable<Float> cir) {
-        if (ModConfig.showFullbright) {
-            cir.setReturnValue((float) ModConfig.fullbrightGamma);
         }
     }
 }
