@@ -17,6 +17,7 @@ public class ModKeybindings implements ClientModInitializer {
     public static KeyBinding openMenuKey;
     public static KeyBinding freeLookKey;
     public static KeyBinding snapLookKey;
+    public static KeyBinding fullbrightKey;
 
     public static void init() {
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -40,8 +41,15 @@ public class ModKeybindings implements ClientModInitializer {
             "category.velora.general"
         ));
 
-        LOGGER.info("[Velora] Keybindings registered: menu=RIGHT_SHIFT, freelook={}, snaplook={}",
-                GLFW.glfwGetKeyName(ModConfig.freeLookKey, 0), GLFW.glfwGetKeyName(ModConfig.snapLookKey, 0));
+        fullbrightKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+            "key.velora.fullbright",
+            InputUtil.Type.KEYSYM,
+            GLFW.GLFW_KEY_F6,
+            "category.velora.general"
+        ));
+
+        LOGGER.info("[Velora] Keybindings registered: menu=RIGHT_SHIFT, freelook={}, snaplook={}, fullbright=F6",
+                ModConfig.freeLookKey, ModConfig.snapLookKey);
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKey.wasPressed()) {

@@ -3,7 +3,6 @@ package com.velora.client.gui;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.component.EntityComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.core.*;
@@ -14,31 +13,34 @@ import net.minecraft.client.gui.RotatingCubeMapRenderer;
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.gui.screen.option.OptionsScreen;
 import net.minecraft.client.gui.screen.world.SelectWorldScreen;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * Velora Client — Overhauled Main Title Screen (Fabric 1.21.4 / owo-lib).
- *
- * Sizing & Scaling Adjustments:
- * - Main Menu 3D Player Preview: Scaled down (Sizing.fixed(42) + scale(0.85f)) so the player
- *   avatar renders small, compact, and perfectly centered next to the main menu buttons.
- */
 public class VeloraMainMenuScreen extends BaseOwoScreen<FlowLayout> {
 
     private static final Identifier LOGO = Identifier.of("velora", "textures/gui/logo.png");
-    private static final Identifier PANORAMA_PATH = Identifier.of("minecraft", "textures/gui/title/background/panorama");
-    private static final int BTN_W = 220;
+    private static final Identifier PANORAMA = Identifier.of("minecraft", "textures/gui/title/background/panorama");
+
+    private static final int BG       = 0xFF08080A;
+    private static final int SURF     = 0xFF0F0F12;
+    private static final int SURF2    = 0xFF16161A;
+    private static final int SURF3    = 0xFF1D1D22;
+    private static final int TEXT     = 0xFFF4F4F5;
+    private static final int TEXT_M   = 0xFFA1A1AA;
+    private static final int TEXT_F   = 0xFF71717A;
+    private static final int BORDER   = 0x14FFFFFF;
+    private static final int BORDER_S = 0x29FFFFFF;
+    private static final int VIOLET   = 0xFFA78BFA;
+    private static final int VIOLET_S = 0xFF8B5CF6;
+    private static final int VIOLET_D = 0xFF6D28D9;
+    private static final int VIOLET_F = 0x1FA78BFA;
+    private static final int GREEN    = 0xFF34D399;
+
+    private static final int BTN_W = 200;
     private static final int BTN_H = 26;
 
-    // 1. Rotating Panorama Renderer (Vanilla Plains Path)
-    private final RotatingCubeMapRenderer panoramaRenderer = new RotatingCubeMapRenderer(
-            new CubeMapRenderer(PANORAMA_PATH)
-    );
-
-    private EntityComponent<LivingEntity> mainPlayerComponent;
+    private final RotatingCubeMapRenderer panoramaRenderer = new RotatingCubeMapRenderer(new CubeMapRenderer(PANORAMA));
 
     public VeloraMainMenuScreen() {
         super(Text.literal("Velora Client"));
@@ -61,177 +63,142 @@ public class VeloraMainMenuScreen extends BaseOwoScreen<FlowLayout> {
         root.surface(Surface.flat(0x00000000));
         root.sizing(Sizing.fill(100), Sizing.fill(100));
 
-        // ── Top Header Bar (Fixed 24px height) ──────────────────────────────────
-        FlowLayout topBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
-        topBar.surface(Surface.flat(0xAA0F1118));
-        topBar.verticalAlignment(VerticalAlignment.CENTER);
-        topBar.padding(Insets.of(0, 10, 0, 10));
-
-        // Status dot + username label
-        FlowLayout userRow = Containers.horizontalFlow(Sizing.content(), Sizing.content());
-        userRow.verticalAlignment(VerticalAlignment.CENTER);
-        userRow.gap(5);
-        userRow.child(Components.label(Text.literal("●"))
-                .color(Color.ofArgb(0xFF22C55E))
-                .sizing(Sizing.content(), Sizing.content()));
-
-        String username = (client != null && client.getSession() != null) ? client.getSession().getUsername() : "Player";
-        userRow.child(Components.label(Text.literal(username))
-                .color(Color.ofArgb(0xFFE2E8F0))
-                .shadow(true)
-                .sizing(Sizing.content(), Sizing.content()));
-        topBar.child(userRow);
-
-        // Top Spacer
-        topBar.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
-
-        // Action Buttons (⚙ Options | ✕ Exit)
-        FlowLayout topActions = Containers.horizontalFlow(Sizing.content(), Sizing.content());
-        topActions.gap(6);
-
-        ButtonComponent gearBtn = Components.button(Text.literal("⚙"), btn -> {
-            if (client != null) client.setScreen(new OptionsScreen(this, client.options));
-        });
-        gearBtn.sizing(Sizing.fixed(18), Sizing.fixed(16));
-        gearBtn.renderer(ButtonComponent.Renderer.flat(0x33FFFFFF, 0x55FFFFFF, 0x33FFFFFF));
-        topActions.child(gearBtn);
-
-        ButtonComponent closeBtn = Components.button(Text.literal("✕"), btn -> {
-            if (client != null) client.scheduleStop();
-        });
-        closeBtn.sizing(Sizing.fixed(18), Sizing.fixed(16));
-        closeBtn.renderer(ButtonComponent.Renderer.flat(0x44FF4444, 0x88FF4444, 0x44FF4444));
-        topActions.child(closeBtn);
-
-        topBar.child(topActions);
-        root.child(topBar);
-
-        // Vertical Spacer
+        root.child(buildTopBar());
         root.child(Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100)));
-
-        // ── Main Content Split (Nav Column + Live 3D Player Preview) ───────────
-        FlowLayout centerSplit = Containers.horizontalFlow(Sizing.content(), Sizing.content());
-        centerSplit.verticalAlignment(VerticalAlignment.CENTER);
-        centerSplit.gap(16);
-
-        // Central Navigation Column
-        FlowLayout centerCol = Containers.verticalFlow(Sizing.fixed(BTN_W + 20), Sizing.content());
-        centerCol.horizontalAlignment(HorizontalAlignment.CENTER);
-        centerCol.gap(6);
-
-        // Logo
-        centerCol.child(Components.texture(LOGO, 0, 0, 48, 48, 48, 48)
-                .sizing(Sizing.fixed(48), Sizing.fixed(48)));
-
-        // Title ("VELORA CLIENT")
-        FlowLayout titleBox = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
-        titleBox.horizontalAlignment(HorizontalAlignment.CENTER);
-        titleBox.child(Components.label(Text.literal("VELORA CLIENT"))
-                .color(Color.ofArgb(0xFFFFFFFF))
-                .shadow(true)
-                .sizing(Sizing.content(), Sizing.content()));
-        centerCol.child(titleBox);
-
-        // Subtitle ("The Velora Experience")
-        FlowLayout subTitleBox = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
-        subTitleBox.horizontalAlignment(HorizontalAlignment.CENTER);
-        subTitleBox.child(Components.label(Text.literal("The Velora Experience"))
-                .color(Color.ofArgb(0xFF94A3B8))
-                .shadow(true)
-                .sizing(Sizing.content(), Sizing.content()));
-        centerCol.child(subTitleBox);
-
-        // Clean subtle divider line
-        FlowLayout sep = Containers.horizontalFlow(Sizing.fixed(140), Sizing.fixed(1));
-        sep.surface(Surface.flat(0x44334155));
-        centerCol.child(sep);
-
-        // Buffer before button list
-        centerCol.child(Containers.verticalFlow(Sizing.fill(100), Sizing.fixed(4)));
-
-        // Navigation Buttons
-        centerCol.child(makeNavButton("▶  Singleplayer", false, btn -> {
-            if (client != null) client.setScreen(new SelectWorldScreen(this));
-        }));
-        centerCol.child(makeNavButton("⚔  Multiplayer", false, btn -> {
-            if (client != null) client.setScreen(new MultiplayerScreen(this));
-        }));
-        centerCol.child(makeNavButton("✦  Cosmetics Locker", true, btn -> {
-            if (client != null) client.setScreen(new CosmeticsLockerScreen());
-        }));
-        centerCol.child(makeNavButton("★  Velora Settings", false, btn -> {
-            if (client != null) client.setScreen(new ModMenuScreen());
-        }));
-        centerCol.child(makeNavButton("⚙  Options", false, btn -> {
-            if (client != null) client.setScreen(new OptionsScreen(this, client.options));
-        }));
-        centerCol.child(makeNavButton("✕  Quit Game", false, btn -> {
-            if (client != null) client.scheduleStop();
-        }));
-
-        centerSplit.child(centerCol);
-
-        // ── Main Menu Live 3D Player Preview Chamber (Small & Proportional) ────
-        MinecraftClient mc = MinecraftClient.getInstance();
-        LivingEntity playerEntity = (mc != null && mc.player != null) ? mc.player : null;
-
-        if (playerEntity != null) {
-            FlowLayout playerBox = Containers.verticalFlow(Sizing.fixed(140), Sizing.fixed(240));
-            playerBox.surface((context, component) -> {
-                int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-                context.fill(x, y, x + w, y + h, 0xAA141720);
-                context.drawBorder(x, y, w, h, 0xFF1F2432);
-            });
-            playerBox.padding(Insets.of(6));
-            playerBox.verticalAlignment(VerticalAlignment.CENTER);
-            playerBox.horizontalAlignment(HorizontalAlignment.CENTER);
-
-            // Sizing.fixed(42) + scale(0.85f) for small, compact player avatar
-            mainPlayerComponent = Components.entity(Sizing.fixed(42), playerEntity);
-            mainPlayerComponent.scale(0.85f);
-            mainPlayerComponent.allowMouseRotation(true);
-            mainPlayerComponent.showNametag(false);
-            playerBox.child(mainPlayerComponent);
-
-            centerSplit.child(playerBox);
-        }
-
-        root.child(centerSplit);
-
-        // Vertical Spacer
+        root.child(buildCenter());
         root.child(Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100)));
-
-        // ── Bottom Footer Bar (Fixed 28px height) ──────────────────────────────
-        FlowLayout bottomBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(28));
-        bottomBar.surface(Surface.flat(0xAA0F1118));
-        bottomBar.verticalAlignment(VerticalAlignment.CENTER);
-        bottomBar.padding(Insets.of(0, 10, 0, 10));
-
-        // Client version
-        bottomBar.child(Components.label(Text.literal("Velora Client  1.21.4"))
-                .color(Color.ofArgb(0xFF64748B))
-                .shadow(false)
-                .sizing(Sizing.content(), Sizing.content()));
-
-        bottomBar.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.content()));
-
-        // Keybind hint
-        bottomBar.child(Components.label(Text.literal("Client Menu: Right Shift"))
-                .color(Color.ofArgb(0xFF64748B))
-                .shadow(false)
-                .sizing(Sizing.content(), Sizing.content()));
-
-        root.child(bottomBar);
+        root.child(buildBottomBar());
     }
 
-    // ── Helper: Navigation Buttons ───────────────────────────────────────────
-    private ButtonComponent makeNavButton(String label, boolean featured, java.util.function.Consumer<ButtonComponent> action) {
+    private FlowLayout buildTopBar() {
+        FlowLayout bar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(26));
+        bar.surface(Surface.flat(SURF2));
+        bar.verticalAlignment(VerticalAlignment.CENTER);
+        bar.padding(Insets.of(0, 10, 0, 10));
+
+        FlowLayout user = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+        user.verticalAlignment(VerticalAlignment.CENTER);
+        user.gap(4);
+        user.child(Components.label(Text.literal("+")).color(Color.ofArgb(GREEN)));
+        String username = (client != null && client.getSession() != null) ? client.getSession().getUsername() : "Player";
+        user.child(Components.label(Text.literal(username)).color(Color.ofArgb(TEXT)).shadow(true));
+        bar.child(user);
+
+        bar.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+
+        FlowLayout actions = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+        actions.gap(3);
+        ButtonComponent gearBtn = Components.button(Text.literal("E"), btn -> {
+            if (client != null) client.setScreen(new OptionsScreen(this, client.options));
+        });
+        gearBtn.sizing(Sizing.fixed(18), Sizing.fixed(18));
+        gearBtn.renderer(ButtonComponent.Renderer.flat(SURF3, VIOLET_F, SURF3));
+        actions.child(gearBtn);
+        ButtonComponent closeBtn = Components.button(Text.literal("X"), btn -> {
+            if (client != null) client.scheduleStop();
+        });
+        closeBtn.sizing(Sizing.fixed(18), Sizing.fixed(18));
+        closeBtn.renderer(ButtonComponent.Renderer.flat(SURF3, 0x33EF4444, SURF3));
+        actions.child(closeBtn);
+        bar.child(actions);
+
+        return bar;
+    }
+
+    private FlowLayout buildCenter() {
+        FlowLayout col = Containers.verticalFlow(Sizing.fixed(BTN_W + 16), Sizing.content());
+        col.horizontalAlignment(HorizontalAlignment.CENTER);
+        col.gap(4);
+
+        col.child(Components.texture(LOGO, 0, 0, 48, 48, 48, 48)
+            .sizing(Sizing.fixed(48), Sizing.fixed(48)));
+
+        FlowLayout titleBox = Containers.horizontalFlow(Sizing.fixed(BTN_W), Sizing.fixed(14));
+        titleBox.surface(Surface.flat(0x00000000));
+        titleBox.horizontalAlignment(HorizontalAlignment.CENTER);
+        titleBox.child(Components.label(Text.literal("VELORA CLIENT"))
+            .color(Color.ofArgb(VIOLET)).shadow(true)
+            .sizing(Sizing.content(), Sizing.content()));
+        col.child(titleBox);
+
+        FlowLayout subBox = Containers.horizontalFlow(Sizing.fixed(BTN_W), Sizing.fixed(12));
+        subBox.surface(Surface.flat(0x00000000));
+        subBox.horizontalAlignment(HorizontalAlignment.CENTER);
+        subBox.child(Components.label(Text.literal("1.21.4 Fabric Mod"))
+            .color(Color.ofArgb(TEXT_M))
+            .sizing(Sizing.content(), Sizing.content()));
+        col.child(subBox);
+
+        FlowLayout sep = Containers.horizontalFlow(Sizing.fixed(120), Sizing.fixed(1));
+        sep.surface(Surface.flat(VIOLET_F));
+        col.child(sep);
+
+        col.child(Containers.verticalFlow(Sizing.fill(100), Sizing.fixed(3)));
+
+        col.child(makeNavBtn("Singleplayer", false, btn -> {
+            if (client != null) client.setScreen(new SelectWorldScreen(this));
+        }));
+        col.child(makeNavBtn("Multiplayer", false, btn -> {
+            if (client != null) client.setScreen(new MultiplayerScreen(this));
+        }));
+        col.child(makeNavBtn("Options", false, btn -> {
+            if (client != null) client.setScreen(new OptionsScreen(this, client.options));
+        }));
+
+        FlowLayout bottomRow = Containers.horizontalFlow(Sizing.fixed(BTN_W), Sizing.fixed(BTN_H));
+        bottomRow.gap(8);
+        bottomRow.horizontalAlignment(HorizontalAlignment.CENTER);
+        bottomRow.child(makeHalfBtn("Cosmetics", true, btn -> {
+            if (client != null) client.setScreen(new CosmeticsLockerScreen());
+        }));
+        bottomRow.child(makeHalfBtn("Quit", false, btn -> {
+            if (client != null) client.scheduleStop();
+        }));
+        col.child(bottomRow);
+
+        return col;
+    }
+
+    private FlowLayout buildBottomBar() {
+        FlowLayout bar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(26));
+        bar.surface(Surface.flat(SURF2));
+        bar.verticalAlignment(VerticalAlignment.CENTER);
+        bar.padding(Insets.of(0, 10, 0, 10));
+
+        FlowLayout leftLabel = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(10));
+        leftLabel.surface(Surface.flat(0x00000000));
+        leftLabel.child(Components.label(Text.literal("Velora Client 1.21.4"))
+            .color(Color.ofArgb(TEXT_F))
+            .sizing(Sizing.content(), Sizing.content()));
+        bar.child(leftLabel);
+
+        bar.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+
+        FlowLayout rightLabel = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(10));
+        rightLabel.surface(Surface.flat(0x00000000));
+        rightLabel.child(Components.label(Text.literal("Menu: Right Shift"))
+            .color(Color.ofArgb(TEXT_F))
+            .sizing(Sizing.content(), Sizing.content()));
+        bar.child(rightLabel);
+
+        return bar;
+    }
+
+    private ButtonComponent makeNavBtn(String label, boolean featured, java.util.function.Consumer<ButtonComponent> action) {
         ButtonComponent btn = Components.button(Text.literal(label), action);
         btn.sizing(Sizing.fixed(BTN_W), Sizing.fixed(BTN_H));
+        int normalBg = featured ? VIOLET_D : SURF2;
+        int hoverBg = featured ? VIOLET_S : SURF3;
+        btn.renderer(ButtonComponent.Renderer.flat(normalBg, hoverBg, normalBg));
+        return btn;
+    }
 
-        int normalBg = featured ? 0xDD1E2433 : 0xAA161822;
-        int hoverBg  = featured ? 0xFF2563EB : 0xDD222634;
-
+    private ButtonComponent makeHalfBtn(String label, boolean featured, java.util.function.Consumer<ButtonComponent> action) {
+        ButtonComponent btn = Components.button(Text.literal(label), action);
+        int halfW = (BTN_W - 8) / 2;
+        btn.sizing(Sizing.fixed(halfW), Sizing.fixed(BTN_H));
+        int normalBg = featured ? VIOLET_D : SURF2;
+        int hoverBg = featured ? VIOLET_S : SURF3;
         btn.renderer(ButtonComponent.Renderer.flat(normalBg, hoverBg, normalBg));
         return btn;
     }
@@ -239,7 +206,7 @@ public class VeloraMainMenuScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.panoramaRenderer.render(context, this.width, this.height, 1.0f, delta);
-        context.fill(0, 0, this.width, this.height, 0x88000000);
+        context.fill(0, 0, this.width, this.height, 0xCC08080A);
         super.render(context, mouseX, mouseY, delta);
     }
 }

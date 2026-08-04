@@ -14,7 +14,8 @@
     "CameraMixin",
     "EntityMixin",
     "ScreenAccessor",
-    "LightmapTextureManagerMixin"
+    "LightmapTextureManagerMixin",
+    "NameTagMixin"
   ],
   "injectors": {
     "defaultRequire": 1

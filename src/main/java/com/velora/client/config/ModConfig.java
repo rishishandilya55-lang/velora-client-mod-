@@ -42,8 +42,11 @@ public class ModConfig {
     public static boolean minimapRotateMap = false;
     public static boolean minimapShowCoordinates = true;
     public static boolean minimapShowBiome = true;
+    public static float minimapZoom = 1.0f;
+    public static boolean minimapShowEntityNames = false;
     public static boolean showNoHurtCam = true;
     public static float hurtCamIntensity = 0.0f; // 0.0f = 0% camera wobble (no hurt cam), 1.0f = 100% normal
+    public static boolean showNametag = true;
 
     // Capes & Cape Physics
     public static boolean enableCape = true;
@@ -208,8 +211,11 @@ public class ModConfig {
         public boolean minimapRotateMap = ModConfig.minimapRotateMap;
         public boolean minimapShowCoordinates = ModConfig.minimapShowCoordinates;
         public boolean minimapShowBiome = ModConfig.minimapShowBiome;
+        public float minimapZoom = ModConfig.minimapZoom;
+        public boolean minimapShowEntityNames = ModConfig.minimapShowEntityNames;
         public boolean showNoHurtCam = ModConfig.showNoHurtCam;
         public float hurtCamIntensity = ModConfig.hurtCamIntensity;
+        public boolean showNametag = ModConfig.showNametag;
 
         public boolean showFreeLook = ModConfig.showFreeLook;
         public boolean showSnapLook = ModConfig.showSnapLook;
@@ -305,8 +311,11 @@ public class ModConfig {
             ModConfig.minimapRotateMap = this.minimapRotateMap;
             ModConfig.minimapShowCoordinates = this.minimapShowCoordinates;
             ModConfig.minimapShowBiome = this.minimapShowBiome;
+            ModConfig.minimapZoom = Math.max(0.5f, Math.min(3.0f, this.minimapZoom));
+            ModConfig.minimapShowEntityNames = this.minimapShowEntityNames;
             ModConfig.showNoHurtCam = this.showNoHurtCam;
             ModConfig.hurtCamIntensity = Math.max(0.0f, Math.min(1.0f, this.hurtCamIntensity));
+            ModConfig.showNametag = this.showNametag;
 
             ModConfig.showFreeLook = this.showFreeLook;
             ModConfig.showSnapLook = this.showSnapLook;

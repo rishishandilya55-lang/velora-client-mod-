@@ -4,6 +4,7 @@ import com.velora.client.config.ModConfig;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
@@ -18,58 +19,62 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Velora Client — Modern Feather/Lunar-Style Mod Menu Screen (Fabric 1.21.4 / owo-lib).
- *
- * Design Refactor Specifications:
- * 1. Palette: Soft charcoal/slate base (#111318), muted slate card backgrounds (#161920 / #1E2430),
- *    and thin muted gray borders (#2D313E). Harsh neon purple lines completely eliminated.
- * 2. Card Typography & Padding: Explicit internal padding (Insets.of(10, 12, 10, 12)) inside every module card.
- *    Filled desaturated rounded badge tags, bold white title text (#FFFFFF), and live status dots (● ON / ● OFF).
- * 3. Top & Left Navigation: Horizontal top filter tabs with rounded active pill highlights (0xFF3B82F6).
- *    Dedicated left sidebar wrapper with unified vertical spacing (gap(16)) and clear active focus indicators.
- */
 public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
 
-    // Main Layout Dimensions
-    private static final int PANEL_W = 580;
-    private static final int PANEL_H = 340;
-    private static final int SIDE_W  = 75;
-    private static final int HDR_H   = 36;
+    private static final int PANEL_W = 560;
+    private static final int PANEL_H = 320;
+    private static final int HDR_H = 32;
+    private static final int COLS = 3;
 
-    // Categories
+    private static final int BG       = 0xFF08080A;
+    private static final int SURF     = 0xFF0F0F12;
+    private static final int SURF2    = 0xFF16161A;
+    private static final int SURF3    = 0xFF1D1D22;
+    private static final int TEXT     = 0xFFF4F4F5;
+    private static final int TEXT_M   = 0xFFA1A1AA;
+    private static final int TEXT_F   = 0xFF71717A;
+    private static final int BORDER   = 0x14FFFFFF;
+    private static final int BORDER_S = 0x29FFFFFF;
+    private static final int VIOLET   = 0xFFA78BFA;
+    private static final int VIOLET_S = 0xFF8B5CF6;
+    private static final int VIOLET_D = 0xFF6D28D9;
+    private static final int VIOLET_F = 0x1FA78BFA;
+    private static final int GREEN    = 0xFF34D399;
+    private static final int GREEN_D  = 0xFF166534;
+
     private static final String[] CATS = {"All", "HUD", "Movement", "Visual"};
-    private int selCat = 0;
 
-    // Module Definitions: {name, category, badge, accentColor}
     private static final Object[][] MODS = {
-        {"FPS Display",   "HUD",      "FPS",  0xFF22D3EE},
-        {"WASD Keys",     "HUD",      "KEYS", 0xFF818CF8},
-        {"Ping Display",  "HUD",      "MS",   0xFFFBBF24},
-        {"CPS Counter",   "HUD",      "CPS",  0xFFF472B6},
-        {"Armor Status",  "HUD",      "ARM",  0xFF34D399},
-        {"Coordinates",   "HUD",      "XYZ",  0xFF86EFAC},
-        {"Day Counter",   "HUD",      "DAY",  0xFFFB923C},
-        {"Block Info",    "HUD",      "BLK",  0xFF67E8F9},
-        {"Toggle Sprint", "Movement", "SPR",  0xFF60A5FA},
-        {"Toggle Sneak",  "Movement", "SNK",  0xFFA78BFA},
-        {"Zoom Mod",      "Movement", "ZOOM", 0xFFC084FC},
-        {"Free Look",     "Movement", "LOOK", 0xFF4ADE80},
-        {"Snap Look",     "Movement", "SNAP", 0xFF2DD4BF},
-        {"Fullbright",    "Visual",   "BRT",  0xFFFDE68A},
-        {"No Hurt Cam",   "Visual",   "CAM",  0xFFF87171},
-        {"Minimap",       "Visual",   "MAP",  0xFF93C5FD},
+        {"FPS Display",   "HUD",      "FPS",  0xFFA78BFA, "Shows current frames per second"},
+        {"WASD Keys",     "HUD",      "KEYS", 0xFF818CF8, "Displays movement key presses"},
+        {"Ping Display",  "HUD",      "MS",   0xFF34D399, "Shows network latency"},
+        {"CPS Counter",   "HUD",      "CPS",  0xFFF472B6, "Counts clicks per second"},
+        {"Armor Status",  "HUD",      "ARM",  0xFF34D399, "Shows equipped armor and durability"},
+        {"Coordinates",   "HUD",      "XYZ",  0xFF38BDF8, "Displays current position"},
+        {"Day Counter",   "HUD",      "DAY",  0xFFFB923C, "Shows in-game day count"},
+        {"Block Info",    "HUD",      "BLK",  0xFF67E8F9, "Info about looked-at block"},
+        {"Toggle Sprint", "Movement", "SPR",  0xFF60A5FA, "Toggle sprint without holding key"},
+        {"Toggle Sneak",  "Movement", "SNK",  0xFFA78BFA, "Toggle sneak without holding key"},
+        {"Zoom Mod",      "Movement", "ZOOM", 0xFFC084FC, "Hold C to zoom, scroll to adjust"},
+        {"Free Look",     "Movement", "LOOK", 0xFF34D399, "Hold V for free camera look"},
+        {"Snap Look",     "Movement", "SNAP", 0xFF2DD4BF, "Hold B for quick rear view"},
+        {"Fullbright",    "Visual",   "BRT",  0xFFFBBF24, "Full brightness toggle (F6)"},
+        {"No Hurt Cam",   "Visual",   "CAM",  0xFFF87171, "Disables hurt camera wobble"},
+        {"Minimap",       "Visual",   "MAP",  0xFFA78BFA, "Radar minimap with entity tracking"},
+        {"Nametag",       "Visual",   "TAG",  0xFFA78BFA, "Custom nametag with rank badges"},
     };
 
-    // Components & Containers
     private FlowLayout moduleGridContainer;
     private final List<ButtonComponent> catPills = new ArrayList<>();
+    private TextBoxComponent searchInput;
+    private String searchQuery = "";
+    private int selCat = 0;
     private final RotatingCubeMapRenderer panoramaRenderer = new RotatingCubeMapRenderer(
         new CubeMapRenderer(Identifier.ofVanilla("textures/gui/title/background/panorama"))
     );
 
     public ModMenuScreen() {
-        super(Text.literal("Velora Client — Mods"));
+        super(Text.literal("Velora Client"));
     }
 
     @Override
@@ -84,51 +89,44 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
         root.surface(Surface.flat(0x00000000));
         root.sizing(Sizing.fill(100), Sizing.fill(100));
 
-        // ── Outer Panel Canvas (#111318 Charcoal Slate, Soft Border #2D313E) ───
         FlowLayout panel = Containers.verticalFlow(Sizing.fixed(PANEL_W), Sizing.fixed(PANEL_H));
-        panel.surface((context, component) -> {
-            int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-            // Dark charcoal base (#111318)
-            context.fill(x, y, x + w, y + h, 0xFF111318);
-            // Thin soft gray border outline (#2D313E) replacing harsh neon lines
-            context.drawBorder(x, y, w, h, 0xFF2D313E);
-            context.drawBorder(x + 1, y + 1, w - 2, h - 2, 0xFF161922);
+        panel.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.fill(x, y, x + w, y + h, SURF2);
+            ctx.drawBorder(x, y, w, h, BORDER_S);
         });
         panel.padding(Insets.none());
 
-        // ── 1. Top Header Navigation Bar (Clean Brand + Distinct Filter Tabs) ──
+        panel.child(buildHeader());
+        panel.child(buildBody());
+        root.child(panel);
+    }
+
+    // ── Header ────────────────────────────────────────────────────────────────
+
+    private FlowLayout buildHeader() {
         FlowLayout header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(HDR_H));
-        header.surface((context, component) -> {
-            int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-            context.fill(x, y, x + w, y + h, 0xFF151821);
-            context.fill(x, y + h - 1, x + w, y + h, 0xFF2D313E); // Header divider line
+        header.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.fill(x, y, x + w, y + h, SURF3);
+            ctx.fill(x, y + h - 1, x + w, y + h, BORDER_S);
         });
         header.verticalAlignment(VerticalAlignment.CENTER);
-        header.padding(Insets.of(0, 12, 0, 12));
-        header.gap(10);
+        header.padding(Insets.of(0, 10, 0, 10));
+        header.gap(8);
 
-        // Brand Logo + Title Group
-        FlowLayout brandBox = Containers.horizontalFlow(Sizing.content(), Sizing.content());
-        brandBox.verticalAlignment(VerticalAlignment.CENTER);
-        brandBox.gap(6);
-        brandBox.child(Components.label(Text.literal("VELORA"))
-            .color(Color.ofArgb(0xFF3B82F6))
-            .shadow(true)
-            .sizing(Sizing.content(), Sizing.content()));
-        brandBox.child(Components.label(Text.literal("Mod Menu"))
-            .color(Color.ofArgb(0xFFFFFFFF))
-            .shadow(true)
-            .sizing(Sizing.content(), Sizing.content()));
-        header.child(brandBox);
+        FlowLayout brand = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+        brand.verticalAlignment(VerticalAlignment.CENTER);
+        brand.gap(4);
+        brand.child(Components.label(Text.literal("VELORA")).color(Color.ofArgb(VIOLET)).shadow(true));
+        brand.child(Components.label(Text.literal("Mods")).color(Color.ofArgb(TEXT)).shadow(true));
+        header.child(brand);
 
-        // Header Spacer pushing filter tabs to right
         header.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
 
-        // Top Filter Tabs (Distinct Horizontal Margins & Active Rounded Pill Highlights)
-        FlowLayout tabsRow = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(22));
-        tabsRow.verticalAlignment(VerticalAlignment.CENTER);
-        tabsRow.gap(6);
-
+        FlowLayout tabs = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(20));
+        tabs.verticalAlignment(VerticalAlignment.CENTER);
+        tabs.gap(4);
         for (int i = 0; i < CATS.length; i++) {
             final int idx = i;
             ButtonComponent pill = Components.button(Text.literal(CATS[idx]), btn -> {
@@ -136,249 +134,247 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
                 rebuildGrid();
                 refreshPills();
             });
-            pill.sizing(Sizing.fixed(48), Sizing.fixed(20));
+            pill.sizing(Sizing.fixed(42), Sizing.fixed(18));
             stylePill(pill, i == selCat);
             catPills.add(pill);
-            tabsRow.child(pill);
+            tabs.child(pill);
         }
-        header.child(tabsRow);
+        header.child(tabs);
 
-        // Close Button (✕)
-        ButtonComponent closeBtn = Components.button(Text.literal("✕"), btn -> this.close());
+        header.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+
+        FlowLayout searchBox = Containers.horizontalFlow(Sizing.fixed(100), Sizing.fixed(18));
+        searchBox.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.fill(x, y, x + w, y + h, SURF);
+            ctx.drawBorder(x, y, w, h, BORDER);
+        });
+        searchBox.padding(Insets.of(0, 4, 0, 4));
+        searchBox.verticalAlignment(VerticalAlignment.CENTER);
+        searchBox.gap(4);
+        searchBox.child(Components.label(Text.literal(">")).color(Color.ofArgb(TEXT_F)));
+        searchInput = Components.textBox(Sizing.fill(100), "Search...");
+        searchInput.sizing(Sizing.fill(100), Sizing.fixed(14));
+        searchInput.onChanged().subscribe(val -> {
+            searchQuery = val.toLowerCase().trim();
+            rebuildGrid();
+        });
+        searchBox.child(searchInput);
+        header.child(searchBox);
+
+        ButtonComponent closeBtn = Components.button(Text.literal("X"), btn -> this.close());
         closeBtn.sizing(Sizing.fixed(18), Sizing.fixed(18));
-        closeBtn.renderer(ButtonComponent.Renderer.flat(0xFF1C1F2B, 0xFFDC2626, 0xFF1C1F2B));
+        closeBtn.renderer(ButtonComponent.Renderer.flat(SURF3, 0x33EF4444, SURF3));
         header.child(closeBtn);
 
-        panel.child(header);
+        return header;
+    }
 
-        // ── 2. Main Content Split (Left Navigation Sidebar + Module Grid) ──────
+    // ── Body (sidebar + grid) ─────────────────────────────────────────────────
+
+    private FlowLayout buildBody() {
         FlowLayout body = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
 
-        // ── Left Navigation Sidebar (Dedicated Wrapper, Unified Vertical Spacing)
-        FlowLayout sidebar = Containers.verticalFlow(Sizing.fixed(SIDE_W), Sizing.fill(100));
-        sidebar.surface((context, component) -> {
-            int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-            context.fill(x, y, x + w, y + h, 0xFF151821);
-            context.fill(x + w - 1, y, x + w, y + h, 0xFF2D313E); // Sidebar vertical divider line
+        FlowLayout sidebar = Containers.verticalFlow(Sizing.fixed(60), Sizing.fill(100));
+        sidebar.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.fill(x, y, x + w, y + h, SURF3);
+            ctx.fill(x + w - 1, y, x + w, y + h, BORDER);
         });
-        sidebar.padding(Insets.of(12, 6, 12, 6));
+        sidebar.padding(Insets.of(10, 4, 10, 4));
         sidebar.horizontalAlignment(HorizontalAlignment.CENTER);
-        sidebar.gap(16); // Unified vertical spacing(16) between sidebar rows
+        sidebar.gap(8);
 
-        // Sidebar Items (MODS, LOOKS, HUD, CFG)
-        sidebar.child(makeSidebarItem("MODS", true, () -> {}));
-        sidebar.child(makeSidebarItem("LOOKS", false, () -> {
+        sidebar.child(makeSidebarIcon("MODS", true, () -> {}));
+        sidebar.child(makeSidebarIcon("SKIN", false, () -> {
             if (client != null) client.setScreen(new CosmeticsLockerScreen());
         }));
-        sidebar.child(makeSidebarItem("HUD", false, () -> {
+        sidebar.child(makeSidebarIcon("HUD", false, () -> {
             if (client != null) client.setScreen(new HudEditorScreen());
         }));
+        sidebar.child(makeSidebarIcon("CFG", false, () -> {
+            if (client != null) client.setScreen(new ClientSettingsScreen());
+        }));
 
-        // Spacer pushing CFG to bottom
         sidebar.child(Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100)));
-        sidebar.child(makeSidebarItem("CFG", false, () -> {}));
+
+        FlowLayout enabledCount = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        enabledCount.horizontalAlignment(HorizontalAlignment.CENTER);
+        int enabled = getEnabledCount();
+        enabledCount.child(Components.label(Text.literal(String.valueOf(enabled)))
+            .color(Color.ofArgb(VIOLET)));
+        enabledCount.child(Components.label(Text.literal("on"))
+            .color(Color.ofArgb(TEXT_F)));
+        sidebar.child(enabledCount);
 
         body.child(sidebar);
 
-        // ── 3. Module Grid Container (Scrollable 3-Column Layout) ─────────────
         FlowLayout gridWrapper = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
-        gridWrapper.surface(Surface.flat(0xFF111318));
-        gridWrapper.padding(Insets.of(10));
+        gridWrapper.surface(Surface.flat(SURF2));
+        gridWrapper.padding(Insets.of(6));
 
         moduleGridContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-        moduleGridContainer.gap(8); // Vertical gap between card rows
-        buildGrid();
+        moduleGridContainer.gap(4);
+        rebuildGrid();
 
-        ScrollContainer<FlowLayout> scrollContainer = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(100), moduleGridContainer);
-        scrollContainer.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(0xFF2D313E)));
-        gridWrapper.child(scrollContainer);
+        ScrollContainer<FlowLayout> scroll = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(100), moduleGridContainer);
+        scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(BORDER_S)));
+        gridWrapper.child(scroll);
 
         body.child(gridWrapper);
-        panel.child(body);
-
-        root.child(panel);
+        return body;
     }
 
-    // ── Left Sidebar Button Builder ──────────────────────────────────────────
-    private ButtonComponent makeSidebarItem(String label, boolean active, Runnable action) {
-        ButtonComponent btn = Components.button(Text.literal(label), b -> action.run());
-        btn.sizing(Sizing.fixed(SIDE_W - 12), Sizing.fixed(32));
+    private int getEnabledCount() {
+        int count = 0;
+        for (Object[] mod : MODS) {
+            int idx = java.util.List.of(MODS).indexOf(mod);
+            if (isEnabled(idx)) count++;
+        }
+        return count;
+    }
 
-        int bg = active ? 0xFF1E2433 : 0x00000000;
-        int hoverBg = active ? 0xFF242C3E : 0xFF1A1E2B;
+    private FlowLayout makeSidebarIcon(String label, boolean active, Runnable action) {
+        FlowLayout icon = Containers.verticalFlow(Sizing.fixed(48), Sizing.fixed(40));
+        icon.verticalAlignment(VerticalAlignment.CENTER);
+        icon.horizontalAlignment(HorizontalAlignment.CENTER);
+        icon.gap(2);
 
-        btn.renderer((context, button, delta) -> {
-            int x = button.x(), y = button.y(), w = button.width(), h = button.height();
-            boolean hovered = button.isHovered();
-            int currentBg = hovered ? hoverBg : bg;
-
-            if (currentBg != 0) {
-                context.fill(x, y, x + w, y + h, currentBg);
-            }
-
-            // Left focus indicator bar when active
+        icon.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
             if (active) {
-                context.fill(x, y, x + 3, y + h, 0xFF3B82F6);
+                ctx.fill(x, y, x + w, y + h, SURF2);
+                ctx.fill(x, y, x + 2, y + h, VIOLET);
             }
-
-            int textClr = active ? 0xFFFFFFFF : (hovered ? 0xFFE2E8F0 : 0xFF64748B);
-            int textX = x + (w - textRenderer.getWidth(label)) / 2;
-            int textY = y + (h - 8) / 2;
-            context.drawText(textRenderer, label, textX, textY, textClr, true);
         });
 
-        return btn;
+        icon.child(Components.label(Text.literal(label))
+            .color(Color.ofArgb(active ? VIOLET : TEXT_F)));
+
+        icon.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) { action.run(); return true; }
+            return false;
+        });
+
+        return icon;
     }
 
-    // ── Top Category Tab Styling (Active Pill Highlight) ──────────────────────
-    private void stylePill(ButtonComponent pill, boolean selected) {
-        if (selected) {
-            pill.renderer(ButtonComponent.Renderer.flat(0xFF3B82F6, 0xFF2563EB, 0xFF3B82F6));
-        } else {
-            pill.renderer(ButtonComponent.Renderer.flat(0xFF161922, 0xFF202532, 0xFF161922));
-        }
-    }
+    // ── Module grid ───────────────────────────────────────────────────────────
 
-    private void refreshPills() {
-        for (int i = 0; i < catPills.size(); i++) {
-            stylePill(catPills.get(i), i == selCat);
-        }
-    }
-
-    // ── Module Grid Builder (3 Columns) ──────────────────────────────────────
-    private void buildGrid() {
+    private void rebuildGrid() {
         moduleGridContainer.clearChildren();
         FlowLayout row = null;
         int col = 0;
-        final int COLS = 3;
 
         for (int i = 0; i < MODS.length; i++) {
-            String name  = (String) MODS[i][0];
-            String cat   = (String) MODS[i][1];
+            String name = (String) MODS[i][0];
+            String cat = (String) MODS[i][1];
             String badge = (String) MODS[i][2];
-            int    bClr  = (int)    MODS[i][3];
-            boolean en   = isEnabled(i);
+            int bClr = (int) MODS[i][3];
+            String desc = (String) MODS[i][4];
+            boolean en = isEnabled(i);
 
             if (selCat != 0 && !cat.equals(CATS[selCat])) continue;
+            if (!searchQuery.isEmpty() && !name.toLowerCase().contains(searchQuery) && !desc.toLowerCase().contains(searchQuery)) continue;
 
             if (col == 0) {
                 row = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
-                row.gap(8); // Horizontal gap between module cards
+                row.gap(4);
                 moduleGridContainer.child(row);
             }
 
-            final int modIndex = i;
-            FlowLayout card = buildCard(name, badge, bClr, en, modIndex);
+            FlowLayout card = buildCard(name, badge, bClr, desc, en, i);
             if (row != null) row.child(card);
 
             col++;
             if (col >= COLS) col = 0;
         }
+
+        if (moduleGridContainer.children().isEmpty()) {
+            FlowLayout empty = Containers.verticalFlow(Sizing.fill(100), Sizing.fixed(40));
+            empty.verticalAlignment(VerticalAlignment.CENTER);
+            empty.horizontalAlignment(HorizontalAlignment.CENTER);
+            empty.child(Components.label(Text.literal("No modules found")).color(Color.ofArgb(TEXT_F)));
+            moduleGridContainer.child(empty);
+        }
     }
 
-    private void rebuildGrid() {
-        buildGrid();
-    }
+    private FlowLayout buildCard(String name, String badge, int bClr, String desc, boolean en, int modIndex) {
+        FlowLayout card = Containers.verticalFlow(Sizing.fixed(154), Sizing.fixed(72));
 
-    // ── Overhauled Grid Card Builder (Explicit Insets & Sleek Badges) ────────
-    private FlowLayout buildCard(String name, String badge, int bClr, boolean en, int modIndex) {
-        // Module card dimensions (154px width x 68px height)
-        FlowLayout card = Containers.verticalFlow(Sizing.fixed(154), Sizing.fixed(68));
-
-        // Soft slate card colors (#161920 when disabled, #1E2430 when enabled)
-        int bg = en ? 0xFF1E2430 : 0xFF161920;
-        int border = en ? 0xFF3B82F6 : 0xFF2D313E;
-
-        card.surface((context, component) -> {
-            int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-            // Solid dark card fill
-            context.fill(x, y, x + w, y + h, bg);
-            // Thin soft border outline
-            context.drawBorder(x, y, w, h, border);
-            // Left blue accent bar when enabled
-            if (en) {
-                context.fill(x, y, x + 3, y + h, 0xFF3B82F6);
-            }
+        card.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            int bg = en ? SURF3 : SURF;
+            int border = en ? VIOLET : BORDER;
+            ctx.fill(x, y, x + w, y + h, bg);
+            ctx.drawBorder(x, y, w, h, border);
+            if (en) ctx.fill(x, y, x + 3, y + h, VIOLET);
         });
+        card.padding(Insets.of(8, 10, 8, 10));
+        card.gap(2);
 
-        // Explicit Internal Padding: Insets.of(10, 12, 10, 12) for clean breathing room
-        card.padding(Insets.of(10, 12, 10, 12));
-        card.gap(4);
-
-        // Top Row: Sleek Filled Badge Tag + Bold White Mod Title
         FlowLayout topRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         topRow.verticalAlignment(VerticalAlignment.CENTER);
-        topRow.gap(6);
+        topRow.gap(4);
 
-        // Sleek Filled Rounded Badge Tag (Desaturated dark backdrop + clean colored text)
-        FlowLayout badgeBox = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(14));
-        badgeBox.surface((context, component) -> {
-            int x = component.x(), y = component.y(), w = component.width(), h = component.height();
-            // Solid dark desaturated backdrop
-            context.fill(x, y, x + w, y + h, 0xFF222838);
-            context.drawBorder(x, y, w, h, (bClr & 0x00FFFFFF) | 0x88000000);
+        FlowLayout badgeBox = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(12));
+        badgeBox.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.fill(x, y, x + w, y + h, SURF2);
+            ctx.drawBorder(x, y, w, h, (bClr & 0x00FFFFFF) | 0x44000000);
         });
-        badgeBox.padding(Insets.of(1, 5, 1, 5));
-        badgeBox.child(Components.label(Text.literal(badge))
-            .color(Color.ofArgb(bClr))
-            .sizing(Sizing.content(), Sizing.content()));
+        badgeBox.padding(Insets.of(0, 4, 0, 4));
+        badgeBox.child(Components.label(Text.literal(badge)).color(Color.ofArgb(bClr)));
         topRow.child(badgeBox);
 
-        // Bold White Mod Title (#FFFFFF)
         topRow.child(Components.label(Text.literal(name))
-            .color(Color.ofArgb(0xFFFFFFFF))
+            .color(Color.ofArgb(TEXT))
             .shadow(true)
             .sizing(Sizing.fill(100), Sizing.content()));
         card.child(topRow);
 
-        // Thin Muted Separator Line
-        FlowLayout cardDivider = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1));
-        cardDivider.surface(Surface.flat(0x332D313E));
-        card.child(cardDivider);
+        FlowLayout descRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+        descRow.child(Components.label(Text.literal(desc))
+            .color(Color.ofArgb(TEXT_F))
+            .sizing(Sizing.fill(100), Sizing.content()));
+        card.child(descRow);
 
-        // Bottom Row: Status Dot (● ON / ● OFF) + Sliding Toggle Switch Widget
+        FlowLayout divider = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1));
+        divider.surface(Surface.flat(BORDER));
+        card.child(divider);
+
         FlowLayout bottomRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         bottomRow.verticalAlignment(VerticalAlignment.CENTER);
 
-        // Status Indicator Dot + Text Label
-        FlowLayout statusBox = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
-        statusBox.verticalAlignment(VerticalAlignment.CENTER);
-        statusBox.gap(4);
+        FlowLayout statusDot = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+        statusDot.gap(2);
+        statusDot.child(Components.label(Text.literal("+"))
+            .color(Color.ofArgb(en ? GREEN : TEXT_F)));
+        statusDot.child(Components.label(Text.literal(en ? "ON" : "OFF"))
+            .color(Color.ofArgb(en ? GREEN : TEXT_F)));
+        bottomRow.child(statusDot);
 
-        int dotClr = en ? 0xFF22C55E : 0xFF64748B;
-        statusBox.child(Components.label(Text.literal("●"))
-            .color(Color.ofArgb(dotClr))
-            .sizing(Sizing.content(), Sizing.content()));
+        bottomRow.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
 
-        String statusText = en ? "ON" : "OFF";
-        statusBox.child(Components.label(Text.literal(statusText))
-            .color(Color.ofArgb(en ? 0xFF86EFAC : 0xFF64748B))
-            .sizing(Sizing.content(), Sizing.content()));
-
-        bottomRow.child(statusBox);
-
-        // Sliding Toggle Switch Widget
-        ButtonComponent toggleBtn = Components.button(Text.literal(en ? "ON" : "OFF"), btn -> {
+        final boolean[] state = {en};
+        ButtonComponent toggleBtn = Components.button(Text.literal(""), btn -> {
             handleModClick(modIndex);
             rebuildGrid();
         });
-        toggleBtn.sizing(Sizing.fixed(32), Sizing.fixed(16));
-        toggleBtn.renderer((context, button, delta) -> {
-            int x = button.x(), y = button.y(), w = button.width(), h = button.height();
-            int trackClr = en ? 0xFF166534 : 0xFF1F2937;
-            int knobClr  = en ? 0xFF22C55E : 0xFF9CA3AF;
-
-            context.fill(x, y, x + w, y + h, trackClr);
-            context.drawBorder(x, y, w, h, en ? 0xFF22C55E : 0xFF374151);
-
-            int knobX = en ? x + w - 12 : x + 2;
-            context.fill(knobX, y + 2, knobX + 10, y + h - 2, knobClr);
+        toggleBtn.sizing(Sizing.fixed(32), Sizing.fixed(14));
+        toggleBtn.renderer((ctx, comp, delta) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            boolean curEn = isEnabled(modIndex);
+            int trackBg = curEn ? GREEN_D : SURF3;
+            ctx.fill(x, y, x + w, y + h, trackBg);
+            ctx.drawBorder(x, y, w, h, curEn ? GREEN : BORDER_S);
+            int knobX = curEn ? x + w - 10 : x + 2;
+            ctx.fill(knobX, y + 2, knobX + 8, y + h - 2, curEn ? GREEN : TEXT_F);
         });
         bottomRow.child(toggleBtn);
 
         card.child(bottomRow);
 
-        // Click Card Frame to Toggle State
         card.mouseDown().subscribe((mx, my, btn) -> {
             if (btn == 0) {
                 handleModClick(modIndex);
@@ -391,7 +387,20 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
         return card;
     }
 
-    // ── Enable Checks & Click Handlers ───────────────────────────────────────
+    private void stylePill(ButtonComponent pill, boolean selected) {
+        if (selected) {
+            pill.renderer(ButtonComponent.Renderer.flat(VIOLET_D, VIOLET_S, VIOLET_D));
+        } else {
+            pill.renderer(ButtonComponent.Renderer.flat(SURF, SURF3, SURF));
+        }
+    }
+
+    private void refreshPills() {
+        for (int i = 0; i < catPills.size(); i++) {
+            stylePill(catPills.get(i), i == selCat);
+        }
+    }
+
     private boolean isEnabled(int i) {
         return switch (i) {
             case 0  -> ModConfig.showFps;
@@ -410,6 +419,7 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
             case 13 -> ModConfig.showFullbright;
             case 14 -> ModConfig.showNoHurtCam;
             case 15 -> ModConfig.showMinimap;
+            case 16 -> ModConfig.showNametag;
             default -> false;
         };
     }
@@ -432,6 +442,7 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
             case 13 -> ModConfig.showFullbright    = !ModConfig.showFullbright;
             case 14 -> ModConfig.showNoHurtCam     = !ModConfig.showNoHurtCam;
             case 15 -> ModConfig.showMinimap       = !ModConfig.showMinimap;
+            case 16 -> ModConfig.showNametag       = !ModConfig.showNametag;
         }
         ModConfig.saveConfig();
     }
@@ -439,14 +450,11 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         if (this.client == null || this.client.world == null) {
-            // Main menu context: render rotating panorama + dark vignette overlay
             this.panoramaRenderer.render(context, this.width, this.height, 1.0f, delta);
-            context.fill(0, 0, this.width, this.height, 0x88060A12);
+            context.fill(0, 0, this.width, this.height, 0xCC08080A);
         } else {
-            // In-game context: dim background world
-            context.fill(0, 0, this.width, this.height, 0xAA000000);
+            context.fill(0, 0, this.width, this.height, 0xCC08080A);
         }
-
         super.render(context, mouseX, mouseY, delta);
     }
 

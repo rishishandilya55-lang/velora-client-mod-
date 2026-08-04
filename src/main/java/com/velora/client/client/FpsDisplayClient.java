@@ -2,7 +2,7 @@ package com.velora.client.client;
 
 import com.velora.client.config.ModConfig;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
@@ -63,12 +63,6 @@ public class FpsDisplayClient implements ClientModInitializer {
             FullbrightClient.onToggleOff();
         });
         LOGGER.debug("[Velora] Disconnect handler registered");
-
-        // Fullbright gamma tick
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            FullbrightClient.tick();
-        });
-        LOGGER.debug("[Velora] Fullbright tick registered");
 
         // Register FPS Display HUD Render Callback
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {

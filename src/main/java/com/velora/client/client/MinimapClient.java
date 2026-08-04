@@ -31,7 +31,7 @@ public class MinimapClient implements ClientModInitializer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
 
-    public static final int MAP_SIZE = 128;
+    public static final int MAP_SIZE = 96;
     private static NativeImage nativeImage;
     private static NativeImageBackedTexture mapTexture;
     private static Identifier textureId;
@@ -39,6 +39,7 @@ public class MinimapClient implements ClientModInitializer {
     private static int lastPlayerX = Integer.MIN_VALUE;
     private static int lastPlayerZ = Integer.MIN_VALUE;
     private static int lastPlayerY = Integer.MIN_VALUE;
+    private static int lastZoomHash = 0;
 
     public static void init() {
         LOGGER.info("[Velora] Minimap HUD registered");
@@ -65,12 +66,10 @@ public class MinimapClient implements ClientModInitializer {
             mapTexture = new NativeImageBackedTexture(nativeImage);
             textureId = Identifier.of("velora", "textures/gui/dynamic_minimap.png");
             client.getTextureManager().registerTexture(textureId, mapTexture);
-            LOGGER.debug("[Velora] Minimap texture created: {}", textureId);
         }
     }
 
     public static void close() {
-        LOGGER.debug("[Velora] Minimap resources closing");
         MinecraftClient mc = MinecraftClient.getInstance();
         if (textureId != null && mc != null) {
             mc.getTextureManager().destroyTexture(textureId);
@@ -81,7 +80,6 @@ public class MinimapClient implements ClientModInitializer {
         }
         mapTexture = null;
         textureId = null;
-        LOGGER.debug("[Velora] Minimap resources cleaned up");
     }
 
     private static void updateMapTextureIfNeeded(MinecraftClient client) {
@@ -91,9 +89,10 @@ public class MinimapClient implements ClientModInitializer {
         int playerY = MathHelper.floor(client.player.getY());
         int playerZ = MathHelper.floor(client.player.getZ());
 
+        int zoomHash = Float.floatToIntBits(ModConfig.minimapZoom);
         long now = System.currentTimeMillis();
-        // Update map texture every 100ms or when player moves position
-        if (now - lastUpdateMs < 100 && playerX == lastPlayerX && playerZ == lastPlayerZ && Math.abs(playerY - lastPlayerY) < 3) {
+        if (now - lastUpdateMs < 100 && playerX == lastPlayerX && playerZ == lastPlayerZ
+                && Math.abs(playerY - lastPlayerY) < 3 && zoomHash == lastZoomHash) {
             return;
         }
 
@@ -101,10 +100,12 @@ public class MinimapClient implements ClientModInitializer {
         lastPlayerX = playerX;
         lastPlayerY = playerY;
         lastPlayerZ = playerZ;
-
-        LOGGER.trace("[Velora] Minimap update: pos={},{}", playerX, playerZ);
+        lastZoomHash = zoomHash;
 
         int halfSize = MAP_SIZE / 2;
+        float zoom = Math.max(0.5f, Math.min(3.0f, ModConfig.minimapZoom));
+        int worldRadius = (int) (halfSize / zoom);
+
         ClientWorld world = client.world;
         boolean hasCeiling = world.getDimension().hasCeiling();
         boolean isCircle = "CIRCLE".equalsIgnoreCase(ModConfig.minimapShape);
@@ -114,14 +115,13 @@ public class MinimapClient implements ClientModInitializer {
                 int dx = px - halfSize;
                 int dz = pz - halfSize;
 
-                // Mask circular bounds if circle mode selected
                 if (isCircle && (dx * dx + dz * dz > (halfSize - 2) * (halfSize - 2))) {
                     nativeImage.setColorArgb(px, pz, 0x00000000);
                     continue;
                 }
 
-                int worldX = playerX + dx;
-                int worldZ = playerZ + dz;
+                int worldX = playerX + (int) (dx / zoom);
+                int worldZ = playerZ + (int) (dz / zoom);
 
                 int color = getPixelColor(world, worldX, playerY, worldZ, hasCeiling);
                 nativeImage.setColorArgb(px, pz, color);
@@ -134,7 +134,6 @@ public class MinimapClient implements ClientModInitializer {
     private static int getPixelColor(ClientWorld world, int x, int playerY, int z, boolean hasCeiling) {
         int y;
         if (hasCeiling) {
-            // Nether / Ceiling Dimension: Scan down from near player Y level to find walking floor
             int startY = Math.min(playerY + 8, 120);
             int minY = Math.max(world.getBottomY(), playerY - 20);
             y = startY;
@@ -144,7 +143,6 @@ public class MinimapClient implements ClientModInitializer {
                 mutable.set(x, y, z);
             }
         } else {
-            // Overworld / End: Surface top heightmap
             y = world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z);
         }
 
@@ -152,7 +150,6 @@ public class MinimapClient implements ClientModInitializer {
         BlockState state = world.getBlockState(pos);
 
         if (state.isOf(Blocks.WATER) || state.isOf(Blocks.BUBBLE_COLUMN)) {
-            // Water Depth Gradient Shading
             int depth = 1;
             while (depth < 8 && world.getBlockState(pos.down(depth)).isOf(Blocks.WATER)) {
                 depth++;
@@ -163,21 +160,20 @@ public class MinimapClient implements ClientModInitializer {
         }
 
         if (state.isOf(Blocks.LAVA)) {
-            return 0xFFFF5500; // Glowing lava orange
+            return 0xFFFF5500;
         }
 
         MapColor mapColor = state.getMapColor(world, pos);
         int baseColor = (mapColor != null && mapColor.color != 0) ? mapColor.color : 0x557733;
 
-        // Hillshading: Calculate slope height difference relative to north block
         int northY = hasCeiling ? y : world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z - 1);
         int heightDiff = y - northY;
 
         float shadowFactor = 1.0f;
         if (heightDiff > 0) {
-            shadowFactor = 1.18f; // Ridgeline highlight
+            shadowFactor = 1.18f;
         } else if (heightDiff < 0) {
-            shadowFactor = 0.82f; // Valley shadow
+            shadowFactor = 0.82f;
         }
 
         int r = MathHelper.clamp((int) (((baseColor >> 16) & 0xFF) * shadowFactor), 0, 255);
@@ -202,14 +198,13 @@ public class MinimapClient implements ClientModInitializer {
         int centerY = baseY + halfSize;
         boolean isCircle = "CIRCLE".equalsIgnoreCase(ModConfig.minimapShape);
 
-        // 1. Sleek Outer Dark Glass Background Container
+        int bgPadding = isCircle ? 5 : 4;
         if (isCircle) {
-            drawContext.fill(baseX - 4, baseY - 4, baseX + size + 4, baseY + size + 4, 0xAA080A12);
+            drawContext.fill(baseX - bgPadding, baseY - bgPadding, baseX + size + bgPadding, baseY + size + bgPadding, 0xBB08080A);
         } else {
-            drawContext.fill(baseX - 3, baseY - 3, baseX + size + 3, baseY + size + 3, 0xEE0B0D17);
+            drawContext.fill(baseX - bgPadding, baseY - bgPadding, baseX + size + bgPadding, baseY + size + bgPadding, 0xCC08080A);
         }
 
-        // 2. Render Dynamic Terrain Texture Map
         drawContext.drawTexture(
             RenderLayer::getGuiTextured,
             textureId,
@@ -219,60 +214,53 @@ public class MinimapClient implements ClientModInitializer {
             size, size
         );
 
-        // 3. Glowing Purple Bezel Border
-        int borderAlpha = 0xFF;
-        int borderColor = (borderAlpha << 24) | 0xA855F7;
-        if (!isCircle) {
-            drawContext.drawBorder(baseX - 2, baseY - 2, size + 4, size + 4, borderColor);
-            drawContext.drawBorder(baseX - 3, baseY - 3, size + 6, size + 6, 0x44A855F7);
-        } else {
+        int borderColor = isCircle ? 0xFF292930 : 0xFFA78BFA;
+        if (isCircle) {
+            drawContext.drawBorder(baseX - 2, baseY - 2, size + 4, size + 4, 0xFF1D1D22);
             drawContext.drawBorder(baseX - 1, baseY - 1, size + 2, size + 2, borderColor);
+        } else {
+            drawContext.drawBorder(baseX - 2, baseY - 2, size + 4, size + 4, 0xFF1D1D22);
+            drawContext.drawBorder(baseX - 1, baseY - 1, size + 2, size + 2, borderColor);
+            drawContext.fill(baseX, baseY - 2, baseX + size, baseY - 1, 0xFFA78BFA);
         }
 
-        // 4. Compass Cardinal Directions (N, E, S, W) on Bezel
         float playerYaw = MathHelper.wrapDegrees(client.player.getYaw());
         float compassAngleOffset = ModConfig.minimapRotateMap ? playerYaw : 0.0f;
-        drawCompassLabels(drawContext, client.textRenderer, centerX, centerY, halfSize + 4, compassAngleOffset);
+        drawCompassLabels(drawContext, client.textRenderer, centerX, centerY, halfSize + 3, compassAngleOffset);
 
-        // 5. Entity Radar Overlays with Height Markers
         if (ModConfig.minimapShowEntities && client.world != null) {
-            renderEntityBlips(drawContext, client, centerX, centerY, halfSize - 6);
+            renderEntityBlips(drawContext, client, centerX, centerY, halfSize - 4);
         }
 
-        // 6. Center Player Rotating Directional Arrow Icon (▲)
-        renderPlayerDirectionalArrow(drawContext, centerX, centerY, playerYaw);
+        renderPlayerArrow(drawContext, centerX, centerY, playerYaw);
 
-        // 7. Info Header (Biome & Heading) & Footer (Coordinates)
-        int infoY = baseY + size + 6;
         if (ModConfig.minimapShowBiome && client.world != null) {
             String biomeName = getFormattedBiomeName(client);
             String heading = getDirectionHeading(playerYaw);
-            String headerText = heading + " • " + biomeName;
-            drawContext.drawCenteredTextWithShadow(client.textRenderer, headerText, centerX, baseY - 12, 0xFFE9D5FF);
+            String headerText = heading + " | " + biomeName;
+            drawContext.drawCenteredTextWithShadow(client.textRenderer, headerText, centerX, baseY - 12, 0xFFE4E4E7);
         }
 
         if (ModConfig.minimapShowCoordinates) {
             int px = MathHelper.floor(client.player.getX());
             int py = MathHelper.floor(client.player.getY());
             int pz = MathHelper.floor(client.player.getZ());
-            String coordsText = String.format("X: %d  Y: %d  Z: %d", px, py, pz);
-            drawContext.drawCenteredTextWithShadow(client.textRenderer, coordsText, centerX, infoY, 0xFF38BDF8);
+            String coordsText = String.format("X:%d Y:%d Z:%d", px, py, pz);
+            drawContext.drawCenteredTextWithShadow(client.textRenderer, coordsText, centerX, baseY + size + 5, 0xFF71717A);
         }
 
         drawContext.getMatrices().pop();
     }
 
-    private static void renderPlayerDirectionalArrow(DrawContext context, int cx, int cy, float yaw) {
+    private static void renderPlayerArrow(DrawContext context, int cx, int cy, float yaw) {
         context.getMatrices().push();
         context.getMatrices().translate(cx, cy, 0);
-        // Rotate arrow matching player facing yaw
         context.getMatrices().multiply(RotationAxis.POSITIVE_Z.rotationDegrees(yaw + 180.0f));
 
-        // Sharp Cyan Directional Triangle Arrow Pointer
-        context.fill(-3, 4, 3, 5, 0xFF0284C7);
-        context.fill(-2, 1, 2, 4, 0xFF38BDF8);
-        context.fill(-1, -2, 1, 1, 0xFF7DD3FC);
-        context.fill(0, -4, 1, -2, 0xFFFFFFFF);
+        context.fill(-2, 5, 2, 6, 0xFF1D1D22);
+        context.fill(-3, 2, 3, 5, 0xFFA78BFA);
+        context.fill(-2, -1, 2, 2, 0xFFC4B5FD);
+        context.fill(-1, -4, 1, -1, 0xFFEDE9FE);
 
         context.getMatrices().pop();
     }
@@ -285,24 +273,25 @@ public class MinimapClient implements ClientModInitializer {
 
         int nx = (int) (cx + Math.sin(radN) * radius);
         int ny = (int) (cy - Math.cos(radN) * radius);
-        context.drawText(font, "N", nx - 3, ny - 3, 0xFFEF4444, true);
+        context.drawText(font, "N", nx - 2, ny - 2, 0xFFEF4444, true);
 
         int ex = (int) (cx + Math.sin(radE) * radius);
         int ey = (int) (cy - Math.cos(radE) * radius);
-        context.drawText(font, "E", ex - 3, ey - 3, 0xFFFFFFFF, true);
+        context.drawText(font, "E", ex - 2, ey - 2, 0xFFA1A1AA, true);
 
         int sx = (int) (cx + Math.sin(radS) * radius);
         int sy = (int) (cy - Math.cos(radS) * radius);
-        context.drawText(font, "S", sx - 3, sy - 3, 0xFFFFFFFF, true);
+        context.drawText(font, "S", sx - 2, sy - 2, 0xFFA1A1AA, true);
 
         int wx = (int) (cx + Math.sin(radW) * radius);
         int wy = (int) (cy - Math.cos(radW) * radius);
-        context.drawText(font, "W", wx - 3, wy - 3, 0xFFFFFFFF, true);
+        context.drawText(font, "W", wx - 2, wy - 2, 0xFFA1A1AA, true);
     }
 
     private static void renderEntityBlips(DrawContext context, MinecraftClient client, int cx, int cy, int maxRadius) {
         if (client.world == null || client.player == null) return;
 
+        float zoom = Math.max(0.5f, Math.min(3.0f, ModConfig.minimapZoom));
         double playerX = client.player.getX();
         double playerY = client.player.getY();
         double playerZ = client.player.getZ();
@@ -314,31 +303,63 @@ public class MinimapClient implements ClientModInitializer {
             double dz = entity.getZ() - playerZ;
             double dy = entity.getY() - playerY;
 
-            if (Math.abs(dx) > maxRadius || Math.abs(dz) > maxRadius) continue;
+            double worldRadius = maxRadius / zoom;
+            if (Math.abs(dx) > worldRadius || Math.abs(dz) > worldRadius) continue;
 
-            int blipX = (int) (cx + dx);
-            int blipY = (int) (cy + dz);
+            int blipX = (int) (cx + dx * zoom);
+            int blipY = (int) (cy + dz * zoom);
 
-            int color = 0xFF22C55E; // Green for passive mobs
-            if (entity instanceof HostileEntity) {
-                color = 0xFFEF4444; // Red for hostile mobs
-            } else if (entity instanceof PlayerEntity) {
-                color = 0xFF38BDF8; // Cyan for players
+            if (entity instanceof PlayerEntity player) {
+                renderPlayerHeadIcon(context, client, blipX, blipY, player, dy);
+                if (ModConfig.minimapShowEntityNames) {
+                    String name = player.getName().getString();
+                    int nameW = client.textRenderer.getWidth(name);
+                    context.fill(blipX - nameW / 2 - 2, blipY - 13, blipX + nameW / 2 + 2, blipY - 3, 0xCC0F0F12);
+                    context.drawText(client.textRenderer, name, blipX - nameW / 2, blipY - 12, 0xFFF4F4F5, true);
+                }
+            } else if (entity instanceof HostileEntity) {
+                renderMobDiamond(context, blipX, blipY, 0xFFEF4444, 3);
             } else if (entity instanceof ItemEntity) {
-                color = 0xFFEAB308; // Gold for dropped items
+                renderMobDiamond(context, blipX, blipY, 0xFFFBBF24, 2);
+            } else {
+                context.fill(blipX, blipY, blipX + 1, blipY + 1, 0xFF34D399);
             }
 
-            // Draw blip dot with crisp dark border
-            context.fill(blipX - 2, blipY - 2, blipX + 3, blipY + 3, 0xFF080A12);
-            context.fill(blipX - 1, blipY - 1, blipX + 2, blipY + 2, color);
-
-            // Relative Height Indicator (+) for above, (-) for below
             if (dy > 4.0) {
-                context.drawText(client.textRenderer, "+", blipX + 2, blipY - 4, 0xFFFFFFFF, false);
+                context.drawText(client.textRenderer, "+", blipX + 4, blipY - 3, 0xFF34D399, false);
             } else if (dy < -4.0) {
-                context.drawText(client.textRenderer, "-", blipX + 2, blipY - 4, 0xFFCBD5E1, false);
+                context.drawText(client.textRenderer, "-", blipX + 4, blipY - 3, 0xFFEF4444, false);
             }
         }
+    }
+
+    private static void renderPlayerHeadIcon(DrawContext context, MinecraftClient client, int x, int y, PlayerEntity player, double heightDiff) {
+        int s = 5;
+        context.fill(x - s, y - s, x + s, y + s, 0xFF0F0F12);
+        int accent = 0xFFA78BFA;
+        context.fill(x - s, y - s, x + s, y - s + 1, accent);
+        context.fill(x - s, y + s - 1, x + s, y + s, accent);
+        context.fill(x - s, y - s, x - s + 1, y + s, accent);
+        context.fill(x + s - 1, y - s, x + s, y + s, accent);
+        context.fill(x - 3, y - 3, x - 1, y - 1, 0xFFF4F4F5);
+        context.fill(x + 1, y - 3, x + 3, y - 1, 0xFFF4F4F5);
+        context.fill(x - 3, y, x + 3, y + 2, 0xFFA1A1AA);
+        context.fill(x - 2, y + 3, x + 2, y + 4, 0xFFF4F4F5);
+    }
+
+    private static void renderMobDiamond(DrawContext context, int x, int y, int color, int size) {
+        context.fill(x, y - size, x + 1, y - size + 1, 0xFF0F0F12);
+        context.fill(x - 1, y - size + 1, x + 2, y - size + 2, 0xFF0F0F12);
+        context.fill(x - 2, y - size + 2, x + 3, y - size + 3, 0xFF0F0F12);
+        context.fill(x - 3, y - size + 3, x + 4, y - size + 4, 0xFF0F0F12);
+        context.fill(x - 2, y - size + 4, x + 3, y - size + 5, 0xFF0F0F12);
+        context.fill(x - 1, y - size + 5, x + 2, y - size + 6, 0xFF0F0F12);
+        context.fill(x, y - size + 6, x + 1, y - size + 7, 0xFF0F0F12);
+        context.fill(x, y - size + 1, x + 1, y - size + 2, color);
+        context.fill(x - 1, y - size + 2, x + 2, y - size + 3, color);
+        context.fill(x - 2, y - size + 3, x + 3, y - size + 4, color);
+        context.fill(x - 1, y - size + 4, x + 2, y - size + 5, color);
+        context.fill(x, y - size + 5, x + 1, y - size + 6, color);
     }
 
     private static String getFormattedBiomeName(MinecraftClient client) {
@@ -346,8 +367,7 @@ public class MinimapClient implements ClientModInitializer {
         BlockPos pos = client.player.getBlockPos();
         RegistryEntry<Biome> biomeEntry = client.world.getBiome(pos);
         String biomeKey = biomeEntry.getKey().map(key -> key.getValue().getPath()).orElse("biome");
-        
-        // Format biome string e.g. "cherry_grove" -> "Cherry Grove"
+
         String[] words = biomeKey.split("_");
         StringBuilder sb = new StringBuilder();
         for (String w : words) {
@@ -371,7 +391,7 @@ public class MinimapClient implements ClientModInitializer {
     }
 
     public static int getMinimapWidth() {
-        return MAP_SIZE + 8;
+        return MAP_SIZE + 10;
     }
 
     public static int getMinimapHeight() {
