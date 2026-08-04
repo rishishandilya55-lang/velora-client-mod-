@@ -3,6 +3,8 @@ package com.example.fpsdisplay.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileReader;
@@ -10,6 +12,7 @@ import java.io.FileWriter;
 import java.nio.file.Path;
 
 public class ModConfig {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
     // Mod Toggle Switches
     public static boolean showFps = true;
     public static boolean showKeystrokes = true;
@@ -44,11 +47,11 @@ public class ModConfig {
 
     // Capes & Cape Physics
     public static boolean enableCape = true;
-    public static int selectedCape = 0; // 0 = Velora, 1 = Classic, 2 = Wave
+    public static int selectedCape = 0; // 0 = Velora, 1 = Classic
     public static boolean enableCapePhysics = true;
     public static boolean capeOnlyLocal = true;
     public static boolean overrideDefaultCape = true;
-    public static boolean[] favoriteCosmetics = new boolean[]{true, false, false};
+    public static boolean[] favoriteCosmetics = new boolean[]{true, false};
 
     // Toggleable Performance Optimizations (Client Settings)
     public static boolean optiFastMath = true;
@@ -142,7 +145,7 @@ public class ModConfig {
 
     private static File getConfigFile() {
         Path configDir = FabricLoader.getInstance().getConfigDir();
-        return configDir.resolve("fpsdisplay.json").toFile();
+        return configDir.resolve("velora.json").toFile();
     }
 
     public static void saveConfig() {
@@ -153,7 +156,7 @@ public class ModConfig {
                 GSON.toJson(data, writer);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Failed to save config", e);
         }
     }
 
@@ -169,7 +172,7 @@ public class ModConfig {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Failed to load config", e);
         }
     }
 
@@ -215,7 +218,18 @@ public class ModConfig {
         public boolean optiEntityCulling = ModConfig.optiEntityCulling;
 
         public boolean zoomSmooth = ModConfig.zoomSmooth;
+        public boolean zoomCinematic = ModConfig.zoomCinematic;
         public boolean zoomScaleSensitivity = ModConfig.zoomScaleSensitivity;
+        public float zoomAmount = ModConfig.zoomAmount;
+
+        public double fullbrightGamma = ModConfig.fullbrightGamma;
+
+        public boolean hudSnap = ModConfig.hudSnap;
+        public int snapGridSize = ModConfig.snapGridSize;
+        public int keystrokesOpacity = ModConfig.keystrokesOpacity;
+
+        public int selectedCape = ModConfig.selectedCape;
+        public boolean[] favoriteCosmetics = ModConfig.favoriteCosmetics;
 
         public String armorOrientation = ModConfig.armorOrientation;
         public String armorDurabilityMode = ModConfig.armorDurabilityMode;
@@ -282,7 +296,7 @@ public class ModConfig {
             ModConfig.minimapShowCoordinates = this.minimapShowCoordinates;
             ModConfig.minimapShowBiome = this.minimapShowBiome;
             ModConfig.showNoHurtCam = this.showNoHurtCam;
-            ModConfig.hurtCamIntensity = this.hurtCamIntensity;
+            ModConfig.hurtCamIntensity = Math.max(0.0f, Math.min(1.0f, this.hurtCamIntensity));
 
             ModConfig.showFreeLook = this.showFreeLook;
             ModConfig.showSnapLook = this.showSnapLook;
@@ -301,7 +315,18 @@ public class ModConfig {
             ModConfig.optiEntityCulling = this.optiEntityCulling;
 
             ModConfig.zoomSmooth = this.zoomSmooth;
+            ModConfig.zoomCinematic = this.zoomCinematic;
             ModConfig.zoomScaleSensitivity = this.zoomScaleSensitivity;
+            ModConfig.zoomAmount = Math.max(1.0f, Math.min(120.0f, this.zoomAmount));
+
+            ModConfig.fullbrightGamma = Math.max(1.0, Math.min(16.0, this.fullbrightGamma));
+
+            ModConfig.hudSnap = this.hudSnap;
+            ModConfig.snapGridSize = Math.max(1, Math.min(50, this.snapGridSize));
+            ModConfig.keystrokesOpacity = Math.max(0, Math.min(255, this.keystrokesOpacity));
+
+            ModConfig.selectedCape = this.selectedCape;
+            if (this.favoriteCosmetics != null) ModConfig.favoriteCosmetics = this.favoriteCosmetics;
 
             if (this.armorOrientation != null) ModConfig.armorOrientation = this.armorOrientation;
             if (this.armorDurabilityMode != null) ModConfig.armorDurabilityMode = this.armorDurabilityMode;
@@ -330,16 +355,16 @@ public class ModConfig {
             ModConfig.minimapX = this.minimapX;
             ModConfig.minimapY = this.minimapY;
 
-            ModConfig.fpsScale = this.fpsScale;
-            ModConfig.keystrokesScale = this.keystrokesScale;
-            ModConfig.pingScale = this.pingScale;
-            ModConfig.cpsScale = this.cpsScale;
-            ModConfig.sprintScale = this.sprintScale;
-            ModConfig.armorScale = this.armorScale;
-            ModConfig.coordsScale = this.coordsScale;
-            ModConfig.dayScale = this.dayScale;
-            ModConfig.blockInfoScale = this.blockInfoScale;
-            ModConfig.minimapScale = this.minimapScale;
+            ModConfig.fpsScale = Math.max(0.1f, Math.min(5.0f, this.fpsScale));
+            ModConfig.keystrokesScale = Math.max(0.1f, Math.min(5.0f, this.keystrokesScale));
+            ModConfig.pingScale = Math.max(0.1f, Math.min(5.0f, this.pingScale));
+            ModConfig.cpsScale = Math.max(0.1f, Math.min(5.0f, this.cpsScale));
+            ModConfig.sprintScale = Math.max(0.1f, Math.min(5.0f, this.sprintScale));
+            ModConfig.armorScale = Math.max(0.1f, Math.min(5.0f, this.armorScale));
+            ModConfig.coordsScale = Math.max(0.1f, Math.min(5.0f, this.coordsScale));
+            ModConfig.dayScale = Math.max(0.1f, Math.min(5.0f, this.dayScale));
+            ModConfig.blockInfoScale = Math.max(0.1f, Math.min(5.0f, this.blockInfoScale));
+            ModConfig.minimapScale = Math.max(0.1f, Math.min(5.0f, this.minimapScale));
         }
     }
 }

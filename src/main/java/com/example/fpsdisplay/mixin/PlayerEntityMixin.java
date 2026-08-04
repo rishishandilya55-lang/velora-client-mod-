@@ -14,9 +14,10 @@ public abstract class PlayerEntityMixin {
 
     @Inject(method = "isPartVisible", at = @At("HEAD"), cancellable = true)
     private void forceCapePartVisible(PlayerModelPart modelPart, CallbackInfoReturnable<Boolean> cir) {
-        if (modelPart == PlayerModelPart.CAPE && ModConfig.enableCape) {
+        if (modelPart == PlayerModelPart.CAPE && ModConfig.enableCape && ModConfig.overrideDefaultCape) {
             PlayerEntity player = (PlayerEntity) (Object) this;
-            boolean isLocalPlayer = (player == MinecraftClient.getInstance().player);
+            MinecraftClient mc = MinecraftClient.getInstance();
+            boolean isLocalPlayer = (mc != null && mc.player != null && player == mc.player);
             if (!ModConfig.capeOnlyLocal || isLocalPlayer) {
                 cir.setReturnValue(true);
             }

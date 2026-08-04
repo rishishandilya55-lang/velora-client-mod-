@@ -5,7 +5,6 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
 
 public class KeystrokesClient implements ClientModInitializer {
     public static void init() {
@@ -15,7 +14,7 @@ public class KeystrokesClient implements ClientModInitializer {
             }
 
             MinecraftClient client = MinecraftClient.getInstance();
-            if (client.player == null) return;
+            if (client.player == null || client.options.hudHidden) return;
 
             // Apply Scale Transform to actual rendering!
             drawContext.getMatrices().push();

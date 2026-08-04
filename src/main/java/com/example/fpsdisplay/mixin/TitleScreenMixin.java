@@ -20,10 +20,11 @@ public abstract class TitleScreenMixin extends Screen {
         super(title);
     }
 
-    @Inject(method = "init", at = @At("HEAD"))
+    @Inject(method = "init", at = @At("HEAD"), cancellable = true)
     private void redirectToVeloraMenu(CallbackInfo ci) {
         if (this.client != null) {
             this.client.setScreen(new VeloraMainMenuScreen());
+            ci.cancel();
         }
     }
 }

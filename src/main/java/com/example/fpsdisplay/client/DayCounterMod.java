@@ -16,7 +16,7 @@ public class DayCounterMod implements ClientModInitializer {
 
             TextRenderer textRenderer = client.textRenderer;
 
-            long day = client.world.getTimeOfDay() / 24000L;
+            long day = client.world.getTimeOfDay() / 24000L + 1;
             String dayText = "Day: " + day;
 
             drawContext.getMatrices().push();

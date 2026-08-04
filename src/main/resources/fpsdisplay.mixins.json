@@ -12,7 +12,8 @@
     "PlayerEntityMixin",
     "TitleScreenMixin",
     "CameraMixin",
-    "EntityMixin"
+    "EntityMixin",
+    "ScreenAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

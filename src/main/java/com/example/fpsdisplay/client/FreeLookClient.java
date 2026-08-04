@@ -21,7 +21,7 @@ public class FreeLookClient implements ClientModInitializer {
 
             boolean isPressed = ModKeybindings.freeLookKey != null && ModKeybindings.freeLookKey.isPressed();
             if (isPressed) {
-                if (!active) {
+                if (!active && !SnapLookClient.active) {
                     active = true;
                     previousPerspective = client.options.getPerspective();
                     cameraYaw = client.player.getYaw();

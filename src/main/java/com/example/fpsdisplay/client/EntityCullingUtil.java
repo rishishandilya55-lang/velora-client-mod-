@@ -1,6 +1,5 @@
 package com.example.fpsdisplay.client;
 
-import com.example.fpsdisplay.config.ModConfig;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
 import net.minecraft.entity.Entity;

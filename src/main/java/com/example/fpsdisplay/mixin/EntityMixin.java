@@ -21,7 +21,8 @@ public class EntityMixin {
 
     @Inject(method = "changeLookDirection", at = @At("HEAD"), cancellable = true)
     private void onEntityChangeLookDirection(double cursorDeltaX, double cursorDeltaY, CallbackInfo ci) {
-        if (FreeLookClient.active && (Object) this == MinecraftClient.getInstance().player) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (FreeLookClient.active && mc != null && mc.player != null && (Object) this == mc.player) {
             FreeLookClient.updateRotation(cursorDeltaX, cursorDeltaY);
             ci.cancel(); // Lock entity body yaw/pitch so character moves in facing direction
         }

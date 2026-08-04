@@ -34,11 +34,16 @@ public class CpsClient implements ClientModInitializer {
             TextRenderer textRenderer = client.textRenderer;
 
             long time = System.currentTimeMillis();
-            leftclicks.removeIf(clickTime -> clickTime < time - 1000);
-            rightclicks.removeIf(clickTime -> clickTime < time - 1000);
-
-            int leftCps = leftclicks.size();
-            int rightCps = rightclicks.size();
+            int leftCps;
+            int rightCps;
+            synchronized (leftclicks) {
+                leftclicks.removeIf(clickTime -> clickTime < time - 1000);
+                leftCps = leftclicks.size();
+            }
+            synchronized (rightclicks) {
+                rightclicks.removeIf(clickTime -> clickTime < time - 1000);
+                rightCps = rightclicks.size();
+            }
 
             String cpsText;
             if (ModConfig.showRightCps) {

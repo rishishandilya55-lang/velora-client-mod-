@@ -99,52 +99,65 @@ public class MannequinModelRenderer {
 
     private static void renderCapeOnMannequin(DrawContext context, MatrixStack matrices, Identifier texture) {
         matrices.push();
-        matrices.translate(0.0f, 0.68f, -0.13f);
-        matrices.multiply(new Quaternionf().rotationX((float) Math.toRadians(-8.0)));
+        try {
+            matrices.translate(0.0f, 0.68f, -0.13f);
+            matrices.multiply(new Quaternionf().rotationX((float) Math.toRadians(-8.0)));
 
-        if (CosmeticTextureCache.isTextureValid(texture)) {
-            // Standard 64x32 Minecraft Cape UV Mapping: back face is u=1, v=1, w=10, h=16
-            context.drawTexture(RenderLayer::getGuiTextured, texture, -10, -28, 1.0f, 1.0f, 20, 32, 10, 16, 64, 32);
-        } else {
-            renderFallbackCape(context, matrices);
+            if (CosmeticTextureCache.isTextureValid(texture)) {
+                // Standard 64x32 Minecraft Cape UV Mapping: back face is u=1, v=1, w=10, h=16
+                context.drawTexture(RenderLayer::getGuiTextured, texture, -10, -28, 0.0f, 0.0f, 20, 32, 10, 16, 64, 32);
+            } else {
+                renderFallbackCape(context, matrices);
+            }
+        } finally {
+            matrices.pop();
         }
-
-        matrices.pop();
     }
 
     private static void renderWingsOnMannequin(DrawContext context, MatrixStack matrices, Identifier texture) {
         matrices.push();
-        matrices.translate(0.0f, 0.35f, -0.14f);
+        try {
+            matrices.translate(0.0f, 0.35f, -0.14f);
 
-        if (CosmeticTextureCache.isTextureValid(texture)) {
-            context.drawTexture(RenderLayer::getGuiTextured, texture, -30, -22, 0.0f, 0.0f, 26, 36, 26, 36);
-            context.drawTexture(RenderLayer::getGuiTextured, texture, 4, -22, 0.0f, 0.0f, 26, 36, 26, 36);
-        } else {
-            drawCube(context, matrices, -0.6f, -0.2f, 0.0f, 1.2f, 0.8f, 0.05f, 0xFF475569);
+            if (CosmeticTextureCache.isTextureValid(texture)) {
+                context.drawTexture(RenderLayer::getGuiTextured, texture, -30, -22, 0.0f, 0.0f, 26, 36, 26, 36);
+                context.drawTexture(RenderLayer::getGuiTextured, texture, 4, -22, 0.0f, 0.0f, 26, 36, 26, 36);
+            } else {
+                drawCube(context, matrices, -0.6f, -0.2f, 0.0f, 1.2f, 0.8f, 0.05f, 0xFF475569);
+            }
+        } finally {
+            matrices.pop();
         }
-
-        matrices.pop();
     }
 
     private static void renderHatOnMannequin(DrawContext context, MatrixStack matrices, Identifier texture) {
         matrices.push();
-        matrices.translate(0.0f, 1.15f, 0.0f);
-        drawCube(context, matrices, -0.25f, 0.0f, -0.25f, 0.5f, 0.22f, 0.5f, 0xFFFFD700);
-        matrices.pop();
+        try {
+            matrices.translate(0.0f, 1.15f, 0.0f);
+            drawCube(context, matrices, -0.25f, 0.0f, -0.25f, 0.5f, 0.22f, 0.5f, 0xFFFFD700);
+        } finally {
+            matrices.pop();
+        }
     }
 
     private static void renderFaceOnMannequin(DrawContext context, MatrixStack matrices, Identifier texture) {
         matrices.push();
-        matrices.translate(0.0f, 0.9f, 0.22f);
-        drawCube(context, matrices, -0.25f, -0.05f, 0.0f, 0.5f, 0.15f, 0.05f, 0xFF38BDF8);
-        matrices.pop();
+        try {
+            matrices.translate(0.0f, 0.9f, 0.22f);
+            drawCube(context, matrices, -0.25f, -0.05f, 0.0f, 0.5f, 0.15f, 0.05f, 0xFF38BDF8);
+        } finally {
+            matrices.pop();
+        }
     }
 
     private static void renderAuraOnMannequin(DrawContext context, MatrixStack matrices, Identifier texture) {
         matrices.push();
-        matrices.translate(0.0f, 0.4f, 0.0f);
-        drawCube(context, matrices, -0.45f, -0.05f, -0.45f, 0.9f, 0.1f, 0.9f, 0xAA7C3AED);
-        matrices.pop();
+        try {
+            matrices.translate(0.0f, 0.4f, 0.0f);
+            drawCube(context, matrices, -0.45f, -0.05f, -0.45f, 0.9f, 0.1f, 0.9f, 0xAA7C3AED);
+        } finally {
+            matrices.pop();
+        }
     }
 
     private static void renderFallbackCape(DrawContext context, MatrixStack matrices) {

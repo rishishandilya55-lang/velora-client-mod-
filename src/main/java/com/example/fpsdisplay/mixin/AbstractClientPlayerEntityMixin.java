@@ -21,7 +21,7 @@ public abstract class AbstractClientPlayerEntityMixin {
     @Inject(method = "getSkinTextures", at = @At("RETURN"), cancellable = true)
     private void injectVeloraCape(CallbackInfoReturnable<SkinTextures> cir) {
         boolean previewingCape = CosmeticsLockerScreen.isPreviewingCape();
-        if (ModConfig.enableCape || previewingCape) {
+        if ((ModConfig.enableCape && ModConfig.overrideDefaultCape) || previewingCape) {
             AbstractClientPlayerEntity player = (AbstractClientPlayerEntity) (Object) this;
             boolean isLocalPlayer = (player == MinecraftClient.getInstance().player);
 

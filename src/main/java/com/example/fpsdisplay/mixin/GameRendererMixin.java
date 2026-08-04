@@ -47,7 +47,7 @@ public class GameRendererMixin {
     @Inject(method = "getNightVisionStrength", at = @At("HEAD"), cancellable = true)
     private static void onGetNightVisionStrength(net.minecraft.entity.LivingEntity entity, float tickDelta, CallbackInfoReturnable<Float> cir) {
         if (ModConfig.showFullbright) {
-            cir.setReturnValue(1.0f);
+            cir.setReturnValue((float) ModConfig.fullbrightGamma);
         }
     }
 }

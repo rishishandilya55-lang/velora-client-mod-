@@ -63,7 +63,7 @@ public class ArmorMod implements ClientModInitializer {
             if (isDamageable) {
                 int maxDamage = stack.getMaxDamage();
                 int currentDur = maxDamage - stack.getDamage();
-                durRatio = (float) currentDur / (float) maxDamage;
+                durRatio = Math.min(1.0f, (float) currentDur / (float) maxDamage);
 
                 if (durRatio > 0.60f) {
                     textColor = 0xFF22C55E; // Emerald Green
@@ -216,6 +216,6 @@ public class ArmorMod implements ClientModInitializer {
             return isHorizontal ? 24 : (count * 24);
         }
 
-        return isHorizontal ? 24 : (count * 24);
+        return isHorizontal ? 24 : (count * (20 + 4));
     }
 }

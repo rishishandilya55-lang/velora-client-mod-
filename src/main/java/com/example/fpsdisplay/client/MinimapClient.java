@@ -63,6 +63,19 @@ public class MinimapClient implements ClientModInitializer {
         }
     }
 
+    public static void close() {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (textureId != null && mc != null) {
+            mc.getTextureManager().destroyTexture(textureId);
+        }
+        if (nativeImage != null) {
+            nativeImage.close();
+            nativeImage = null;
+        }
+        mapTexture = null;
+        textureId = null;
+    }
+
     private static void updateMapTextureIfNeeded(MinecraftClient client) {
         if (client.player == null || client.world == null) return;
 

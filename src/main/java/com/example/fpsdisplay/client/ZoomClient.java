@@ -17,10 +17,10 @@ public class ZoomClient implements ClientModInitializer {
     public static void init() {
         // Register Key 'C' for Zoom
         zoomKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-            "key.fpsdisplay.zoom",
+            "key.velora.zoom",
             InputUtil.Type.KEYSYM,
             GLFW.GLFW_KEY_C,
-            "category.fpsdisplay.general"
+            "category.velora.general"
         ));
     }
 
@@ -41,8 +41,6 @@ public class ZoomClient implements ClientModInitializer {
         if (client != null && client.currentScreen == null) {
             if (zoomKey != null && zoomKey.isPressed()) {
                 keyPressed = true;
-            } else if (client.getWindow() != null && client.getWindow().getHandle() != 0) {
-                keyPressed = InputUtil.isKeyPressed(client.getWindow().getHandle(), GLFW.GLFW_KEY_C);
             }
         }
 
@@ -81,7 +79,7 @@ public class ZoomClient implements ClientModInitializer {
      */
     public static void onMouseScroll(double vertical) {
         if (vertical > 0) {
-            ModConfig.currentZoomScroll += 1.0f;
+            ModConfig.currentZoomScroll = Math.min(10.0f, ModConfig.currentZoomScroll + 1.0f);
         } else if (vertical < 0) {
             ModConfig.currentZoomScroll = Math.max(-2.0f, ModConfig.currentZoomScroll - 1.0f);
         }

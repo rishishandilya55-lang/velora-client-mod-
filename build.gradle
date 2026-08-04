@@ -1,6 +1,5 @@
 plugins {
 	id 'fabric-loom' version '1.9-SNAPSHOT'
-	id 'maven-publish'
 }
 
 version = project.mod_version
@@ -22,7 +21,7 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
 	// Fabric API for HUD rendering and events
-	modImplementation "net.fabricmc.fabric-api:fabric-api:0.115.0+1.21.4"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
 	// OwoLib (owo-ui) — declarative UI framework
 	modImplementation "io.wispforest:owo-lib:${project.owo_version}"

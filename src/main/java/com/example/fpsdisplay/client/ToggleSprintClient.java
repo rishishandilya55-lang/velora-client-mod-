@@ -8,7 +8,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 
 public class ToggleSprintClient implements ClientModInitializer {
-    public static boolean toggleSprintActive = true;
+    public static boolean toggleSprintActive = false;
     private static boolean wasSprintKeyPressed = false;
 
     public static void init() {
@@ -41,7 +41,7 @@ public class ToggleSprintClient implements ClientModInitializer {
             }
 
             MinecraftClient client = MinecraftClient.getInstance();
-            if (client.player == null) return;
+            if (client.player == null || client.options.hudHidden) return;
 
             TextRenderer textRenderer = client.textRenderer;
 
@@ -68,7 +68,7 @@ public class ToggleSprintClient implements ClientModInitializer {
                 statusText = toggleSprintActive ? "[ Walking (Sprint Toggled) ]" : "[ Walking ]";
                 statusColor = 0xFFD1D5DB; // Silver Gray
             } else {
-                statusText = toggleSprintActive ? "[ Sprinting (Toggled) ]" : "[ Sprinting (Disabled) ]";
+                statusText = toggleSprintActive ? "[ Auto-Sprint: ON ]" : "[ Sprint: OFF ]";
                 statusColor = toggleSprintActive ? 0xFF00FF88 : 0xFF9CA3AF;
             }
 

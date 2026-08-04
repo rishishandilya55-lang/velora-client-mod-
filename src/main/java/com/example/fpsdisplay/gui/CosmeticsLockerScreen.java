@@ -423,13 +423,17 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
             if (btn == 0) {
                 if (mx <= mannequinViewport.x() + 20 && my <= mannequinViewport.y() + 20) {
                     item.setFavorite(!item.isFavorite());
+                    saveFavoritesToConfig();
                     rebuildCardGrid();
                     return true;
                 }
-                selectedCapeIndex = idx;
+                // Find the registry index (unfiltered) for the clicked item
+                List<CosmeticItem> allItems = CosmeticTextureCache.getItems();
+                int registryIndex = allItems.indexOf(item);
+                selectedCapeIndex = registryIndex;
                 if (item.getType() == CosmeticItem.CosmeticType.CAPE) {
                     ModConfig.enableCape = true;
-                    ModConfig.selectedCape = idx;
+                    ModConfig.selectedCape = registryIndex;
                     ModConfig.saveConfig();
                 }
                 rebuildCardGrid();
@@ -457,6 +461,16 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
 
     private void rebuildCardGrid() {
         buildCardGrid();
+    }
+
+    private void saveFavoritesToConfig() {
+        List<CosmeticItem> items = CosmeticTextureCache.getItems();
+        boolean[] favorites = new boolean[items.size()];
+        for (int i = 0; i < items.size(); i++) {
+            favorites[i] = items.get(i).isFavorite();
+        }
+        ModConfig.favoriteCosmetics = favorites;
+        ModConfig.saveConfig();
     }
 
     // ── Render Background & Fallback Panorama ────────────────────────────────

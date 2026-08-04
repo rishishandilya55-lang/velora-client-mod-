@@ -1,5 +1,6 @@
 package com.example.fpsdisplay.gui.cosmetic;
 
+import com.example.fpsdisplay.config.ModConfig;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Identifier;
 
@@ -29,10 +30,12 @@ public class CosmeticTextureCache {
         TEXTURE_CACHE.clear();
 
         // 1. "Velora Cape" -> Local texture: assets/fpsdisplay/textures/cape/velora_cape.png
-        register(new CosmeticItem("velora_cape", "Velora Cape", CosmeticItem.Category.CAPE, CosmeticItem.CosmeticType.CAPE, VELORA_CAPE, true));
+        boolean veloraFav = ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics.length > 0 && ModConfig.favoriteCosmetics[0];
+        register(new CosmeticItem("velora_cape", "Velora Cape", CosmeticItem.Category.CAPE, CosmeticItem.CosmeticType.CAPE, VELORA_CAPE, veloraFav));
 
         // 2. "Mojang Cape" -> Baseline fallback texture: assets/fpsdisplay/textures/cape/classic_cape.png
-        register(new CosmeticItem("mojang_cape", "Mojang Cape", CosmeticItem.Category.CAPE, CosmeticItem.CosmeticType.CAPE, MOJANG_CAPE, false));
+        boolean mojangFav = ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics.length > 1 && ModConfig.favoriteCosmetics[1];
+        register(new CosmeticItem("mojang_cape", "Mojang Cape", CosmeticItem.Category.CAPE, CosmeticItem.CosmeticType.CAPE, MOJANG_CAPE, mojangFav));
 
         // Pre-warm texture allocations and validate resources
         MinecraftClient mc = MinecraftClient.getInstance();

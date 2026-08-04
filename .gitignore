@@ -1,6 +1,5 @@
-# Gradle build cache & wrapper files
+# Gradle build cache
 .gradle/
-build/
 
 # IntelliJ IDEA
 .idea/

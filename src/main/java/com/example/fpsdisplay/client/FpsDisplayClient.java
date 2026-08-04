@@ -2,6 +2,8 @@ package com.example.fpsdisplay.client;
 
 import com.example.fpsdisplay.config.ModConfig;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -28,6 +30,12 @@ public class FpsDisplayClient implements ClientModInitializer {
         FreeLookClient.init();
         SnapLookClient.init();
         PingMod.init();
+        MinimapClient.init();
+
+        // Clean up MinimapClient native resources on disconnect
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            MinimapClient.close();
+        });
 
         // Register FPS Display HUD Render Callback
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {

@@ -19,7 +19,7 @@ public class SnapLookClient implements ClientModInitializer {
 
             boolean isPressed = ModKeybindings.snapLookKey != null && ModKeybindings.snapLookKey.isPressed();
             if (isPressed) {
-                if (!active) {
+                if (!active && !FreeLookClient.active) {
                     active = true;
                     previousPerspective = client.options.getPerspective();
                     client.options.setPerspective(Perspective.THIRD_PERSON_FRONT);

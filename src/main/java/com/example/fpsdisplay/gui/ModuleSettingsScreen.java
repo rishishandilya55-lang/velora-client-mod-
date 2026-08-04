@@ -174,7 +174,7 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
             container.child(makeToggleRow("Show Right-Click CPS", ModConfig.showRightCps,
                 () -> { ModConfig.showRightCps = !ModConfig.showRightCps; ModConfig.saveConfig(); rebuildSettings(); }));
 
-        } else if ("WASD Keystrokes".equals(moduleName)) {
+        } else if ("WASD Keys".equals(moduleName)) {
             container.child(makeToggleRow("Show Mouse Buttons (LMB / RMB)", ModConfig.showMouseStrokes,
                 () -> { ModConfig.showMouseStrokes = !ModConfig.showMouseStrokes; ModConfig.saveConfig(); rebuildSettings(); }));
 
