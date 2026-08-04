@@ -9,7 +9,6 @@ import net.minecraft.block.MapColor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.world.ClientWorld;
@@ -201,7 +200,6 @@ public class MinimapClient implements ClientModInitializer {
 
         // 2. Render Dynamic Terrain Texture Map
         drawContext.drawTexture(
-            RenderLayer::getGuiTextured,
             textureId,
             baseX, baseY,
             0.0f, 0.0f,

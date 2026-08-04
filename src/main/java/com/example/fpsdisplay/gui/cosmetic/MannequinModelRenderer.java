@@ -1,7 +1,6 @@
 package com.example.fpsdisplay.gui.cosmetic;
 
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import org.joml.Quaternionf;
@@ -104,8 +103,7 @@ public class MannequinModelRenderer {
             matrices.multiply(new Quaternionf().rotationX((float) Math.toRadians(-8.0)));
 
             if (CosmeticTextureCache.isTextureValid(texture)) {
-                // Standard 64x32 Minecraft Cape UV Mapping: back face is u=1, v=1, w=10, h=16
-                context.drawTexture(RenderLayer::getGuiTextured, texture, -10, -28, 0.0f, 0.0f, 20, 32, 10, 16, 64, 32);
+                context.drawTexture(texture, -10, -28, 0.0f, 0.0f, 20, 32, 64, 32);
             } else {
                 renderFallbackCape(context, matrices);
             }
@@ -120,8 +118,8 @@ public class MannequinModelRenderer {
             matrices.translate(0.0f, 0.35f, -0.14f);
 
             if (CosmeticTextureCache.isTextureValid(texture)) {
-                context.drawTexture(RenderLayer::getGuiTextured, texture, -30, -22, 0.0f, 0.0f, 26, 36, 26, 36);
-                context.drawTexture(RenderLayer::getGuiTextured, texture, 4, -22, 0.0f, 0.0f, 26, 36, 26, 36);
+                context.drawTexture(texture, -30, -22, 0.0f, 0.0f, 26, 36, 64, 32);
+                context.drawTexture(texture, 4, -22, 0.0f, 0.0f, 26, 36, 64, 32);
             } else {
                 drawCube(context, matrices, -0.6f, -0.2f, 0.0f, 1.2f, 0.8f, 0.05f, 0xFF475569);
             }
