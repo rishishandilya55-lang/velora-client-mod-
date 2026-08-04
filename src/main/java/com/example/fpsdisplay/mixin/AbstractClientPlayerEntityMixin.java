@@ -17,6 +17,9 @@ public abstract class AbstractClientPlayerEntityMixin {
     private static final Identifier VELORA_CAPE = Identifier.of("fpsdisplay", "textures/cape/velora_cape.png");
     private static final Identifier CLASSIC_CAPE = Identifier.of("fpsdisplay", "textures/cape/classic_cape.png");
     private static final Identifier WAVE_CAPE = Identifier.of("fpsdisplay", "textures/cape/wave_cape.png");
+    private static final Identifier ROSE_CAPE = Identifier.of("fpsdisplay", "textures/cape/rose.png");
+    private static final Identifier PURPLE_ROSE_CAPE = Identifier.of("fpsdisplay", "textures/cape/purple_rose.png");
+    private static final Identifier WITHERED_ROSE_CAPE = Identifier.of("fpsdisplay", "textures/cape/withered_rose.png");
 
     @Inject(method = "getSkinTextures", at = @At("RETURN"), cancellable = true)
     private void injectVeloraCape(CallbackInfoReturnable<SkinTextures> cir) {
@@ -35,6 +38,9 @@ public abstract class AbstractClientPlayerEntityMixin {
                     Identifier capeTexture = switch (capeChoice) {
                         case 1 -> CLASSIC_CAPE;
                         case 2 -> WAVE_CAPE;
+                        case 3 -> ROSE_CAPE;
+                        case 4 -> PURPLE_ROSE_CAPE;
+                        case 5 -> WITHERED_ROSE_CAPE;
                         default -> VELORA_CAPE;
                     };
 

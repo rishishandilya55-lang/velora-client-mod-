@@ -51,7 +51,7 @@ public class ModConfig {
     public static boolean enableCapePhysics = true;
     public static boolean capeOnlyLocal = true;
     public static boolean overrideDefaultCape = true;
-    public static boolean[] favoriteCosmetics = new boolean[]{true, false};
+    public static boolean[] favoriteCosmetics = new boolean[]{true, false, false, false, false, false};
 
     // Toggleable Performance Optimizations (Client Settings)
     public static boolean optiFastMath = true;
