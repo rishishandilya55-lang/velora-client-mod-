@@ -2,48 +2,30 @@ package com.velora.client.gui.cosmetic;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.texture.AbstractTexture;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.resource.Resource;
 import net.minecraft.util.Identifier;
 import org.joml.Quaternionf;
 
-import java.util.Optional;
+import java.io.InputStream;
 
-/**
- * 3D Isometric Mini-Display Renderer for Mannequin Cards in Velora Client.
- * Renders small, compact 3D mannequin player models wearing cosmetics.
- * Includes precise 64x32 cape UV mapping to display velora_cape.png and mojang_cape.png textures inside card viewports.
- */
 public class MannequinModelRenderer {
 
-    /**
-     * Renders a 3D isometric mannequin mini-display displaying a cosmetic item.
-     *
-     * @param context DrawContext for rendering
-     * @param x       Top-left X coordinate of card viewport
-     * @param y       Top-left Y coordinate of card viewport
-     * @param width   Viewport width
-     * @param height  Viewport height
-     * @param item    The cosmetic item to display
-     * @param hovered Whether card is currently hovered
-     */
     public static void renderMannequinCard(DrawContext context, int x, int y, int width, int height, CosmeticItem item, boolean hovered) {
         int centerX = x + width / 2;
         int centerY = y + height / 2 + 4;
 
-        // Viewport Inner Dark Box (#14161F)
         context.fill(x, y, x + width, y + height, 0xFF14161F);
 
         MatrixStack matrices = context.getMatrices();
         matrices.push();
         matrices.translate(centerX, centerY, 150.0f);
 
-        // Small, compact scale (16.0f) tuned for 106px height viewport
         float scale = 16.0f;
         matrices.scale(scale, -scale, scale);
 
-        // Angle tilt: Capes rendered from isometric back view (~165°)
         boolean isBackView = item.getType() == CosmeticItem.CosmeticType.CAPE || item.getType() == CosmeticItem.CosmeticType.WINGS;
         float rotY = isBackView ? 165.0f : 15.0f;
         if (hovered) {
@@ -55,10 +37,8 @@ public class MannequinModelRenderer {
                 .rotateY((float) Math.toRadians(rotY));
         matrices.multiply(rotation);
 
-        // Render Mannequin Body
         renderMannequinBase(context, matrices);
 
-        // Render Cosmetic Attachment with Safe Texture Validation
         Identifier validTexture = CosmeticTextureCache.getValidTextureOrFallback(item.getTexture());
         try {
             switch (item.getType()) {
@@ -74,7 +54,6 @@ public class MannequinModelRenderer {
 
         matrices.pop();
 
-        // Outer subtle viewport border
         context.drawBorder(x, y, width, height, hovered ? 0xFF3B82F6 : 0xFF232734);
     }
 
@@ -83,21 +62,12 @@ public class MannequinModelRenderer {
         int headColor = 0xFF64748B;
         int standColor = 0xFF334155;
 
-        // Base Pedestal
         drawCube(context, matrices, -0.4f, -1.1f, -0.4f, 0.8f, 0.1f, 0.8f, standColor);
-
-        // Legs / Lower Body
         drawCube(context, matrices, -0.22f, -0.6f, -0.1f, 0.2f, 0.6f, 0.2f, bodyColor);
         drawCube(context, matrices, 0.02f, -0.6f, -0.1f, 0.2f, 0.6f, 0.2f, bodyColor);
-
-        // Torso / Chest
         drawCube(context, matrices, -0.25f, 0.0f, -0.12f, 0.5f, 0.7f, 0.24f, 0xFF526075);
-
-        // Shoulders & Arms
         drawCube(context, matrices, -0.4f, 0.1f, -0.1f, 0.12f, 0.55f, 0.2f, bodyColor);
         drawCube(context, matrices, 0.28f, 0.1f, -0.1f, 0.12f, 0.55f, 0.2f, bodyColor);
-
-        // Head
         drawCube(context, matrices, -0.2f, 0.72f, -0.2f, 0.4f, 0.4f, 0.4f, headColor);
     }
 
@@ -109,7 +79,7 @@ public class MannequinModelRenderer {
 
             if (CosmeticTextureCache.isTextureValid(texture)) {
                 int[] dim = getTextureDimensions(texture);
-                context.drawTexture(texture, -10, -28, 0.0f, 0.0f, 20, 32, dim[0], dim[1]);
+                context.drawTexture(RenderLayer::getGuiTextured, texture, -10, -28, 0.0f, 0.0f, 20, 32, dim[0], dim[1]);
             } else {
                 renderFallbackCape(context, matrices);
             }
@@ -125,8 +95,8 @@ public class MannequinModelRenderer {
 
             if (CosmeticTextureCache.isTextureValid(texture)) {
                 int[] dim = getTextureDimensions(texture);
-                context.drawTexture(texture, -30, -22, 0.0f, 0.0f, 26, 36, dim[0], dim[1]);
-                context.drawTexture(texture, 4, -22, 0.0f, 0.0f, 26, 36, dim[0], dim[1]);
+                context.drawTexture(RenderLayer::getGuiTextured, texture, -30, -22, 0.0f, 0.0f, 26, 36, dim[0], dim[1]);
+                context.drawTexture(RenderLayer::getGuiTextured, texture, 4, -22, 0.0f, 0.0f, 26, 36, dim[0], dim[1]);
             } else {
                 drawCube(context, matrices, -0.6f, -0.2f, 0.0f, 1.2f, 0.8f, 0.05f, 0xFF475569);
             }
@@ -168,12 +138,15 @@ public class MannequinModelRenderer {
     private static int[] getTextureDimensions(Identifier texture) {
         try {
             MinecraftClient mc = MinecraftClient.getInstance();
-            if (mc != null && mc.getTextureManager() != null) {
-                AbstractTexture abstractTexture = mc.getTextureManager().getTexture(texture);
-                if (abstractTexture != null) {
-                    Optional<NativeImage> image = abstractTexture.getImage();
-                    if (image.isPresent()) {
-                        return new int[]{image.get().getWidth(), image.get().getHeight()};
+            if (mc != null && mc.getResourceManager() != null) {
+                java.util.Optional<Resource> resource = mc.getResourceManager().getResource(texture);
+                if (resource.isPresent()) {
+                    try (InputStream stream = resource.get().getInputStream()) {
+                        NativeImage image = NativeImage.read(stream);
+                        int w = image.getWidth();
+                        int h = image.getHeight();
+                        image.close();
+                        return new int[]{w, h};
                     }
                 }
             }
@@ -184,7 +157,6 @@ public class MannequinModelRenderer {
     }
 
     private static void renderFallbackCape(DrawContext context, MatrixStack matrices) {
-        // Fallback gray mannequin block (Hex: 0xFF334155)
         drawCube(context, matrices, -0.22f, -0.7f, -0.02f, 0.44f, 0.75f, 0.04f, 0xFF334155);
     }
 
