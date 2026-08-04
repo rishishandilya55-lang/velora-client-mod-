@@ -1,9 +1,14 @@
 package com.example.fpsdisplay.gui.cosmetic;
 
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.texture.AbstractTexture;
+import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import org.joml.Quaternionf;
+
+import java.util.Optional;
 
 /**
  * 3D Isometric Mini-Display Renderer for Mannequin Cards in Velora Client.
@@ -103,7 +108,8 @@ public class MannequinModelRenderer {
             matrices.multiply(new Quaternionf().rotationX((float) Math.toRadians(-8.0)));
 
             if (CosmeticTextureCache.isTextureValid(texture)) {
-                context.drawTexture(texture, -10, -28, 0.0f, 0.0f, 20, 32, 64, 32);
+                int[] dim = getTextureDimensions(texture);
+                context.drawTexture(texture, -10, -28, 0.0f, 0.0f, 20, 32, dim[0], dim[1]);
             } else {
                 renderFallbackCape(context, matrices);
             }
@@ -118,8 +124,9 @@ public class MannequinModelRenderer {
             matrices.translate(0.0f, 0.35f, -0.14f);
 
             if (CosmeticTextureCache.isTextureValid(texture)) {
-                context.drawTexture(texture, -30, -22, 0.0f, 0.0f, 26, 36, 64, 32);
-                context.drawTexture(texture, 4, -22, 0.0f, 0.0f, 26, 36, 64, 32);
+                int[] dim = getTextureDimensions(texture);
+                context.drawTexture(texture, -30, -22, 0.0f, 0.0f, 26, 36, dim[0], dim[1]);
+                context.drawTexture(texture, 4, -22, 0.0f, 0.0f, 26, 36, dim[0], dim[1]);
             } else {
                 drawCube(context, matrices, -0.6f, -0.2f, 0.0f, 1.2f, 0.8f, 0.05f, 0xFF475569);
             }
@@ -156,6 +163,24 @@ public class MannequinModelRenderer {
         } finally {
             matrices.pop();
         }
+    }
+
+    private static int[] getTextureDimensions(Identifier texture) {
+        try {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            if (mc != null && mc.getTextureManager() != null) {
+                AbstractTexture abstractTexture = mc.getTextureManager().getTexture(texture);
+                if (abstractTexture != null) {
+                    Optional<NativeImage> image = abstractTexture.getImage();
+                    if (image.isPresent()) {
+                        return new int[]{image.get().getWidth(), image.get().getHeight()};
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // fallback
+        }
+        return new int[]{64, 32};
     }
 
     private static void renderFallbackCape(DrawContext context, MatrixStack matrices) {
