@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "package": "com.velora.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+  ],
+  "client": [
+    "GameRendererMixin",
+    "MouseMixin",
+    "WorldRendererMixin",
+    "AbstractClientPlayerEntityMixin",
+    "PlayerEntityMixin",
+    "TitleScreenMixin",
+    "CameraMixin",
+    "EntityMixin",
+    "ScreenAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
