@@ -13,7 +13,8 @@
     "TitleScreenMixin",
     "CameraMixin",
     "EntityMixin",
-    "ScreenAccessor"
+    "ScreenAccessor",
+    "LightmapTextureManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

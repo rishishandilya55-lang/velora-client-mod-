@@ -73,6 +73,7 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
     private ScrollContainer<FlowLayout> scrollContainer;
     private TextBoxComponent searchInput;
     private EntityComponent<LivingEntity> playerEntityComponent;
+    private FlowLayout root;
 
     public CosmeticsLockerScreen() {
         super(Text.literal("Velora Client — Velora Locker"));
@@ -95,6 +96,7 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     protected void build(FlowLayout root) {
         isLockerOpen = true;
+        this.root = root;
 
         // Reset and initialize clean 2-cape test registry (Velora Cape & Mojang Cape)
         CosmeticTextureCache.init();
@@ -350,7 +352,8 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
     private void buildCardGrid() {
         cardGrid.clearChildren();
 
-        List<CosmeticItem> items = new ArrayList<>(CosmeticTextureCache.getItems());
+        List<CosmeticItem> allItems = CosmeticTextureCache.getItems();
+        List<CosmeticItem> items = new ArrayList<>(allItems);
 
         // Category Filter
         if (selectedCategory == CosmeticItem.Category.FAVORITES) {
@@ -377,8 +380,8 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
                 cardGrid.child(currentRow);
             }
 
-            final int itemIndex = i;
-            FlowLayout card = buildItemCard(item, itemIndex);
+            final int registryIndex = allItems.indexOf(item);
+            FlowLayout card = buildItemCard(item, registryIndex);
             if (currentRow != null) {
                 currentRow.child(card);
             }
