@@ -54,6 +54,10 @@ public class FpsDisplayClient implements ClientModInitializer {
         PingMod.init();
         LOGGER.debug("[Velora] Initializing MinimapClient");
         MinimapClient.init();
+        LOGGER.debug("[Velora] Initializing ChatColorsClient");
+        ChatColorsClient.init();
+        LOGGER.debug("[Velora] Initializing ItemTooltipsClient");
+        ItemTooltipsClient.init();
         LOGGER.info("[Velora] All modules initialized");
 
         // Clean up MinimapClient native resources on disconnect

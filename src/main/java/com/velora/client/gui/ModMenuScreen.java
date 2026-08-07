@@ -62,6 +62,8 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
         {"No Hurt Cam",   "Visual",   "CAM",  0xFFF87171, "Disables hurt camera wobble"},
         {"Minimap",       "Visual",   "MAP",  0xFFA78BFA, "Radar minimap with entity tracking"},
         {"Nametag",       "Visual",   "TAG",  0xFFA78BFA, "Custom nametag with rank badges"},
+        {"Chat Colors",   "HUD",      "CHAT", 0xFF34D399, "Rank-based chat message coloring"},
+        {"Item Tooltips", "HUD",      "TIPS", 0xFFC084FC, "Enhanced item tooltips with details"},
     };
 
     private FlowLayout moduleGridContainer;
@@ -420,6 +422,8 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
             case 14 -> ModConfig.showNoHurtCam;
             case 15 -> ModConfig.showMinimap;
             case 16 -> ModConfig.showNametag;
+            case 17 -> ModConfig.showChatColors;
+            case 18 -> ModConfig.showItemTooltips;
             default -> false;
         };
     }
@@ -443,6 +447,8 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
             case 14 -> ModConfig.showNoHurtCam     = !ModConfig.showNoHurtCam;
             case 15 -> ModConfig.showMinimap       = !ModConfig.showMinimap;
             case 16 -> ModConfig.showNametag       = !ModConfig.showNametag;
+            case 17 -> ModConfig.showChatColors    = !ModConfig.showChatColors;
+            case 18 -> ModConfig.showItemTooltips  = !ModConfig.showItemTooltips;
         }
         ModConfig.saveConfig();
     }

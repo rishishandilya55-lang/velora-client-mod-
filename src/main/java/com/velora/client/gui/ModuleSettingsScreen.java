@@ -106,6 +106,8 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
             case "Minimap" -> buildMinimapSettings();
             case "Capes & Physics" -> buildCapeSettings();
             case "Nametag" -> buildNametagSettings();
+            case "Chat Colors" -> buildChatColorSettings();
+            case "Item Tooltips" -> buildItemTooltipSettings();
             default -> buildGenericSettings();
         }
     }
@@ -256,7 +258,29 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         settingsPanel.child(makeToggleRow("Show Nametag", "Display custom nametag with rank badge above your head",
             ModConfig.showNametag,
             () -> { ModConfig.showNametag = !ModConfig.showNametag; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Show Badge", "Render rank badge texture next to the name",
+            ModConfig.nametagShowBadge,
+            () -> { ModConfig.nametagShowBadge = !ModConfig.nametagShowBadge; ModConfig.saveConfig(); buildSettings(); }));
         settingsPanel.child(makeHintRow("Your rank badge will appear to the left of your name."));
+    }
+
+    private void buildChatColorSettings() {
+        settingsPanel.child(makeSectionHeader("Chat"));
+        settingsPanel.child(makeToggleRow("Chat Prefix", "Show [Rank] prefix before player names in chat",
+            ModConfig.showChatPrefix,
+            () -> { ModConfig.showChatPrefix = !ModConfig.showChatPrefix; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Tab List Prefix", "Show [Rank] prefix in the tab player list",
+            ModConfig.showTabListPrefix,
+            () -> { ModConfig.showTabListPrefix = !ModConfig.showTabListPrefix; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeHintRow("Ranks are configured in velora_ranks.json"));
+    }
+
+    private void buildItemTooltipSettings() {
+        settingsPanel.child(makeSectionHeader("Tooltips"));
+        settingsPanel.child(makeToggleRow("Enhanced Tooltips", "Show durability bars and extra info on item tooltips",
+            ModConfig.showItemTooltips,
+            () -> { ModConfig.showItemTooltips = !ModConfig.showItemTooltips; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeHintRow("Adds detailed info to inventory item tooltips."));
     }
 
     private void buildGenericSettings() {

@@ -47,6 +47,13 @@ public class ModConfig {
     public static boolean showNoHurtCam = true;
     public static float hurtCamIntensity = 0.0f; // 0.0f = 0% camera wobble (no hurt cam), 1.0f = 100% normal
     public static boolean showNametag = true;
+    public static boolean nametagShowBadge = true;
+
+    // Chat & Social
+    public static boolean showChatPrefix = true;
+    public static boolean showTabListPrefix = true;
+    public static boolean showChatColors = true;
+    public static boolean showItemTooltips = true;
 
     // Capes & Cape Physics
     public static boolean enableCape = true;
@@ -216,6 +223,12 @@ public class ModConfig {
         public boolean showNoHurtCam = ModConfig.showNoHurtCam;
         public float hurtCamIntensity = ModConfig.hurtCamIntensity;
         public boolean showNametag = ModConfig.showNametag;
+        public boolean nametagShowBadge = ModConfig.nametagShowBadge;
+
+        public boolean showChatPrefix = ModConfig.showChatPrefix;
+        public boolean showTabListPrefix = ModConfig.showTabListPrefix;
+        public boolean showChatColors = ModConfig.showChatColors;
+        public boolean showItemTooltips = ModConfig.showItemTooltips;
 
         public boolean showFreeLook = ModConfig.showFreeLook;
         public boolean showSnapLook = ModConfig.showSnapLook;
@@ -316,6 +329,12 @@ public class ModConfig {
             ModConfig.showNoHurtCam = this.showNoHurtCam;
             ModConfig.hurtCamIntensity = Math.max(0.0f, Math.min(1.0f, this.hurtCamIntensity));
             ModConfig.showNametag = this.showNametag;
+            ModConfig.nametagShowBadge = this.nametagShowBadge;
+
+            ModConfig.showChatPrefix = this.showChatPrefix;
+            ModConfig.showTabListPrefix = this.showTabListPrefix;
+            ModConfig.showChatColors = this.showChatColors;
+            ModConfig.showItemTooltips = this.showItemTooltips;
 
             ModConfig.showFreeLook = this.showFreeLook;
             ModConfig.showSnapLook = this.showSnapLook;

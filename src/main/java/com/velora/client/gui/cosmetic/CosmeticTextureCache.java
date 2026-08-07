@@ -2,13 +2,17 @@ package com.velora.client.gui.cosmetic;
 
 import com.velora.client.config.ModConfig;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.resource.Resource;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -22,6 +26,7 @@ public class CosmeticTextureCache {
 
     private static final ConcurrentHashMap<String, Identifier> TEXTURE_CACHE = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Identifier, Boolean> VALIDITY_CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Identifier, int[]> DIMENSION_CACHE = new ConcurrentHashMap<>();
     private static final List<CosmeticItem> REGISTRY = new ArrayList<>();
 
     // Verified Local Test Textures (assets/velora/textures/cape/...)
@@ -83,6 +88,12 @@ public class CosmeticTextureCache {
                 if (exists && mc.getTextureManager() != null) {
                     mc.getTextureManager().getTexture(item.getTexture());
                 }
+                if (exists) {
+                    int[] dims = readTextureDimensions(item.getTexture());
+                    if (dims != null) {
+                        DIMENSION_CACHE.put(item.getTexture(), dims);
+                    }
+                }
             }
             LOGGER.info("[Velora] Pre-warming complete: {}/{} textures valid", validCount, REGISTRY.size());
         } else {
@@ -119,5 +130,31 @@ public class CosmeticTextureCache {
             return texture;
         }
         return VELORA_CAPE;
+    }
+
+    public static int[] getTextureDimensions(Identifier texture) {
+        if (texture == null) return new int[]{64, 32};
+        return DIMENSION_CACHE.computeIfAbsent(texture, CosmeticTextureCache::readTextureDimensions);
+    }
+
+    private static int[] readTextureDimensions(Identifier texture) {
+        try {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            if (mc != null && mc.getResourceManager() != null) {
+                Optional<Resource> resource = mc.getResourceManager().getResource(texture);
+                if (resource.isPresent()) {
+                    try (InputStream stream = resource.get().getInputStream()) {
+                        NativeImage image = NativeImage.read(stream);
+                        int w = image.getWidth();
+                        int h = image.getHeight();
+                        image.close();
+                        return new int[]{w, h};
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // fallback
+        }
+        return new int[]{64, 32};
     }
 }

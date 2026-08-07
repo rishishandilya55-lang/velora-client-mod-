@@ -15,7 +15,9 @@
     "EntityMixin",
     "ScreenAccessor",
     "LightmapTextureManagerMixin",
-    "NameTagMixin"
+    "NameTagMixin",
+    "ChatPrefixMixin",
+    "TabListMixin"
   ],
   "injectors": {
     "defaultRequire": 1
