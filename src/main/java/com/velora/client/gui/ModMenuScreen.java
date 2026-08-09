@@ -315,7 +315,7 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
         card.padding(Insets.of(8, 10, 8, 10));
         card.gap(2);
 
-        FlowLayout topRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+        FlowLayout topRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(14));
         topRow.verticalAlignment(VerticalAlignment.CENTER);
         topRow.gap(4);
 
@@ -331,8 +331,49 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
 
         topRow.child(Components.label(Text.literal(name))
             .color(Color.ofArgb(TEXT))
-            .shadow(true)
-            .sizing(Sizing.fill(100), Sizing.content()));
+            .shadow(true));
+
+        topRow.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+
+        ButtonComponent settingsBtn = Components.button(Text.literal(""), btn -> {
+            if (client != null) {
+                client.setScreen(new ModuleSettingsScreen(name, this));
+            }
+        });
+        settingsBtn.sizing(Sizing.fixed(13), Sizing.fixed(13));
+        settingsBtn.tooltip(Text.literal("Settings (" + name + ")"));
+        settingsBtn.renderer((ctx, comp, delta) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            boolean hov = comp.isHovered();
+            int bg = hov ? VIOLET_F : SURF2;
+            int bdr = hov ? VIOLET : BORDER;
+            int iconClr = hov ? VIOLET : TEXT_M;
+
+            ctx.fill(x, y, x + w, y + h, bg);
+            ctx.drawBorder(x, y, w, h, bdr);
+
+            int cx = x + w / 2;
+            int cy = y + h / 2;
+
+            // Outer teeth
+            ctx.fill(cx - 1, cy - 3, cx + 2, cy - 2, iconClr); // Top
+            ctx.fill(cx - 1, cy + 3, cx + 2, cy + 4, iconClr); // Bottom
+            ctx.fill(cx - 3, cy - 1, cx - 2, cy + 2, iconClr); // Left
+            ctx.fill(cx + 3, cy - 1, cx + 4, cy + 2, iconClr); // Right
+            ctx.fill(cx - 2, cy - 2, cx - 1, cy - 1, iconClr); // Top-left
+            ctx.fill(cx + 2, cy - 2, cx + 3, cy - 1, iconClr); // Top-right
+            ctx.fill(cx - 2, cy + 2, cx - 1, cy + 3, iconClr); // Bottom-left
+            ctx.fill(cx + 2, cy + 2, cx + 3, cy + 3, iconClr); // Bottom-right
+
+            // Main body circle
+            ctx.fill(cx - 2, cy - 1, cx + 3, cy + 2, iconClr);
+            ctx.fill(cx - 1, cy - 2, cx + 2, cy + 3, iconClr);
+
+            // Inner hole
+            ctx.fill(cx, cy, cx + 1, cy + 1, bg);
+        });
+        topRow.child(settingsBtn);
+
         card.child(topRow);
 
         FlowLayout descRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
@@ -381,6 +422,11 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
             if (btn == 0) {
                 handleModClick(modIndex);
                 rebuildGrid();
+                return true;
+            } else if (btn == 1) {
+                if (client != null) {
+                    client.setScreen(new ModuleSettingsScreen(name, this));
+                }
                 return true;
             }
             return false;

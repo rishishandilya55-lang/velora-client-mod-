@@ -6,14 +6,18 @@ import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
+import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
 
     private final String moduleName;
+    private final @Nullable Screen parent;
     private boolean listeningForKey = false;
     private FlowLayout settingsPanel;
 
@@ -34,8 +38,13 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
     private static final int RED      = 0xFFEF4444;
 
     public ModuleSettingsScreen(String moduleName) {
+        this(moduleName, null);
+    }
+
+    public ModuleSettingsScreen(String moduleName, @Nullable Screen parent) {
         super(Text.literal(moduleName + " Settings"));
         this.moduleName = moduleName;
+        this.parent = parent;
     }
 
     @Override
@@ -50,7 +59,7 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         root.surface(Surface.flat(0xAA000000));
         root.sizing(Sizing.fill(100), Sizing.fill(100));
 
-        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(420), Sizing.fixed(300));
+        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(420), Sizing.fixed(320));
         panel.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
             ctx.fill(x, y, x + w, y + h, SURF2);
@@ -83,12 +92,15 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
 
         panel.child(header);
 
-        settingsPanel = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
+        settingsPanel = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         settingsPanel.padding(Insets.of(8, 14, 8, 14));
         settingsPanel.gap(3);
         buildSettings();
 
-        panel.child(settingsPanel);
+        ScrollContainer<FlowLayout> scroll = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(100), settingsPanel);
+        scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(BORDER_S)));
+        panel.child(scroll);
+
         root.child(panel);
     }
 
@@ -96,13 +108,21 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         settingsPanel.clearChildren();
 
         switch (moduleName) {
+            case "FPS Display" -> buildFpsSettings();
+            case "WASD Keys" -> buildKeystrokesSettings();
+            case "Ping Display" -> buildPingSettings();
+            case "CPS Counter" -> buildCpsSettings();
             case "Armor Status" -> buildArmorSettings();
-            case "NoHurtCam" -> buildHurtCamSettings();
+            case "Coordinates" -> buildCoordinatesSettings();
+            case "Day Counter" -> buildDayCounterSettings();
+            case "Block Info" -> buildBlockInfoSettings();
+            case "Toggle Sprint" -> buildToggleSprintSettings();
+            case "Toggle Sneak" -> buildToggleSneakSettings();
             case "Zoom Mod" -> buildZoomSettings();
             case "Free Look" -> buildFreeLookSettings();
             case "Snap Look" -> buildSnapLookSettings();
-            case "CPS Counter" -> buildCpsSettings();
-            case "WASD Keys" -> buildKeystrokesSettings();
+            case "Fullbright" -> buildFullbrightSettings();
+            case "No Hurt Cam", "NoHurtCam" -> buildHurtCamSettings();
             case "Minimap" -> buildMinimapSettings();
             case "Capes & Physics" -> buildCapeSettings();
             case "Nametag" -> buildNametagSettings();
@@ -112,8 +132,64 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         }
     }
 
+    private void buildFpsSettings() {
+        settingsPanel.child(makeSectionHeader("FPS Display"));
+        settingsPanel.child(makeToggleRow("Enable FPS", "Show current frames per second on screen",
+            ModConfig.showFps,
+            () -> { ModConfig.showFps = !ModConfig.showFps; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
+            () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
+        settingsPanel.child(makeHintRow("Drag or resize this element in the HUD Editor."));
+    }
+
+    private void buildKeystrokesSettings() {
+        settingsPanel.child(makeSectionHeader("Keystrokes"));
+        settingsPanel.child(makeToggleRow("Enable Keystrokes", "Display WASD key presses on HUD",
+            ModConfig.showKeystrokes,
+            () -> { ModConfig.showKeystrokes = !ModConfig.showKeystrokes; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Mouse Buttons", "Show LMB and RMB in keystrokes display",
+            ModConfig.showMouseStrokes,
+            () -> { ModConfig.showMouseStrokes = !ModConfig.showMouseStrokes; ModConfig.saveConfig(); buildSettings(); }));
+        int opacityPercent = (int) Math.round((ModConfig.keystrokesOpacity / 255.0) * 100);
+        settingsPanel.child(makeCycleRow("Key Opacity", opacityPercent + "%",
+            () -> {
+                if (ModConfig.keystrokesOpacity <= 0x40) ModConfig.keystrokesOpacity = 0x80;
+                else if (ModConfig.keystrokesOpacity <= 0x80) ModConfig.keystrokesOpacity = 0xC0;
+                else if (ModConfig.keystrokesOpacity <= 0xC0) ModConfig.keystrokesOpacity = 0xFF;
+                else ModConfig.keystrokesOpacity = 0x40;
+                ModConfig.saveConfig(); buildSettings();
+            }));
+        settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
+            () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
+    }
+
+    private void buildPingSettings() {
+        settingsPanel.child(makeSectionHeader("Ping Display"));
+        settingsPanel.child(makeToggleRow("Enable Ping", "Show network latency (ms) on screen",
+            ModConfig.showPing,
+            () -> { ModConfig.showPing = !ModConfig.showPing; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
+            () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
+        settingsPanel.child(makeHintRow("Drag or resize this element in the HUD Editor."));
+    }
+
+    private void buildCpsSettings() {
+        settingsPanel.child(makeSectionHeader("CPS Counter"));
+        settingsPanel.child(makeToggleRow("Enable CPS Counter", "Show clicks per second on HUD",
+            ModConfig.showCps,
+            () -> { ModConfig.showCps = !ModConfig.showCps; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Right-Click CPS", "Also count right-clicks per second",
+            ModConfig.showRightCps,
+            () -> { ModConfig.showRightCps = !ModConfig.showRightCps; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
+            () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
+    }
+
     private void buildArmorSettings() {
         settingsPanel.child(makeSectionHeader("Display"));
+        settingsPanel.child(makeToggleRow("Enable Armor Status", "Show armor pieces and durability on HUD",
+            ModConfig.showArmorStatus,
+            () -> { ModConfig.showArmorStatus = !ModConfig.showArmorStatus; ModConfig.saveConfig(); buildSettings(); }));
         settingsPanel.child(makeCycleRow("Orientation", ModConfig.armorOrientation,
             () -> {
                 ModConfig.armorOrientation = "VERTICAL".equalsIgnoreCase(ModConfig.armorOrientation) ? "HORIZONTAL" : "VERTICAL";
@@ -141,9 +217,109 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         settingsPanel.child(makeToggleRow("Item Count", "Show block/item counts in inventory",
             ModConfig.armorShowCount,
             () -> { ModConfig.armorShowCount = !ModConfig.armorShowCount; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
+            () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
+    }
+
+    private void buildCoordinatesSettings() {
+        settingsPanel.child(makeSectionHeader("Coordinates"));
+        settingsPanel.child(makeToggleRow("Enable Coordinates", "Show current X, Y, Z position on screen",
+            ModConfig.showCoordinates,
+            () -> { ModConfig.showCoordinates = !ModConfig.showCoordinates; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
+            () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
+        settingsPanel.child(makeHintRow("Drag or resize this element in the HUD Editor."));
+    }
+
+    private void buildDayCounterSettings() {
+        settingsPanel.child(makeSectionHeader("Day Counter"));
+        settingsPanel.child(makeToggleRow("Enable Day Counter", "Display in-game world day count",
+            ModConfig.showDayCounter,
+            () -> { ModConfig.showDayCounter = !ModConfig.showDayCounter; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
+            () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
+        settingsPanel.child(makeHintRow("Drag or resize this element in the HUD Editor."));
+    }
+
+    private void buildBlockInfoSettings() {
+        settingsPanel.child(makeSectionHeader("Block Info"));
+        settingsPanel.child(makeToggleRow("Enable Block Info", "Show name and details of looked-at block",
+            ModConfig.showBlockInfo,
+            () -> { ModConfig.showBlockInfo = !ModConfig.showBlockInfo; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
+            () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
+        settingsPanel.child(makeHintRow("Drag or resize this element in the HUD Editor."));
+    }
+
+    private void buildToggleSprintSettings() {
+        settingsPanel.child(makeSectionHeader("Toggle Sprint"));
+        settingsPanel.child(makeToggleRow("Enable Toggle Sprint", "Automatically keep sprinting without holding key",
+            ModConfig.showToggleSprint,
+            () -> { ModConfig.showToggleSprint = !ModConfig.showToggleSprint; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
+            () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
+        settingsPanel.child(makeHintRow("Shows [Sprinting (Toggled)] on screen."));
+    }
+
+    private void buildToggleSneakSettings() {
+        settingsPanel.child(makeSectionHeader("Toggle Sneak"));
+        settingsPanel.child(makeToggleRow("Enable Toggle Sneak", "Toggle sneak ON/OFF without holding shift key",
+            ModConfig.showToggleSneak,
+            () -> { ModConfig.showToggleSneak = !ModConfig.showToggleSneak; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeHintRow("Press sneak once to stay crouching; press again to stand."));
+    }
+
+    private void buildZoomSettings() {
+        settingsPanel.child(makeSectionHeader("Zoom"));
+        settingsPanel.child(makeToggleRow("Smooth Animation", "Smoothly transition zoom in/out",
+            ModConfig.zoomSmooth,
+            () -> { ModConfig.zoomSmooth = !ModConfig.zoomSmooth; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Scale Sensitivity", "Reduce mouse sensitivity while zoomed",
+            ModConfig.zoomScaleSensitivity,
+            () -> { ModConfig.zoomScaleSensitivity = !ModConfig.zoomScaleSensitivity; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeHintRow("Hold C to zoom. Scroll mouse wheel to adjust zoom level."));
+    }
+
+    private void buildFreeLookSettings() {
+        settingsPanel.child(makeSectionHeader("Free Look"));
+        settingsPanel.child(makeToggleRow("Enable Free Look", "Hold key for 360 camera rotation",
+            ModConfig.showFreeLook,
+            () -> { ModConfig.showFreeLook = !ModConfig.showFreeLook; ModConfig.saveConfig(); buildSettings(); }));
+
+        String keyName = listeningForKey ? "> PRESS ANY KEY <" : GLFW.glfwGetKeyName(ModConfig.freeLookKey, 0);
+        if (keyName == null) keyName = "Key " + ModConfig.freeLookKey;
+        settingsPanel.child(makeKeybindRow("Keybind", keyName.toUpperCase(),
+            listeningForKey ? GREEN : VIOLET,
+            () -> { listeningForKey = true; buildSettings(); }));
+
+        settingsPanel.child(makeHintRow("Hold this key to rotate camera freely."));
+    }
+
+    private void buildSnapLookSettings() {
+        settingsPanel.child(makeSectionHeader("Snap Look"));
+        settingsPanel.child(makeToggleRow("Enable Snap Look", "Hold key for quick rear view",
+            ModConfig.showSnapLook,
+            () -> { ModConfig.showSnapLook = !ModConfig.showSnapLook; ModConfig.saveConfig(); buildSettings(); }));
+
+        String keyName = listeningForKey ? "> PRESS ANY KEY <" : GLFW.glfwGetKeyName(ModConfig.snapLookKey, 0);
+        if (keyName == null) keyName = "Key " + ModConfig.snapLookKey;
+        settingsPanel.child(makeKeybindRow("Keybind", keyName.toUpperCase(),
+            listeningForKey ? GREEN : VIOLET,
+            () -> { listeningForKey = true; buildSettings(); }));
+
+        settingsPanel.child(makeHintRow("Hold this key to instantly look behind."));
+    }
+
+    private void buildFullbrightSettings() {
+        settingsPanel.child(makeSectionHeader("Fullbright"));
+        settingsPanel.child(makeToggleRow("Enable Fullbright", "Set night and cave brightness to maximum",
+            ModConfig.showFullbright,
+            () -> { ModConfig.showFullbright = !ModConfig.showFullbright; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeHintRow("Shortcut: Press F6 in-game to quickly toggle fullbright."));
     }
 
     private void buildHurtCamSettings() {
+        settingsPanel.child(makeSectionHeader("No Hurt Cam"));
         settingsPanel.child(makeToggleRow("Enable NoHurtCam", "Disable camera wobble when taking damage",
             ModConfig.showNoHurtCam,
             () -> { ModConfig.showNoHurtCam = !ModConfig.showNoHurtCam; ModConfig.saveConfig(); buildSettings(); }));
@@ -159,59 +335,11 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
             }));
     }
 
-    private void buildZoomSettings() {
-        settingsPanel.child(makeSectionHeader("Zoom"));
-        settingsPanel.child(makeToggleRow("Smooth Animation", "Smoothly transition zoom in/out",
-            ModConfig.zoomSmooth,
-            () -> { ModConfig.zoomSmooth = !ModConfig.zoomSmooth; ModConfig.saveConfig(); buildSettings(); }));
-        settingsPanel.child(makeToggleRow("Scale Sensitivity", "Reduce mouse sensitivity while zoomed",
-            ModConfig.zoomScaleSensitivity,
-            () -> { ModConfig.zoomScaleSensitivity = !ModConfig.zoomScaleSensitivity; ModConfig.saveConfig(); buildSettings(); }));
-        settingsPanel.child(makeHintRow("Hold C to zoom. Scroll to adjust zoom level."));
-    }
-
-    private void buildFreeLookSettings() {
-        settingsPanel.child(makeToggleRow("Enable Free Look", "Hold key for 360 camera rotation",
-            ModConfig.showFreeLook,
-            () -> { ModConfig.showFreeLook = !ModConfig.showFreeLook; ModConfig.saveConfig(); buildSettings(); }));
-
-        String keyName = listeningForKey ? "> PRESS ANY KEY <" : GLFW.glfwGetKeyName(ModConfig.freeLookKey, 0);
-        if (keyName == null) keyName = "Key " + ModConfig.freeLookKey;
-        settingsPanel.child(makeKeybindRow("Keybind", keyName.toUpperCase(),
-            listeningForKey ? GREEN : VIOLET,
-            () -> { listeningForKey = true; buildSettings(); }));
-
-        settingsPanel.child(makeHintRow("Hold this key to rotate camera freely."));
-    }
-
-    private void buildSnapLookSettings() {
-        settingsPanel.child(makeToggleRow("Enable Snap Look", "Hold key for quick rear view",
-            ModConfig.showSnapLook,
-            () -> { ModConfig.showSnapLook = !ModConfig.showSnapLook; ModConfig.saveConfig(); buildSettings(); }));
-
-        String keyName = listeningForKey ? "> PRESS ANY KEY <" : GLFW.glfwGetKeyName(ModConfig.snapLookKey, 0);
-        if (keyName == null) keyName = "Key " + ModConfig.snapLookKey;
-        settingsPanel.child(makeKeybindRow("Keybind", keyName.toUpperCase(),
-            listeningForKey ? GREEN : VIOLET,
-            () -> { listeningForKey = true; buildSettings(); }));
-
-        settingsPanel.child(makeHintRow("Hold this key to instantly look behind."));
-    }
-
-    private void buildCpsSettings() {
-        settingsPanel.child(makeToggleRow("Right-Click CPS", "Also count right-clicks per second",
-            ModConfig.showRightCps,
-            () -> { ModConfig.showRightCps = !ModConfig.showRightCps; ModConfig.saveConfig(); buildSettings(); }));
-    }
-
-    private void buildKeystrokesSettings() {
-        settingsPanel.child(makeToggleRow("Mouse Buttons", "Show LMB and RMB in keystrokes display",
-            ModConfig.showMouseStrokes,
-            () -> { ModConfig.showMouseStrokes = !ModConfig.showMouseStrokes; ModConfig.saveConfig(); buildSettings(); }));
-    }
-
     private void buildMinimapSettings() {
         settingsPanel.child(makeSectionHeader("Display"));
+        settingsPanel.child(makeToggleRow("Enable Minimap", "Show radar minimap on HUD",
+            ModConfig.showMinimap,
+            () -> { ModConfig.showMinimap = !ModConfig.showMinimap; ModConfig.saveConfig(); buildSettings(); }));
         settingsPanel.child(makeCycleRow("Shape", ModConfig.minimapShape,
             () -> {
                 ModConfig.minimapShape = "CIRCLE".equalsIgnoreCase(ModConfig.minimapShape) ? "SQUARE" : "CIRCLE";
@@ -234,6 +362,8 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         settingsPanel.child(makeToggleRow("Show Biome", "Display biome name and heading",
             ModConfig.minimapShowBiome,
             () -> { ModConfig.minimapShowBiome = !ModConfig.minimapShowBiome; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
+            () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
     }
 
     private void buildCapeSettings() {
@@ -255,6 +385,7 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private void buildNametagSettings() {
+        settingsPanel.child(makeSectionHeader("Nametag"));
         settingsPanel.child(makeToggleRow("Show Nametag", "Display custom nametag with rank badge above your head",
             ModConfig.showNametag,
             () -> { ModConfig.showNametag = !ModConfig.showNametag; ModConfig.saveConfig(); buildSettings(); }));
@@ -266,6 +397,9 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
 
     private void buildChatColorSettings() {
         settingsPanel.child(makeSectionHeader("Chat"));
+        settingsPanel.child(makeToggleRow("Chat Colors", "Enable rank-colored chat formatting",
+            ModConfig.showChatColors,
+            () -> { ModConfig.showChatColors = !ModConfig.showChatColors; ModConfig.saveConfig(); buildSettings(); }));
         settingsPanel.child(makeToggleRow("Chat Prefix", "Show [Rank] prefix before player names in chat",
             ModConfig.showChatPrefix,
             () -> { ModConfig.showChatPrefix = !ModConfig.showChatPrefix; ModConfig.saveConfig(); buildSettings(); }));
@@ -365,6 +499,24 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         return row;
     }
 
+    private FlowLayout makeButtonRow(String label, String btnLabel, Runnable action) {
+        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(26));
+        row.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.fill(x, y, x + w, y + h, 0x05FFFFFF);
+        });
+        row.verticalAlignment(VerticalAlignment.CENTER);
+        row.padding(Insets.of(2, 8, 2, 8));
+        row.gap(6);
+        row.child(Components.label(Text.literal(label)).color(Color.ofArgb(TEXT_M)));
+        row.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        ButtonComponent btn = Components.button(Text.literal(btnLabel), b -> action.run());
+        btn.sizing(Sizing.content(), Sizing.fixed(16));
+        btn.renderer(ButtonComponent.Renderer.flat(VIOLET_D, VIOLET_S, VIOLET_D));
+        row.child(btn);
+        return row;
+    }
+
     private FlowLayout makeHintRow(String text) {
         FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(14));
         row.padding(Insets.of(4, 8, 0, 8));
@@ -390,6 +542,10 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void close() {
         ModConfig.saveConfig();
-        super.close();
+        if (this.client != null && this.parent != null) {
+            this.client.setScreen(this.parent);
+        } else {
+            super.close();
+        }
     }
 }
