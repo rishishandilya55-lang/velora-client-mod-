@@ -1,6 +1,7 @@
 package com.velora.client.client;
 
 import com.velora.client.config.ModConfig;
+import com.velora.client.util.HudColorHelper;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
@@ -20,12 +21,10 @@ public class CpsClient implements ClientModInitializer {
 
     public static void registerLeftClick() {
         leftclicks.add(System.currentTimeMillis());
-        LOGGER.trace("[Velora] Left click registered");
     }
 
     public static void registerRightClick() {
         rightclicks.add(System.currentTimeMillis());
-        LOGGER.trace("[Velora] Right click registered");
     }
 
     public static void init() {
@@ -52,12 +51,9 @@ public class CpsClient implements ClientModInitializer {
                 rightCps = rightclicks.size();
             }
 
-            String cpsText;
-            if (ModConfig.showRightCps) {
-                cpsText = "CPS: " + leftCps + " | " + rightCps;
-            } else {
-                cpsText = "CPS: " + leftCps;
-            }
+            String cpsText = ModConfig.showRightCps
+                ? "CPS: " + leftCps + " | " + rightCps
+                : "CPS: " + leftCps;
 
             drawContext.getMatrices().push();
             drawContext.getMatrices().scale(ModConfig.cpsScale, ModConfig.cpsScale, 1.0f);
@@ -66,8 +62,13 @@ public class CpsClient implements ClientModInitializer {
             int y = (int) (ModConfig.cpsY / ModConfig.cpsScale);
 
             int textWidth = textRenderer.getWidth(cpsText);
-            drawContext.fill(x - 4, y - 4, x + textWidth + 4, y + 12, 0x80000000);
-            drawContext.drawText(textRenderer, cpsText, x, y, 0xFFFFFFFF, true);
+            if (ModConfig.cpsBackground && ModConfig.hudShowBackground) {
+                int bg = (ModConfig.hudBackgroundOpacity << 24) | 0x000000;
+                drawContext.fill(x - 4, y - 4, x + textWidth + 4, y + 12, bg);
+            }
+
+            int color = HudColorHelper.getEffectiveColor(ModConfig.cpsTextColor, ModConfig.cpsTextRainbow);
+            drawContext.drawText(textRenderer, cpsText, x, y, color, ModConfig.hudTextShadow);
 
             drawContext.getMatrices().pop();
         });

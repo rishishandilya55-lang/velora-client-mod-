@@ -46,14 +46,112 @@ public class ModConfig {
     public static boolean minimapShowEntityNames = false;
     public static boolean showNoHurtCam = true;
     public static float hurtCamIntensity = 0.0f; // 0.0f = 0% camera wobble (no hurt cam), 1.0f = 100% normal
+    public static boolean showPotionHud = true;
+    public static boolean potionHudBackground = true;
+    public static boolean potionHudShowIcon = true;
+    public static int potionHudTextColor = 0xFFFFFFFF;
+    public static boolean potionHudTextRainbow = false;
     public static boolean showNametag = true;
+    public static boolean nametagShowRank = true;
     public static boolean nametagShowBadge = true;
+    public static boolean nametagShowHealth = true;
+    public static boolean nametagShowDistance = false;
+    public static int nametagBackgroundOpacity = 128;
+
+    // Crosshair Mod Options
+    public static boolean enableCustomCrosshair = true;
+    public static String crosshairPreset = "CLASSIC_CROSS";
+    public static int crosshairSize = 4;
+    public static int crosshairGap = 3;
+    public static int crosshairThickness = 1;
+    public static boolean crosshairShowDot = false;
+    public static int crosshairDotSize = 2;
+    public static int crosshairColor = 0xFFFFFFFF;
+    public static boolean crosshairRainbow = false;
+    public static boolean crosshairOutline = true;
+    public static int crosshairOutlineColor = 0xFF000000;
+    public static boolean crosshairHighlightEntity = true;
+    public static int crosshairHighlightColor = 0xFFEF4444;
+    public static boolean crosshairEnemyCrosshair = true;
+    public static String crosshairEnemyMode = "COLOR_CHANGE";
+    public static int crosshairEnemyColor = 0xFFEF4444;
+    public static boolean crosshairUseCustomScale = false;
+    public static String crosshairScaleMode = "NORMAL";
+    public static float crosshairScaleFactor = 1.0f;
+    public static boolean crosshairDynamic = false;
+    public static boolean crosshairAttackIndicator = true;
+    public static boolean crosshairThirdPerson = false;
+    public static boolean[] crosshairGrid = com.velora.client.client.CustomCrosshairMod.getDefaultGrid();
+
+    // Global HUD Options
+    public static boolean hudShowBackground = true;
+    public static int hudBackgroundOpacity = 128;
+    public static boolean hudTextShadow = true;
+
+    // Individual HUD Options
+    public static int fpsTextColor = 0xFFFFFFFF;
+    public static boolean fpsTextRainbow = false;
+    public static boolean fpsShowPrefix = true;
+    public static boolean fpsBackground = true;
+
+    public static boolean pingCustomColor = false;
+    public static int pingTextColor = 0xFF55FF55;
+    public static boolean pingTextRainbow = false;
+    public static boolean pingBackground = true;
+
+    public static int cpsTextColor = 0xFFFFFFFF;
+    public static boolean cpsTextRainbow = false;
+    public static boolean cpsBackground = true;
+
+    public static int coordsTextColor = 0xFFFFFFFF;
+    public static boolean coordsTextRainbow = false;
+    public static boolean coordsShowNether = true;
+    public static boolean coordsShowDirection = true;
+    public static boolean coordsShowBiome = true;
+    public static boolean coordsBackground = true;
+
+    public static int dayTextColor = 0xFFFFFFFF;
+    public static boolean dayTextRainbow = false;
+    public static boolean dayShowTime = true;
+    public static boolean dayBackground = true;
+
+    public static int blockInfoTextColor = 0xFFFFFFFF;
+    public static boolean blockInfoTextRainbow = false;
+    public static boolean blockInfoShowTool = true;
+    public static boolean blockInfoBackground = true;
+
+    public static int keystrokesTextColor = 0xFFFFFFFF;
+    public static boolean keystrokesRainbow = false;
+
+    // Hit Color Options
+    public static boolean showHitColor = true;
+    public static int hitColorRed = 255;
+    public static int hitColorGreen = 0;
+    public static int hitColorBlue = 0;
+    public static int hitColorAlpha = 200;
+    public static boolean hitColorRainbow = false;
+    public static boolean hitColorShowOnArmor = true;
 
     // Chat & Social
     public static boolean showChatPrefix = true;
     public static boolean showTabListPrefix = true;
     public static boolean showChatColors = true;
+    public static boolean chatHighlightMentions = true;
+    public static int chatMentionColor = 0xFFFFD700; // Gold
+    public static boolean chatMentionSound = true;
+    public static boolean chatShowTimestamp = false;
+    public static boolean customChatBackground = false;
+    public static int chatBackgroundColor = 0x000000;
+    public static int chatBackgroundOpacity = 128;
+
+    // Tooltips
     public static boolean showItemTooltips = true;
+    public static boolean tooltipShowDurability = true;
+    public static boolean tooltipShowId = true;
+    public static boolean tooltipShowFood = true;
+
+    // Item Physics
+    public static boolean showItemPhysics = true;
 
     // Capes & Cape Physics
     public static boolean enableCape = true;
@@ -125,6 +223,9 @@ public class ModConfig {
     public static int minimapX = 10;
     public static int minimapY = 320;
 
+    public static int potionHudX = 10;
+    public static int potionHudY = 350;
+
     // HUD Scales (Resizable!)
     public static float fpsScale = 1.0f;
     public static float keystrokesScale = 1.0f;
@@ -136,6 +237,7 @@ public class ModConfig {
     public static float dayScale = 1.0f;
     public static float blockInfoScale = 1.0f;
     public static float minimapScale = 1.0f;
+    public static float potionHudScale = 1.0f;
 
     public static void resetHudPositions() {
         fpsX = 10; fpsY = 10; fpsScale = 1.0f;
@@ -148,6 +250,7 @@ public class ModConfig {
         dayX = 10; dayY = 260; dayScale = 1.0f;
         blockInfoX = 10; blockInfoY = 290; blockInfoScale = 1.0f;
         minimapX = 10; minimapY = 320; minimapScale = 1.0f;
+        potionHudX = 10; potionHudY = 350; potionHudScale = 1.0f;
         saveConfig();
     }
 
@@ -222,13 +325,108 @@ public class ModConfig {
         public boolean minimapShowEntityNames = ModConfig.minimapShowEntityNames;
         public boolean showNoHurtCam = ModConfig.showNoHurtCam;
         public float hurtCamIntensity = ModConfig.hurtCamIntensity;
+        public boolean showPotionHud = ModConfig.showPotionHud;
+        public boolean potionHudBackground = ModConfig.potionHudBackground;
+        public boolean potionHudShowIcon = ModConfig.potionHudShowIcon;
+        public int potionHudTextColor = ModConfig.potionHudTextColor;
+        public boolean potionHudTextRainbow = ModConfig.potionHudTextRainbow;
+        public int potionHudX = ModConfig.potionHudX;
+        public int potionHudY = ModConfig.potionHudY;
+        public float potionHudScale = ModConfig.potionHudScale;
+
         public boolean showNametag = ModConfig.showNametag;
+        public boolean nametagShowRank = ModConfig.nametagShowRank;
         public boolean nametagShowBadge = ModConfig.nametagShowBadge;
+        public boolean nametagShowHealth = ModConfig.nametagShowHealth;
+        public boolean nametagShowDistance = ModConfig.nametagShowDistance;
+        public int nametagBackgroundOpacity = ModConfig.nametagBackgroundOpacity;
+
+        public boolean enableCustomCrosshair = ModConfig.enableCustomCrosshair;
+        public String crosshairPreset = ModConfig.crosshairPreset;
+        public int crosshairSize = ModConfig.crosshairSize;
+        public int crosshairGap = ModConfig.crosshairGap;
+        public int crosshairThickness = ModConfig.crosshairThickness;
+        public boolean crosshairShowDot = ModConfig.crosshairShowDot;
+        public int crosshairDotSize = ModConfig.crosshairDotSize;
+        public int crosshairColor = ModConfig.crosshairColor;
+        public boolean crosshairRainbow = ModConfig.crosshairRainbow;
+        public boolean crosshairOutline = ModConfig.crosshairOutline;
+        public int crosshairOutlineColor = ModConfig.crosshairOutlineColor;
+        public boolean crosshairHighlightEntity = ModConfig.crosshairHighlightEntity;
+        public int crosshairHighlightColor = ModConfig.crosshairHighlightColor;
+        public boolean crosshairEnemyCrosshair = ModConfig.crosshairEnemyCrosshair;
+        public String crosshairEnemyMode = ModConfig.crosshairEnemyMode;
+        public int crosshairEnemyColor = ModConfig.crosshairEnemyColor;
+        public boolean crosshairUseCustomScale = ModConfig.crosshairUseCustomScale;
+        public String crosshairScaleMode = ModConfig.crosshairScaleMode;
+        public float crosshairScaleFactor = ModConfig.crosshairScaleFactor;
+        public boolean crosshairDynamic = ModConfig.crosshairDynamic;
+        public boolean crosshairAttackIndicator = ModConfig.crosshairAttackIndicator;
+        public boolean crosshairThirdPerson = ModConfig.crosshairThirdPerson;
+        public boolean[] crosshairGrid = ModConfig.crosshairGrid;
+
+        public boolean hudShowBackground = ModConfig.hudShowBackground;
+        public int hudBackgroundOpacity = ModConfig.hudBackgroundOpacity;
+        public boolean hudTextShadow = ModConfig.hudTextShadow;
+
+        public int fpsTextColor = ModConfig.fpsTextColor;
+        public boolean fpsTextRainbow = ModConfig.fpsTextRainbow;
+        public boolean fpsShowPrefix = ModConfig.fpsShowPrefix;
+        public boolean fpsBackground = ModConfig.fpsBackground;
+
+        public boolean pingCustomColor = ModConfig.pingCustomColor;
+        public int pingTextColor = ModConfig.pingTextColor;
+        public boolean pingTextRainbow = ModConfig.pingTextRainbow;
+        public boolean pingBackground = ModConfig.pingBackground;
+
+        public int cpsTextColor = ModConfig.cpsTextColor;
+        public boolean cpsTextRainbow = ModConfig.cpsTextRainbow;
+        public boolean cpsBackground = ModConfig.cpsBackground;
+
+        public int coordsTextColor = ModConfig.coordsTextColor;
+        public boolean coordsTextRainbow = ModConfig.coordsTextRainbow;
+        public boolean coordsShowNether = ModConfig.coordsShowNether;
+        public boolean coordsShowDirection = ModConfig.coordsShowDirection;
+        public boolean coordsShowBiome = ModConfig.coordsShowBiome;
+        public boolean coordsBackground = ModConfig.coordsBackground;
+
+        public int dayTextColor = ModConfig.dayTextColor;
+        public boolean dayTextRainbow = ModConfig.dayTextRainbow;
+        public boolean dayShowTime = ModConfig.dayShowTime;
+        public boolean dayBackground = ModConfig.dayBackground;
+
+        public int blockInfoTextColor = ModConfig.blockInfoTextColor;
+        public boolean blockInfoTextRainbow = ModConfig.blockInfoTextRainbow;
+        public boolean blockInfoShowTool = ModConfig.blockInfoShowTool;
+        public boolean blockInfoBackground = ModConfig.blockInfoBackground;
+
+        public int keystrokesTextColor = ModConfig.keystrokesTextColor;
+        public boolean keystrokesRainbow = ModConfig.keystrokesRainbow;
+
+        public boolean showHitColor = ModConfig.showHitColor;
+        public int hitColorRed = ModConfig.hitColorRed;
+        public int hitColorGreen = ModConfig.hitColorGreen;
+        public int hitColorBlue = ModConfig.hitColorBlue;
+        public int hitColorAlpha = ModConfig.hitColorAlpha;
+        public boolean hitColorRainbow = ModConfig.hitColorRainbow;
+        public boolean hitColorShowOnArmor = ModConfig.hitColorShowOnArmor;
 
         public boolean showChatPrefix = ModConfig.showChatPrefix;
         public boolean showTabListPrefix = ModConfig.showTabListPrefix;
         public boolean showChatColors = ModConfig.showChatColors;
+        public boolean chatHighlightMentions = ModConfig.chatHighlightMentions;
+        public int chatMentionColor = ModConfig.chatMentionColor;
+        public boolean chatMentionSound = ModConfig.chatMentionSound;
+        public boolean chatShowTimestamp = ModConfig.chatShowTimestamp;
+        public boolean customChatBackground = ModConfig.customChatBackground;
+        public int chatBackgroundColor = ModConfig.chatBackgroundColor;
+        public int chatBackgroundOpacity = ModConfig.chatBackgroundOpacity;
+
         public boolean showItemTooltips = ModConfig.showItemTooltips;
+        public boolean tooltipShowDurability = ModConfig.tooltipShowDurability;
+        public boolean tooltipShowId = ModConfig.tooltipShowId;
+        public boolean tooltipShowFood = ModConfig.tooltipShowFood;
+        public boolean showItemPhysics = ModConfig.showItemPhysics;
 
         public boolean showFreeLook = ModConfig.showFreeLook;
         public boolean showSnapLook = ModConfig.showSnapLook;
@@ -328,13 +526,110 @@ public class ModConfig {
             ModConfig.minimapShowEntityNames = this.minimapShowEntityNames;
             ModConfig.showNoHurtCam = this.showNoHurtCam;
             ModConfig.hurtCamIntensity = Math.max(0.0f, Math.min(1.0f, this.hurtCamIntensity));
+            ModConfig.showPotionHud = this.showPotionHud;
+            ModConfig.potionHudBackground = this.potionHudBackground;
+            ModConfig.potionHudShowIcon = this.potionHudShowIcon;
+            ModConfig.potionHudTextColor = this.potionHudTextColor;
+            ModConfig.potionHudTextRainbow = this.potionHudTextRainbow;
+            ModConfig.potionHudX = this.potionHudX;
+            ModConfig.potionHudY = this.potionHudY;
+            ModConfig.potionHudScale = Math.max(0.1f, Math.min(5.0f, this.potionHudScale));
+
             ModConfig.showNametag = this.showNametag;
+            ModConfig.nametagShowRank = this.nametagShowRank;
             ModConfig.nametagShowBadge = this.nametagShowBadge;
+            ModConfig.nametagShowHealth = this.nametagShowHealth;
+            ModConfig.nametagShowDistance = this.nametagShowDistance;
+            ModConfig.nametagBackgroundOpacity = Math.max(0, Math.min(255, this.nametagBackgroundOpacity));
+
+            ModConfig.enableCustomCrosshair = this.enableCustomCrosshair;
+            if (this.crosshairPreset != null) ModConfig.crosshairPreset = this.crosshairPreset;
+            ModConfig.crosshairSize = Math.max(1, Math.min(30, this.crosshairSize));
+            ModConfig.crosshairGap = Math.max(0, Math.min(20, this.crosshairGap));
+            ModConfig.crosshairThickness = Math.max(1, Math.min(10, this.crosshairThickness));
+            ModConfig.crosshairShowDot = this.crosshairShowDot;
+            ModConfig.crosshairDotSize = Math.max(1, Math.min(10, this.crosshairDotSize));
+            ModConfig.crosshairColor = this.crosshairColor;
+            ModConfig.crosshairRainbow = this.crosshairRainbow;
+            ModConfig.crosshairOutline = this.crosshairOutline;
+            ModConfig.crosshairOutlineColor = this.crosshairOutlineColor;
+            ModConfig.crosshairHighlightEntity = this.crosshairHighlightEntity;
+            ModConfig.crosshairHighlightColor = this.crosshairHighlightColor;
+            ModConfig.crosshairEnemyCrosshair = this.crosshairEnemyCrosshair;
+            if (this.crosshairEnemyMode != null) ModConfig.crosshairEnemyMode = this.crosshairEnemyMode;
+            ModConfig.crosshairEnemyColor = this.crosshairEnemyColor;
+            ModConfig.crosshairUseCustomScale = this.crosshairUseCustomScale;
+            if (this.crosshairScaleMode != null) ModConfig.crosshairScaleMode = this.crosshairScaleMode;
+            ModConfig.crosshairScaleFactor = Math.max(0.2f, Math.min(4.0f, this.crosshairScaleFactor));
+            ModConfig.crosshairDynamic = this.crosshairDynamic;
+            ModConfig.crosshairAttackIndicator = this.crosshairAttackIndicator;
+            ModConfig.crosshairThirdPerson = this.crosshairThirdPerson;
+            if (this.crosshairGrid != null && this.crosshairGrid.length == 225) {
+                ModConfig.crosshairGrid = this.crosshairGrid;
+            }
+
+            ModConfig.hudShowBackground = this.hudShowBackground;
+            ModConfig.hudBackgroundOpacity = Math.max(0, Math.min(255, this.hudBackgroundOpacity));
+            ModConfig.hudTextShadow = this.hudTextShadow;
+
+            ModConfig.fpsTextColor = this.fpsTextColor;
+            ModConfig.fpsTextRainbow = this.fpsTextRainbow;
+            ModConfig.fpsShowPrefix = this.fpsShowPrefix;
+            ModConfig.fpsBackground = this.fpsBackground;
+
+            ModConfig.pingCustomColor = this.pingCustomColor;
+            ModConfig.pingTextColor = this.pingTextColor;
+            ModConfig.pingTextRainbow = this.pingTextRainbow;
+            ModConfig.pingBackground = this.pingBackground;
+
+            ModConfig.cpsTextColor = this.cpsTextColor;
+            ModConfig.cpsTextRainbow = this.cpsTextRainbow;
+            ModConfig.cpsBackground = this.cpsBackground;
+
+            ModConfig.coordsTextColor = this.coordsTextColor;
+            ModConfig.coordsTextRainbow = this.coordsTextRainbow;
+            ModConfig.coordsShowNether = this.coordsShowNether;
+            ModConfig.coordsShowDirection = this.coordsShowDirection;
+            ModConfig.coordsShowBiome = this.coordsShowBiome;
+            ModConfig.coordsBackground = this.coordsBackground;
+
+            ModConfig.dayTextColor = this.dayTextColor;
+            ModConfig.dayTextRainbow = this.dayTextRainbow;
+            ModConfig.dayShowTime = this.dayShowTime;
+            ModConfig.dayBackground = this.dayBackground;
+
+            ModConfig.blockInfoTextColor = this.blockInfoTextColor;
+            ModConfig.blockInfoTextRainbow = this.blockInfoTextRainbow;
+            ModConfig.blockInfoShowTool = this.blockInfoShowTool;
+            ModConfig.blockInfoBackground = this.blockInfoBackground;
+
+            ModConfig.keystrokesTextColor = this.keystrokesTextColor;
+            ModConfig.keystrokesRainbow = this.keystrokesRainbow;
+
+            ModConfig.showHitColor = this.showHitColor;
+            ModConfig.hitColorRed = Math.max(0, Math.min(255, this.hitColorRed));
+            ModConfig.hitColorGreen = Math.max(0, Math.min(255, this.hitColorGreen));
+            ModConfig.hitColorBlue = Math.max(0, Math.min(255, this.hitColorBlue));
+            ModConfig.hitColorAlpha = Math.max(0, Math.min(255, this.hitColorAlpha));
+            ModConfig.hitColorRainbow = this.hitColorRainbow;
+            ModConfig.hitColorShowOnArmor = this.hitColorShowOnArmor;
 
             ModConfig.showChatPrefix = this.showChatPrefix;
             ModConfig.showTabListPrefix = this.showTabListPrefix;
             ModConfig.showChatColors = this.showChatColors;
+            ModConfig.chatHighlightMentions = this.chatHighlightMentions;
+            ModConfig.chatMentionColor = this.chatMentionColor;
+            ModConfig.chatMentionSound = this.chatMentionSound;
+            ModConfig.chatShowTimestamp = this.chatShowTimestamp;
+            ModConfig.customChatBackground = this.customChatBackground;
+            ModConfig.chatBackgroundColor = this.chatBackgroundColor;
+            ModConfig.chatBackgroundOpacity = Math.max(0, Math.min(255, this.chatBackgroundOpacity));
+
             ModConfig.showItemTooltips = this.showItemTooltips;
+            ModConfig.tooltipShowDurability = this.tooltipShowDurability;
+            ModConfig.tooltipShowId = this.tooltipShowId;
+            ModConfig.tooltipShowFood = this.tooltipShowFood;
+            ModConfig.showItemPhysics = this.showItemPhysics;
 
             ModConfig.showFreeLook = this.showFreeLook;
             ModConfig.showSnapLook = this.showSnapLook;

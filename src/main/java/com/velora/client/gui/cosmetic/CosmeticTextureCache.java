@@ -17,8 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Performance Caching & Cosmetic Registry System for Velora Client.
- * Local testing phase setup: Hardcodes EXACTLY 2 selectable cape items
- * for local testing: Velora Cape and Mojang Cape. Removes all random cosmetics.
+ * Custom Velora Capes: Velora Cape, Rose Cape, Purple Rose Cape, Withered Rose Cape.
  */
 public class CosmeticTextureCache {
 
@@ -29,10 +28,8 @@ public class CosmeticTextureCache {
     private static final ConcurrentHashMap<Identifier, int[]> DIMENSION_CACHE = new ConcurrentHashMap<>();
     private static final List<CosmeticItem> REGISTRY = new ArrayList<>();
 
-    // Verified Local Test Textures (assets/velora/textures/cape/...)
+    // Verified Local Custom Velora Capes (assets/velora/textures/cape/...)
     public static final Identifier VELORA_CAPE = Identifier.of("velora", "textures/cape/velora_cape.png");
-    public static final Identifier MOJANG_CAPE = Identifier.of("velora", "textures/cape/classic_cape.png");
-    public static final Identifier WAVE_CAPE = Identifier.of("velora", "textures/cape/wave_cape.png");
     public static final Identifier ROSE_CAPE = Identifier.of("velora", "textures/cape/rose.png");
     public static final Identifier PURPLE_ROSE_CAPE = Identifier.of("velora", "textures/cape/purple_rose.png");
     public static final Identifier WITHERED_ROSE_CAPE = Identifier.of("velora", "textures/cape/withered_rose.png");
@@ -43,33 +40,23 @@ public class CosmeticTextureCache {
         TEXTURE_CACHE.clear();
         LOGGER.debug("[Velora] Cosmetic registry cleared, rebuilding...");
 
-        // 1. "Velora Cape" -> Local texture: assets/velora/textures/cape/velora_cape.png
+        // 1. "Velora Cape" -> assets/velora/textures/cape/velora_cape.png
         boolean veloraFav = ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics.length > 0 && ModConfig.favoriteCosmetics[0];
         register(new CosmeticItem("velora_cape", "Velora Cape", CosmeticItem.Category.CAPE, CosmeticItem.CosmeticType.CAPE, VELORA_CAPE, veloraFav));
         LOGGER.debug("[Velora] Registered cosmetic: Velora Cape (favorite={})", veloraFav);
 
-        // 2. "Mojang Cape" -> Baseline fallback texture: assets/velora/textures/cape/classic_cape.png
-        boolean mojangFav = ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics.length > 1 && ModConfig.favoriteCosmetics[1];
-        register(new CosmeticItem("mojang_cape", "Mojang Cape", CosmeticItem.Category.CAPE, CosmeticItem.CosmeticType.CAPE, MOJANG_CAPE, mojangFav));
-        LOGGER.debug("[Velora] Registered cosmetic: Mojang Cape (favorite={})", mojangFav);
-
-        // 3. "Wave Cape"
-        boolean waveFav = ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics.length > 2 && ModConfig.favoriteCosmetics[2];
-        register(new CosmeticItem("wave_cape", "Wave Cape", CosmeticItem.Category.CAPE, CosmeticItem.CosmeticType.CAPE, WAVE_CAPE, waveFav));
-        LOGGER.debug("[Velora] Registered cosmetic: Wave Cape (favorite={})", waveFav);
-
-        // 4. "Rose Cape"
-        boolean roseFav = ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics.length > 3 && ModConfig.favoriteCosmetics[3];
+        // 2. "Rose Cape" -> assets/velora/textures/cape/rose.png
+        boolean roseFav = ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics.length > 1 && ModConfig.favoriteCosmetics[1];
         register(new CosmeticItem("rose_cape", "Rose Cape", CosmeticItem.Category.CAPE, CosmeticItem.CosmeticType.CAPE, ROSE_CAPE, roseFav));
         LOGGER.debug("[Velora] Registered cosmetic: Rose Cape (favorite={})", roseFav);
 
-        // 5. "Purple Rose Cape"
-        boolean purpleRoseFav = ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics.length > 4 && ModConfig.favoriteCosmetics[4];
+        // 3. "Purple Rose Cape" -> assets/velora/textures/cape/purple_rose.png
+        boolean purpleRoseFav = ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics.length > 2 && ModConfig.favoriteCosmetics[2];
         register(new CosmeticItem("purple_rose_cape", "Purple Rose Cape", CosmeticItem.Category.CAPE, CosmeticItem.CosmeticType.CAPE, PURPLE_ROSE_CAPE, purpleRoseFav));
         LOGGER.debug("[Velora] Registered cosmetic: Purple Rose Cape (favorite={})", purpleRoseFav);
 
-        // 6. "Withered Rose Cape"
-        boolean witheredRoseFav = ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics.length > 5 && ModConfig.favoriteCosmetics[5];
+        // 4. "Withered Rose Cape" -> assets/velora/textures/cape/withered_rose.png
+        boolean witheredRoseFav = ModConfig.favoriteCosmetics != null && ModConfig.favoriteCosmetics.length > 3 && ModConfig.favoriteCosmetics[3];
         register(new CosmeticItem("withered_rose_cape", "Withered Rose Cape", CosmeticItem.Category.CAPE, CosmeticItem.CosmeticType.CAPE, WITHERED_ROSE_CAPE, witheredRoseFav));
         LOGGER.debug("[Velora] Registered cosmetic: Withered Rose Cape (favorite={})", witheredRoseFav);
 

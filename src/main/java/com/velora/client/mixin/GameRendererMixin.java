@@ -31,5 +31,10 @@ public class GameRendererMixin {
             }
         }
     }
+
+    @Inject(method = "renderWorld", at = @At("HEAD"))
+    private void onRenderWorld(net.minecraft.client.render.RenderTickCounter tickCounter, CallbackInfo ci) {
+        com.velora.client.client.HitColorMod.onRenderTick((GameRenderer) (Object) this);
+    }
 }
 

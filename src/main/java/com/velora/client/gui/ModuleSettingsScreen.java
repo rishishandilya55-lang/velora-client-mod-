@@ -14,6 +14,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.function.Consumer;
+
 public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
 
     private final String moduleName;
@@ -128,6 +130,10 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
             case "Nametag" -> buildNametagSettings();
             case "Chat Colors" -> buildChatColorSettings();
             case "Item Tooltips" -> buildItemTooltipSettings();
+            case "Item Physics", "ItemPhysics" -> buildItemPhysicsSettings();
+            case "Hit Color", "HitColor" -> buildHitColorSettings();
+            case "Potion Status", "Potion HUD", "PotionHud" -> buildPotionSettings();
+            case "Crosshair", "Custom Crosshair", "Crosshair Mod" -> buildCrosshairSettings();
             default -> buildGenericSettings();
         }
     }
@@ -137,9 +143,17 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         settingsPanel.child(makeToggleRow("Enable FPS", "Show current frames per second on screen",
             ModConfig.showFps,
             () -> { ModConfig.showFps = !ModConfig.showFps; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Show Prefix", "Display 'FPS: 144' instead of '144 FPS'",
+            ModConfig.fpsShowPrefix,
+            () -> { ModConfig.fpsShowPrefix = !ModConfig.fpsShowPrefix; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Background Box", "Show semi-transparent background plate",
+            ModConfig.fpsBackground,
+            () -> { ModConfig.fpsBackground = !ModConfig.fpsBackground; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeColorPickerRow("Text Color", ModConfig.fpsTextColor, ModConfig.fpsTextRainbow,
+            c -> ModConfig.fpsTextColor = c,
+            () -> ModConfig.fpsTextRainbow = !ModConfig.fpsTextRainbow));
         settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
             () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
-        settingsPanel.child(makeHintRow("Drag or resize this element in the HUD Editor."));
     }
 
     private void buildKeystrokesSettings() {
@@ -159,6 +173,9 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
                 else ModConfig.keystrokesOpacity = 0x40;
                 ModConfig.saveConfig(); buildSettings();
             }));
+        settingsPanel.child(makeColorPickerRow("Key Text Color", ModConfig.keystrokesTextColor, ModConfig.keystrokesRainbow,
+            c -> ModConfig.keystrokesTextColor = c,
+            () -> ModConfig.keystrokesRainbow = !ModConfig.keystrokesRainbow));
         settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
             () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
     }
@@ -168,9 +185,19 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         settingsPanel.child(makeToggleRow("Enable Ping", "Show network latency (ms) on screen",
             ModConfig.showPing,
             () -> { ModConfig.showPing = !ModConfig.showPing; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Custom Text Color", "Use custom text color instead of ping quality colors",
+            ModConfig.pingCustomColor,
+            () -> { ModConfig.pingCustomColor = !ModConfig.pingCustomColor; ModConfig.saveConfig(); buildSettings(); }));
+        if (ModConfig.pingCustomColor) {
+            settingsPanel.child(makeColorPickerRow("Ping Color", ModConfig.pingTextColor, ModConfig.pingTextRainbow,
+                c -> ModConfig.pingTextColor = c,
+                () -> ModConfig.pingTextRainbow = !ModConfig.pingTextRainbow));
+        }
+        settingsPanel.child(makeToggleRow("Background Box", "Show semi-transparent background plate",
+            ModConfig.pingBackground,
+            () -> { ModConfig.pingBackground = !ModConfig.pingBackground; ModConfig.saveConfig(); buildSettings(); }));
         settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
             () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
-        settingsPanel.child(makeHintRow("Drag or resize this element in the HUD Editor."));
     }
 
     private void buildCpsSettings() {
@@ -181,6 +208,12 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         settingsPanel.child(makeToggleRow("Right-Click CPS", "Also count right-clicks per second",
             ModConfig.showRightCps,
             () -> { ModConfig.showRightCps = !ModConfig.showRightCps; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Background Box", "Show semi-transparent background plate",
+            ModConfig.cpsBackground,
+            () -> { ModConfig.cpsBackground = !ModConfig.cpsBackground; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeColorPickerRow("CPS Text Color", ModConfig.cpsTextColor, ModConfig.cpsTextRainbow,
+            c -> ModConfig.cpsTextColor = c,
+            () -> ModConfig.cpsTextRainbow = !ModConfig.cpsTextRainbow));
         settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
             () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
     }
@@ -226,9 +259,23 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         settingsPanel.child(makeToggleRow("Enable Coordinates", "Show current X, Y, Z position on screen",
             ModConfig.showCoordinates,
             () -> { ModConfig.showCoordinates = !ModConfig.showCoordinates; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Direction Facing", "Display compass heading (N/S/E/W)",
+            ModConfig.coordsShowDirection,
+            () -> { ModConfig.coordsShowDirection = !ModConfig.coordsShowDirection; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Nether Coordinates", "Show converted Nether X, Z position",
+            ModConfig.coordsShowNether,
+            () -> { ModConfig.coordsShowNether = !ModConfig.coordsShowNether; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Biome Name", "Show current biome on HUD",
+            ModConfig.coordsShowBiome,
+            () -> { ModConfig.coordsShowBiome = !ModConfig.coordsShowBiome; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Background Box", "Show semi-transparent background plate",
+            ModConfig.coordsBackground,
+            () -> { ModConfig.coordsBackground = !ModConfig.coordsBackground; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeColorPickerRow("Coords Color", ModConfig.coordsTextColor, ModConfig.coordsTextRainbow,
+            c -> ModConfig.coordsTextColor = c,
+            () -> ModConfig.coordsTextRainbow = !ModConfig.coordsTextRainbow));
         settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
             () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
-        settingsPanel.child(makeHintRow("Drag or resize this element in the HUD Editor."));
     }
 
     private void buildDayCounterSettings() {
@@ -236,9 +283,17 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         settingsPanel.child(makeToggleRow("Enable Day Counter", "Display in-game world day count",
             ModConfig.showDayCounter,
             () -> { ModConfig.showDayCounter = !ModConfig.showDayCounter; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Show 24h Clock", "Display current in-game time (HH:mm)",
+            ModConfig.dayShowTime,
+            () -> { ModConfig.dayShowTime = !ModConfig.dayShowTime; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Background Box", "Show semi-transparent background plate",
+            ModConfig.dayBackground,
+            () -> { ModConfig.dayBackground = !ModConfig.dayBackground; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeColorPickerRow("Day Text Color", ModConfig.dayTextColor, ModConfig.dayTextRainbow,
+            c -> ModConfig.dayTextColor = c,
+            () -> ModConfig.dayTextRainbow = !ModConfig.dayTextRainbow));
         settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
             () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
-        settingsPanel.child(makeHintRow("Drag or resize this element in the HUD Editor."));
     }
 
     private void buildBlockInfoSettings() {
@@ -246,9 +301,17 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         settingsPanel.child(makeToggleRow("Enable Block Info", "Show name and details of looked-at block",
             ModConfig.showBlockInfo,
             () -> { ModConfig.showBlockInfo = !ModConfig.showBlockInfo; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Show Harvest Tool", "Display recommended tool (Pickaxe/Axe/Shovel)",
+            ModConfig.blockInfoShowTool,
+            () -> { ModConfig.blockInfoShowTool = !ModConfig.blockInfoShowTool; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Background Box", "Show semi-transparent background plate",
+            ModConfig.blockInfoBackground,
+            () -> { ModConfig.blockInfoBackground = !ModConfig.blockInfoBackground; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeColorPickerRow("Block Info Color", ModConfig.blockInfoTextColor, ModConfig.blockInfoTextRainbow,
+            c -> ModConfig.blockInfoTextColor = c,
+            () -> ModConfig.blockInfoTextRainbow = !ModConfig.blockInfoTextRainbow));
         settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
             () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
-        settingsPanel.child(makeHintRow("Drag or resize this element in the HUD Editor."));
     }
 
     private void buildToggleSprintSettings() {
@@ -293,6 +356,24 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
             () -> { listeningForKey = true; buildSettings(); }));
 
         settingsPanel.child(makeHintRow("Hold this key to rotate camera freely."));
+    }
+
+    private void buildPotionSettings() {
+        settingsPanel.child(makeSectionHeader("Potion Status HUD"));
+        settingsPanel.child(makeToggleRow("Enable Potion HUD", "Display active status effects on screen",
+            ModConfig.showPotionHud,
+            () -> { ModConfig.showPotionHud = !ModConfig.showPotionHud; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Show Effect Icons", "Display potion icon next to effect name",
+            ModConfig.potionHudShowIcon,
+            () -> { ModConfig.potionHudShowIcon = !ModConfig.potionHudShowIcon; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Background Box", "Show semi-transparent background plate",
+            ModConfig.potionHudBackground,
+            () -> { ModConfig.potionHudBackground = !ModConfig.potionHudBackground; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeColorPickerRow("Text Color", ModConfig.potionHudTextColor, ModConfig.potionHudTextRainbow,
+            c -> ModConfig.potionHudTextColor = c,
+            () -> ModConfig.potionHudTextRainbow = !ModConfig.potionHudTextRainbow));
+        settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
+            () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
     }
 
     private void buildSnapLookSettings() {
@@ -386,35 +467,597 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
 
     private void buildNametagSettings() {
         settingsPanel.child(makeSectionHeader("Nametag"));
-        settingsPanel.child(makeToggleRow("Show Nametag", "Display custom nametag with rank badge above your head",
+        settingsPanel.child(makeToggleRow("Show Nametag", "Display custom overhead IGN nametag",
             ModConfig.showNametag,
             () -> { ModConfig.showNametag = !ModConfig.showNametag; ModConfig.saveConfig(); buildSettings(); }));
-        settingsPanel.child(makeToggleRow("Show Badge", "Render rank badge texture next to the name",
-            ModConfig.nametagShowBadge,
-            () -> { ModConfig.nametagShowBadge = !ModConfig.nametagShowBadge; ModConfig.saveConfig(); buildSettings(); }));
-        settingsPanel.child(makeHintRow("Your rank badge will appear to the left of your name."));
+        settingsPanel.child(makeToggleRow("Show Health", "Display player health (e.g. 20❤) in nametag",
+            ModConfig.nametagShowHealth,
+            () -> { ModConfig.nametagShowHealth = !ModConfig.nametagShowHealth; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Show Distance", "Display distance in meters (e.g. [15m]) to player",
+            ModConfig.nametagShowDistance,
+            () -> { ModConfig.nametagShowDistance = !ModConfig.nametagShowDistance; ModConfig.saveConfig(); buildSettings(); }));
+
+        int opacityPercent = (int) Math.round((ModConfig.nametagBackgroundOpacity / 255.0) * 100);
+        settingsPanel.child(makeCycleRow("BG Opacity", opacityPercent + "%", () -> {
+            if (ModConfig.nametagBackgroundOpacity <= 50) ModConfig.nametagBackgroundOpacity = 100;
+            else if (ModConfig.nametagBackgroundOpacity <= 100) ModConfig.nametagBackgroundOpacity = 160;
+            else if (ModConfig.nametagBackgroundOpacity <= 160) ModConfig.nametagBackgroundOpacity = 220;
+            else if (ModConfig.nametagBackgroundOpacity <= 220) ModConfig.nametagBackgroundOpacity = 255;
+            else ModConfig.nametagBackgroundOpacity = 0;
+            ModConfig.saveConfig();
+            buildSettings();
+        }));
+        settingsPanel.child(makeNametagOpacitySlider());
+        settingsPanel.child(makeHintRow("Visible above head on players and on yourself in 3rd person (F5 / FreeLook)."));
+    }
+
+    private FlowLayout makeNametagOpacitySlider() {
+        FlowLayout container = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        container.gap(2);
+        container.padding(Insets.of(0, 4, 0, 4));
+
+        FlowLayout sliderBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(16));
+        sliderBar.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.drawBorder(x - 1, y - 1, w + 2, h + 2, BORDER_S);
+            for (int col = 0; col < w; col++) {
+                int a = (int) ((col / (float) Math.max(1, w)) * 255);
+                ctx.fill(x + col, y, x + col + 1, y + h, (a << 24) | 0x000000);
+            }
+            int markerX = x + (int) ((ModConfig.nametagBackgroundOpacity / 255.0f) * w);
+            ctx.fill(markerX - 2, y - 2, markerX + 2, y + h + 2, 0xFFFFFFFF);
+            ctx.fill(markerX - 1, y - 1, markerX + 1, y + h + 1, 0xFF000000);
+        });
+
+        sliderBar.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) {
+                int w = sliderBar.width();
+                if (w > 0) {
+                    float pct = Math.max(0.0f, Math.min(1f, (float) mx / (float) w));
+                    ModConfig.nametagBackgroundOpacity = Math.round(pct * 255f);
+                    ModConfig.saveConfig();
+                    buildSettings();
+                }
+                return true;
+            }
+            return false;
+        });
+
+        container.child(sliderBar);
+        return container;
     }
 
     private void buildChatColorSettings() {
-        settingsPanel.child(makeSectionHeader("Chat"));
+        settingsPanel.child(makeSectionHeader("Chat Formatting"));
         settingsPanel.child(makeToggleRow("Chat Colors", "Enable rank-colored chat formatting",
             ModConfig.showChatColors,
             () -> { ModConfig.showChatColors = !ModConfig.showChatColors; ModConfig.saveConfig(); buildSettings(); }));
-        settingsPanel.child(makeToggleRow("Chat Prefix", "Show [Rank] prefix before player names in chat",
+        settingsPanel.child(makeToggleRow("Chat Rank Prefix", "Show [Rank] prefix before player names in chat",
             ModConfig.showChatPrefix,
             () -> { ModConfig.showChatPrefix = !ModConfig.showChatPrefix; ModConfig.saveConfig(); buildSettings(); }));
         settingsPanel.child(makeToggleRow("Tab List Prefix", "Show [Rank] prefix in the tab player list",
             ModConfig.showTabListPrefix,
             () -> { ModConfig.showTabListPrefix = !ModConfig.showTabListPrefix; ModConfig.saveConfig(); buildSettings(); }));
-        settingsPanel.child(makeHintRow("Ranks are configured in velora_ranks.json"));
+        settingsPanel.child(makeToggleRow("Show Timestamps", "Display message send time [HH:mm]",
+            ModConfig.chatShowTimestamp,
+            () -> { ModConfig.chatShowTimestamp = !ModConfig.chatShowTimestamp; ModConfig.saveConfig(); buildSettings(); }));
+
+        settingsPanel.child(makeSectionHeader("Mention Highlights"));
+        settingsPanel.child(makeToggleRow("Highlight Mentions", "Highlight your username when mentioned in chat",
+            ModConfig.chatHighlightMentions,
+            () -> { ModConfig.chatHighlightMentions = !ModConfig.chatHighlightMentions; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Mention Ping Sound", "Play notification chime on mention",
+            ModConfig.chatMentionSound,
+            () -> { ModConfig.chatMentionSound = !ModConfig.chatMentionSound; ModConfig.saveConfig(); buildSettings(); }));
+
+        if (ModConfig.chatHighlightMentions) {
+            String colorName = getMentionColorName();
+            settingsPanel.child(makeCycleRow("Mention Preset", colorName, () -> {
+                cycleMentionColor();
+                ModConfig.saveConfig();
+                buildSettings();
+            }));
+            settingsPanel.child(makeMentionColorWheelPicker());
+        }
+
+        settingsPanel.child(makeSectionHeader("Chat Background"));
+        settingsPanel.child(makeToggleRow("Custom Background", "Customize chat window background color and opacity",
+            ModConfig.customChatBackground,
+            () -> { ModConfig.customChatBackground = !ModConfig.customChatBackground; ModConfig.saveConfig(); buildSettings(); }));
+
+        if (ModConfig.customChatBackground) {
+            int bgPercent = (int) Math.round((ModConfig.chatBackgroundOpacity / 255.0) * 100);
+            settingsPanel.child(makeCycleRow("BG Opacity", bgPercent + "%", () -> {
+                if (ModConfig.chatBackgroundOpacity <= 50) ModConfig.chatBackgroundOpacity = 100;
+                else if (ModConfig.chatBackgroundOpacity <= 100) ModConfig.chatBackgroundOpacity = 160;
+                else if (ModConfig.chatBackgroundOpacity <= 160) ModConfig.chatBackgroundOpacity = 220;
+                else if (ModConfig.chatBackgroundOpacity <= 220) ModConfig.chatBackgroundOpacity = 255;
+                else ModConfig.chatBackgroundOpacity = 0;
+                ModConfig.saveConfig();
+                buildSettings();
+            }));
+            settingsPanel.child(makeChatBgOpacitySlider());
+            settingsPanel.child(makeChatBgColorPicker());
+        }
+    }
+
+    private FlowLayout makeChatBgOpacitySlider() {
+        FlowLayout container = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        container.gap(2);
+        container.padding(Insets.of(0, 4, 0, 4));
+
+        FlowLayout sliderBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(16));
+        sliderBar.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.drawBorder(x - 1, y - 1, w + 2, h + 2, BORDER_S);
+            int baseRgb = ModConfig.chatBackgroundColor & 0x00FFFFFF;
+            for (int col = 0; col < w; col++) {
+                int a = (int) ((col / (float) Math.max(1, w)) * 255);
+                ctx.fill(x + col, y, x + col + 1, y + h, (a << 24) | baseRgb);
+            }
+            int markerX = x + (int) ((ModConfig.chatBackgroundOpacity / 255.0f) * w);
+            ctx.fill(markerX - 2, y - 2, markerX + 2, y + h + 2, 0xFFFFFFFF);
+            ctx.fill(markerX - 1, y - 1, markerX + 1, y + h + 1, 0xFF000000);
+        });
+
+        sliderBar.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) {
+                int w = sliderBar.width();
+                if (w > 0) {
+                    float pct = Math.max(0.0f, Math.min(1f, (float) mx / (float) w));
+                    ModConfig.chatBackgroundOpacity = Math.round(pct * 255f);
+                    ModConfig.saveConfig();
+                    buildSettings();
+                }
+                return true;
+            }
+            return false;
+        });
+
+        container.child(sliderBar);
+        return container;
+    }
+
+    private FlowLayout makeChatBgColorPicker() {
+        FlowLayout container = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        container.gap(4);
+        container.padding(Insets.of(2, 4, 2, 4));
+
+        FlowLayout swatchRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(20));
+        swatchRow.verticalAlignment(VerticalAlignment.CENTER);
+        swatchRow.gap(8);
+
+        FlowLayout previewBox = Containers.horizontalFlow(Sizing.fixed(28), Sizing.fixed(16));
+        previewBox.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            int currentArgb = 0xFF000000 | (ModConfig.chatBackgroundColor & 0x00FFFFFF);
+            ctx.fill(x, y, x + w, y + h, currentArgb);
+            ctx.drawBorder(x, y, w, h, 0xFFFFFFFF);
+        });
+        swatchRow.child(previewBox);
+
+        String hexCode = String.format("#%06X", ModConfig.chatBackgroundColor & 0x00FFFFFF);
+        swatchRow.child(Components.label(Text.literal("BG Color: " + hexCode + " (Click / drag below)"))
+            .color(Color.ofArgb(TEXT_M)));
+        container.child(swatchRow);
+
+        FlowLayout spectrumBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(18));
+        spectrumBar.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.drawBorder(x - 1, y - 1, w + 2, h + 2, BORDER_S);
+            for (int col = 0; col < w; col++) {
+                float hue = col / (float) Math.max(1, w);
+                int rgb = java.awt.Color.HSBtoRGB(hue, 0.85f, 1.0f);
+                ctx.fill(x + col, y, x + col + 1, y + h, 0xFF000000 | rgb);
+            }
+        });
+
+        spectrumBar.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) {
+                int w = spectrumBar.width();
+                if (w > 0) {
+                    float hue = Math.max(0f, Math.min(1f, (float) mx / (float) w));
+                    int rgb = java.awt.Color.HSBtoRGB(hue, 0.85f, 1.0f);
+                    ModConfig.chatBackgroundColor = 0xFF000000 | (rgb & 0x00FFFFFF);
+                    ModConfig.saveConfig();
+                    buildSettings();
+                }
+                return true;
+            }
+            return false;
+        });
+
+        container.child(spectrumBar);
+        return container;
+    }
+
+    private FlowLayout makeColorPickerRow(String label, int currentColor, boolean rainbow, Consumer<Integer> onColorChange, Runnable onRainbowToggle) {
+        FlowLayout container = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        container.gap(4);
+        container.padding(Insets.of(2, 4, 2, 4));
+
+        String colorName = rainbow ? "Rainbow / Chroma" : com.velora.client.util.HudColorHelper.getColorName(currentColor);
+        container.child(makeCycleRow(label, colorName, () -> {
+            if (rainbow) {
+                onRainbowToggle.run();
+                onColorChange.accept(0xFFFFFFFF);
+            } else {
+                int next = com.velora.client.util.HudColorHelper.cycleColor(currentColor);
+                if (next == 0xFFFFFFFF && (currentColor & 0x00FFFFFF) == 0x00AAAA) {
+                    onRainbowToggle.run();
+                } else {
+                    onColorChange.accept(next);
+                }
+            }
+            ModConfig.saveConfig();
+            buildSettings();
+        }));
+
+        if (!rainbow) {
+            FlowLayout swatchRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(16));
+            swatchRow.verticalAlignment(VerticalAlignment.CENTER);
+            swatchRow.gap(8);
+
+            FlowLayout previewBox = Containers.horizontalFlow(Sizing.fixed(24), Sizing.fixed(12));
+            previewBox.surface((ctx, comp) -> {
+                int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+                int currentArgb = 0xFF000000 | (currentColor & 0x00FFFFFF);
+                ctx.fill(x, y, x + w, y + h, currentArgb);
+                ctx.drawBorder(x, y, w, h, 0xFFFFFFFF);
+            });
+            swatchRow.child(previewBox);
+
+            String hexCode = String.format("#%06X", currentColor & 0x00FFFFFF);
+            swatchRow.child(Components.label(Text.literal("Color: " + hexCode + " (Click spectrum below)"))
+                .color(Color.ofArgb(TEXT_M)));
+            container.child(swatchRow);
+
+            FlowLayout spectrumBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(16));
+            spectrumBar.surface((ctx, comp) -> {
+                int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+                ctx.drawBorder(x - 1, y - 1, w + 2, h + 2, BORDER_S);
+                for (int col = 0; col < w; col++) {
+                    float hue = col / (float) Math.max(1, w);
+                    int rgb = java.awt.Color.HSBtoRGB(hue, 0.85f, 1.0f);
+                    ctx.fill(x + col, y, x + col + 1, y + h, 0xFF000000 | rgb);
+                }
+            });
+
+            spectrumBar.mouseDown().subscribe((mx, my, btn) -> {
+                if (btn == 0) {
+                    int w = spectrumBar.width();
+                    if (w > 0) {
+                        float hue = Math.max(0f, Math.min(1f, (float) mx / (float) w));
+                        int rgb = java.awt.Color.HSBtoRGB(hue, 0.85f, 1.0f);
+                        onColorChange.accept(0xFF000000 | (rgb & 0x00FFFFFF));
+                        ModConfig.saveConfig();
+                        buildSettings();
+                    }
+                    return true;
+                }
+                return false;
+            });
+            container.child(spectrumBar);
+        }
+
+        return container;
+    }
+
+    private FlowLayout makeMentionColorWheelPicker() {
+        FlowLayout container = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        container.gap(4);
+        container.padding(Insets.of(2, 4, 2, 4));
+
+        FlowLayout swatchRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(20));
+        swatchRow.verticalAlignment(VerticalAlignment.CENTER);
+        swatchRow.gap(8);
+
+        FlowLayout previewBox = Containers.horizontalFlow(Sizing.fixed(28), Sizing.fixed(16));
+        previewBox.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            int currentArgb = 0xFF000000 | (ModConfig.chatMentionColor & 0x00FFFFFF);
+            ctx.fill(x, y, x + w, y + h, currentArgb);
+            ctx.drawBorder(x, y, w, h, 0xFFFFFFFF);
+        });
+        swatchRow.child(previewBox);
+
+        String hexCode = String.format("#%06X", ModConfig.chatMentionColor & 0x00FFFFFF);
+        swatchRow.child(Components.label(Text.literal("Selected Color: " + hexCode + " (Click / drag below)"))
+            .color(Color.ofArgb(TEXT_M)));
+        container.child(swatchRow);
+
+        FlowLayout spectrumBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(18));
+        spectrumBar.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.drawBorder(x - 1, y - 1, w + 2, h + 2, BORDER_S);
+            for (int col = 0; col < w; col++) {
+                float hue = col / (float) Math.max(1, w);
+                int rgb = java.awt.Color.HSBtoRGB(hue, 0.85f, 1.0f);
+                ctx.fill(x + col, y, x + col + 1, y + h, 0xFF000000 | rgb);
+            }
+        });
+
+        spectrumBar.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) {
+                int w = spectrumBar.width();
+                if (w > 0) {
+                    float hue = Math.max(0f, Math.min(1f, (float) mx / (float) w));
+                    int rgb = java.awt.Color.HSBtoRGB(hue, 0.85f, 1.0f);
+                    ModConfig.chatMentionColor = 0xFF000000 | (rgb & 0x00FFFFFF);
+                    ModConfig.saveConfig();
+                    buildSettings();
+                }
+                return true;
+            }
+            return false;
+        });
+
+        container.child(spectrumBar);
+        return container;
+    }
+
+    private String getMentionColorName() {
+        int c = ModConfig.chatMentionColor & 0x00FFFFFF;
+        if (c == 0xFFD700) return "Gold";
+        if (c == 0xFF5555) return "Red";
+        if (c == 0x55FF55) return "Lime";
+        if (c == 0x55FFFF) return "Aqua";
+        if (c == 0xFF55FF) return "Pink";
+        if (c == 0xA78BFA) return "Purple";
+        if (c == 0xFFAA00) return "Orange";
+        if (c == 0xFFFFFF) return "White";
+        return String.format("#%06X", c);
+    }
+
+    private void cycleMentionColor() {
+        int c = ModConfig.chatMentionColor & 0x00FFFFFF;
+        if (c == 0xFFD700) ModConfig.chatMentionColor = 0xFFFF5555;      // Red
+        else if (c == 0xFF5555) ModConfig.chatMentionColor = 0xFF55FF55; // Lime
+        else if (c == 0x55FF55) ModConfig.chatMentionColor = 0xFF55FFFF; // Aqua
+        else if (c == 0x55FFFF) ModConfig.chatMentionColor = 0xFFFF55FF; // Pink
+        else if (c == 0xFF55FF) ModConfig.chatMentionColor = 0xFFA78BFA; // Purple
+        else if (c == 0xA78BFA) ModConfig.chatMentionColor = 0xFFFFAA00; // Orange
+        else if (c == 0xFFAA00) ModConfig.chatMentionColor = 0xFFFFFFFF; // White
+        else ModConfig.chatMentionColor = 0xFFFFD700;                    // Gold
     }
 
     private void buildItemTooltipSettings() {
         settingsPanel.child(makeSectionHeader("Tooltips"));
-        settingsPanel.child(makeToggleRow("Enhanced Tooltips", "Show durability bars and extra info on item tooltips",
+        settingsPanel.child(makeToggleRow("Enhanced Tooltips", "Show detailed info on item tooltips",
             ModConfig.showItemTooltips,
             () -> { ModConfig.showItemTooltips = !ModConfig.showItemTooltips; ModConfig.saveConfig(); buildSettings(); }));
-        settingsPanel.child(makeHintRow("Adds detailed info to inventory item tooltips."));
+        settingsPanel.child(makeToggleRow("Exact Durability", "Display current and max durability with percentage",
+            ModConfig.tooltipShowDurability,
+            () -> { ModConfig.tooltipShowDurability = !ModConfig.tooltipShowDurability; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Food Nutrition", "Display hunger points and saturation values",
+            ModConfig.tooltipShowFood,
+            () -> { ModConfig.tooltipShowFood = !ModConfig.tooltipShowFood; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Item ID", "Display minecraft:item registry identifier",
+            ModConfig.tooltipShowId,
+            () -> { ModConfig.tooltipShowId = !ModConfig.tooltipShowId; ModConfig.saveConfig(); buildSettings(); }));
+    }
+
+    private void buildItemPhysicsSettings() {
+        settingsPanel.child(makeSectionHeader("Item Physics"));
+        settingsPanel.child(makeToggleRow("Enable Item Physics", "Dropped items lay realistically flat on the ground",
+            ModConfig.showItemPhysics,
+            () -> { ModConfig.showItemPhysics = !ModConfig.showItemPhysics; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeHintRow("Items lay flat on blocks naturally rather than hovering and spinning."));
+    }
+
+    private void buildHitColorSettings() {
+        settingsPanel.child(makeSectionHeader("Hit Color"));
+        settingsPanel.child(makeToggleRow("Enable Hit Color", "Custom flash color when entities take damage",
+            ModConfig.showHitColor,
+            () -> {
+                ModConfig.showHitColor = !ModConfig.showHitColor;
+                ModConfig.saveConfig();
+                com.velora.client.client.HitColorMod.markDirty();
+                buildSettings();
+            }));
+
+        settingsPanel.child(makeToggleRow("Show on Armor", "Also flash custom color on equipped armor pieces",
+            ModConfig.hitColorShowOnArmor,
+            () -> {
+                ModConfig.hitColorShowOnArmor = !ModConfig.hitColorShowOnArmor;
+                ModConfig.saveConfig();
+                com.velora.client.client.HitColorMod.markDirty();
+                buildSettings();
+            }));
+
+        settingsPanel.child(makeToggleRow("Rainbow Mode", "Cycle dynamic RGB colors smoothly over time",
+            ModConfig.hitColorRainbow,
+            () -> {
+                ModConfig.hitColorRainbow = !ModConfig.hitColorRainbow;
+                ModConfig.saveConfig();
+                com.velora.client.client.HitColorMod.markDirty();
+                buildSettings();
+            }));
+
+        if (!ModConfig.hitColorRainbow) {
+            settingsPanel.child(makeSectionHeader("Interactive Color Wheel"));
+            settingsPanel.child(makeColorWheelPicker());
+
+            settingsPanel.child(makeSectionHeader("Color Presets"));
+            String currentPreset = getHitColorPresetName();
+            settingsPanel.child(makeCycleRow("Preset", currentPreset, () -> {
+                cycleHitColorPreset();
+                ModConfig.saveConfig();
+                com.velora.client.client.HitColorMod.markDirty();
+                buildSettings();
+            }));
+
+            settingsPanel.child(makeSectionHeader("Custom Channels"));
+            settingsPanel.child(makeCycleRow("Red (R)", String.valueOf(ModConfig.hitColorRed), () -> {
+                ModConfig.hitColorRed = (ModConfig.hitColorRed + 50) % 300;
+                if (ModConfig.hitColorRed > 255) ModConfig.hitColorRed = 0;
+                ModConfig.saveConfig();
+                com.velora.client.client.HitColorMod.markDirty();
+                buildSettings();
+            }));
+
+            settingsPanel.child(makeCycleRow("Green (G)", String.valueOf(ModConfig.hitColorGreen), () -> {
+                ModConfig.hitColorGreen = (ModConfig.hitColorGreen + 50) % 300;
+                if (ModConfig.hitColorGreen > 255) ModConfig.hitColorGreen = 0;
+                ModConfig.saveConfig();
+                com.velora.client.client.HitColorMod.markDirty();
+                buildSettings();
+            }));
+
+            settingsPanel.child(makeCycleRow("Blue (B)", String.valueOf(ModConfig.hitColorBlue), () -> {
+                ModConfig.hitColorBlue = (ModConfig.hitColorBlue + 50) % 300;
+                if (ModConfig.hitColorBlue > 255) ModConfig.hitColorBlue = 0;
+                ModConfig.saveConfig();
+                com.velora.client.client.HitColorMod.markDirty();
+                buildSettings();
+            }));
+        }
+
+        settingsPanel.child(makeSectionHeader("Opacity"));
+        int alphaPercent = (int) Math.round((ModConfig.hitColorAlpha / 255.0) * 100);
+        settingsPanel.child(makeCycleRow("Flash Opacity", alphaPercent + "%", () -> {
+            if (ModConfig.hitColorAlpha <= 64) ModConfig.hitColorAlpha = 128;
+            else if (ModConfig.hitColorAlpha <= 128) ModConfig.hitColorAlpha = 190;
+            else if (ModConfig.hitColorAlpha <= 190) ModConfig.hitColorAlpha = 230;
+            else if (ModConfig.hitColorAlpha <= 230) ModConfig.hitColorAlpha = 255;
+            else ModConfig.hitColorAlpha = 64;
+            ModConfig.saveConfig();
+            com.velora.client.client.HitColorMod.markDirty();
+            buildSettings();
+        }));
+        settingsPanel.child(makeOpacitySlider());
+
+        settingsPanel.child(makeHintRow("Damage color is rendered on mobs, players, and armor."));
+    }
+
+    private FlowLayout makeOpacitySlider() {
+        FlowLayout container = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        container.gap(2);
+        container.padding(Insets.of(0, 4, 0, 4));
+
+        FlowLayout sliderBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(16));
+        sliderBar.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.drawBorder(x - 1, y - 1, w + 2, h + 2, BORDER_S);
+            int baseRgb = (ModConfig.hitColorRed << 16) | (ModConfig.hitColorGreen << 8) | ModConfig.hitColorBlue;
+            for (int col = 0; col < w; col++) {
+                int a = (int) ((col / (float) Math.max(1, w)) * 255);
+                ctx.fill(x + col, y, x + col + 1, y + h, (a << 24) | baseRgb);
+            }
+            int markerX = x + (int) ((ModConfig.hitColorAlpha / 255.0f) * w);
+            ctx.fill(markerX - 2, y - 2, markerX + 2, y + h + 2, 0xFFFFFFFF);
+            ctx.fill(markerX - 1, y - 1, markerX + 1, y + h + 1, 0xFF000000);
+        });
+
+        sliderBar.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) {
+                int w = sliderBar.width();
+                if (w > 0) {
+                    float pct = Math.max(0.05f, Math.min(1f, (float) mx / (float) w));
+                    ModConfig.hitColorAlpha = Math.round(pct * 255f);
+                    ModConfig.saveConfig();
+                    com.velora.client.client.HitColorMod.markDirty();
+                    buildSettings();
+                }
+                return true;
+            }
+            return false;
+        });
+
+        container.child(sliderBar);
+        return container;
+    }
+
+    private FlowLayout makeColorWheelPicker() {
+        FlowLayout container = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        container.gap(4);
+        container.padding(Insets.of(2, 4, 2, 4));
+
+        FlowLayout swatchRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(20));
+        swatchRow.verticalAlignment(VerticalAlignment.CENTER);
+        swatchRow.gap(8);
+
+        FlowLayout previewBox = Containers.horizontalFlow(Sizing.fixed(28), Sizing.fixed(16));
+        previewBox.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            int currentArgb = (ModConfig.hitColorAlpha << 24) | (ModConfig.hitColorRed << 16) | (ModConfig.hitColorGreen << 8) | ModConfig.hitColorBlue;
+            ctx.fill(x, y, x + w, y + h, currentArgb);
+            ctx.drawBorder(x, y, w, h, 0xFFFFFFFF);
+        });
+        swatchRow.child(previewBox);
+
+        String hexCode = String.format("#%02X%02X%02X", ModConfig.hitColorRed, ModConfig.hitColorGreen, ModConfig.hitColorBlue);
+        swatchRow.child(Components.label(Text.literal("Selected: " + hexCode + "  (Click / Drag on spectrum below)"))
+            .color(Color.ofArgb(TEXT_M)));
+        container.child(swatchRow);
+
+        FlowLayout spectrumBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(20));
+        spectrumBar.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.drawBorder(x - 1, y - 1, w + 2, h + 2, BORDER_S);
+            for (int col = 0; col < w; col++) {
+                float hue = col / (float) Math.max(1, w);
+                int rgb = java.awt.Color.HSBtoRGB(hue, 1.0f, 1.0f);
+                ctx.fill(x + col, y, x + col + 1, y + h, 0xFF000000 | rgb);
+            }
+            float[] hsb = java.awt.Color.RGBtoHSB(ModConfig.hitColorRed, ModConfig.hitColorGreen, ModConfig.hitColorBlue, null);
+            int markerX = x + (int) (hsb[0] * w);
+            ctx.fill(markerX - 2, y - 2, markerX + 2, y + h + 2, 0xFFFFFFFF);
+            ctx.fill(markerX - 1, y - 1, markerX + 1, y + h + 1, 0xFF000000);
+        });
+
+        spectrumBar.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) {
+                int w = spectrumBar.width();
+                if (w > 0) {
+                    float hue = Math.max(0f, Math.min(1f, (float) mx / (float) w));
+                    int rgb = java.awt.Color.HSBtoRGB(hue, 1.0f, 1.0f);
+                    ModConfig.hitColorRed = (rgb >> 16) & 0xFF;
+                    ModConfig.hitColorGreen = (rgb >> 8) & 0xFF;
+                    ModConfig.hitColorBlue = rgb & 0xFF;
+                    ModConfig.saveConfig();
+                    com.velora.client.client.HitColorMod.markDirty();
+                    buildSettings();
+                }
+                return true;
+            }
+            return false;
+        });
+
+        container.child(spectrumBar);
+        return container;
+    }
+
+    private String getHitColorPresetName() {
+        int r = ModConfig.hitColorRed;
+        int g = ModConfig.hitColorGreen;
+        int b = ModConfig.hitColorBlue;
+
+        if (r == 255 && g == 0 && b == 0) return "Red";
+        if (r == 255 && g == 100 && b == 0) return "Orange";
+        if (r == 255 && g == 255 && b == 0) return "Yellow";
+        if (r == 0 && g == 255 && b == 0) return "Green";
+        if (r == 0 && g == 255 && b == 255) return "Cyan";
+        if (r == 0 && g == 100 && b == 255) return "Blue";
+        if (r == 160 && g == 32 && b == 240) return "Purple";
+        if (r == 255 && g == 0 && b == 255) return "Magenta";
+        if (r == 255 && g == 255 && b == 255) return "White";
+        return "Custom (" + r + "," + g + "," + b + ")";
+    }
+
+    private void cycleHitColorPreset() {
+        String current = getHitColorPresetName();
+        switch (current) {
+            case "Red" -> { ModConfig.hitColorRed = 255; ModConfig.hitColorGreen = 100; ModConfig.hitColorBlue = 0; } // Orange
+            case "Orange" -> { ModConfig.hitColorRed = 255; ModConfig.hitColorGreen = 255; ModConfig.hitColorBlue = 0; } // Yellow
+            case "Yellow" -> { ModConfig.hitColorRed = 0; ModConfig.hitColorGreen = 255; ModConfig.hitColorBlue = 0; } // Green
+            case "Green" -> { ModConfig.hitColorRed = 0; ModConfig.hitColorGreen = 255; ModConfig.hitColorBlue = 255; } // Cyan
+            case "Cyan" -> { ModConfig.hitColorRed = 0; ModConfig.hitColorGreen = 100; ModConfig.hitColorBlue = 255; } // Blue
+            case "Blue" -> { ModConfig.hitColorRed = 160; ModConfig.hitColorGreen = 32; ModConfig.hitColorBlue = 240; } // Purple
+            case "Purple" -> { ModConfig.hitColorRed = 255; ModConfig.hitColorGreen = 0; ModConfig.hitColorBlue = 255; } // Magenta
+            case "Magenta" -> { ModConfig.hitColorRed = 255; ModConfig.hitColorGreen = 255; ModConfig.hitColorBlue = 255; } // White
+            default -> { ModConfig.hitColorRed = 255; ModConfig.hitColorGreen = 0; ModConfig.hitColorBlue = 0; } // Red
+        }
     }
 
     private void buildGenericSettings() {
@@ -514,6 +1157,257 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         btn.sizing(Sizing.content(), Sizing.fixed(16));
         btn.renderer(ButtonComponent.Renderer.flat(VIOLET_D, VIOLET_S, VIOLET_D));
         row.child(btn);
+        return row;
+    }
+
+    private int crosshairPreviewBgIndex = 0;
+    private static final int[] CROSSHAIR_BG_COLORS = new int[]{0xFF111115, 0xFF38BDF8, 0xFF15803D, 0xFFE2E8F0, 0xFF7F1D1D};
+    private static final String[] CROSSHAIR_BG_NAMES = new String[]{"Dark", "Sky", "Grass", "Snow", "Nether"};
+
+    private void buildCrosshairSettings() {
+        settingsPanel.child(makeSectionHeader("Custom Crosshair"));
+        settingsPanel.child(makeToggleRow("Enable Custom Crosshair", "Replace default crosshair with customized style",
+            ModConfig.enableCustomCrosshair,
+            () -> { ModConfig.enableCustomCrosshair = !ModConfig.enableCustomCrosshair; ModConfig.saveConfig(); buildSettings(); }));
+
+        settingsPanel.child(makeButtonRow("Crosshair Studio", "Open Full Editor", () -> {
+            if (this.client != null) this.client.setScreen(new CrosshairEditorScreen(this));
+        }));
+
+        // 1. Live Preview Card
+        settingsPanel.child(makeCrosshairLivePreview());
+
+        // 2. Preset Selector
+        String[] presets = new String[]{"CLASSIC_CROSS", "DOT", "CIRCLE", "SQUARE", "CHEVRON", "DIAMOND", "T_SHAPE", "BOX_FEET", "CUSTOM_DRAWN"};
+        String currentPresetName = ModConfig.crosshairPreset.replace('_', ' ');
+        settingsPanel.child(makeCycleRow("Preset", currentPresetName, () -> {
+            int curIdx = 0;
+            for (int i = 0; i < presets.length; i++) {
+                if (presets[i].equalsIgnoreCase(ModConfig.crosshairPreset)) { curIdx = i; break; }
+            }
+            ModConfig.crosshairPreset = presets[(curIdx + 1) % presets.length];
+            ModConfig.saveConfig();
+            buildSettings();
+        }));
+
+        // 3. Geometry (for non-drawable presets)
+        if (!"CUSTOM_DRAWN".equalsIgnoreCase(ModConfig.crosshairPreset) && !"DRAWABLE".equalsIgnoreCase(ModConfig.crosshairPreset)) {
+            settingsPanel.child(makeSectionHeader("Geometry"));
+            settingsPanel.child(makeCycleRow("Size", ModConfig.crosshairSize + "px", () -> {
+                ModConfig.crosshairSize = (ModConfig.crosshairSize >= 15) ? 1 : ModConfig.crosshairSize + 1;
+                ModConfig.saveConfig(); buildSettings();
+            }));
+            settingsPanel.child(makeCycleRow("Gap", ModConfig.crosshairGap + "px", () -> {
+                ModConfig.crosshairGap = (ModConfig.crosshairGap >= 12) ? 0 : ModConfig.crosshairGap + 1;
+                ModConfig.saveConfig(); buildSettings();
+            }));
+            settingsPanel.child(makeCycleRow("Thickness", ModConfig.crosshairThickness + "px", () -> {
+                ModConfig.crosshairThickness = (ModConfig.crosshairThickness >= 4) ? 1 : ModConfig.crosshairThickness + 1;
+                ModConfig.saveConfig(); buildSettings();
+            }));
+            settingsPanel.child(makeToggleRow("Center Dot", "Display central dot in the crosshair",
+                ModConfig.crosshairShowDot,
+                () -> { ModConfig.crosshairShowDot = !ModConfig.crosshairShowDot; ModConfig.saveConfig(); buildSettings(); }));
+            if (ModConfig.crosshairShowDot) {
+                settingsPanel.child(makeCycleRow("Dot Size", ModConfig.crosshairDotSize + "px", () -> {
+                    ModConfig.crosshairDotSize = (ModConfig.crosshairDotSize >= 4) ? 1 : ModConfig.crosshairDotSize + 1;
+                    ModConfig.saveConfig(); buildSettings();
+                }));
+            }
+        }
+
+        // 4. Drawable Pixel Canvas
+        if ("CUSTOM_DRAWN".equalsIgnoreCase(ModConfig.crosshairPreset) || "DRAWABLE".equalsIgnoreCase(ModConfig.crosshairPreset)) {
+            settingsPanel.child(makeSectionHeader("Pixel Canvas (15x15 Grid)"));
+            settingsPanel.child(makeHintRow("Click on any pixel cell to draw or erase custom crosshair shapes."));
+            settingsPanel.child(makeCrosshairPixelGridEditor());
+            settingsPanel.child(makeCrosshairTemplateRow());
+        }
+
+        // 5. Colors & Highlights
+        settingsPanel.child(makeSectionHeader("Colors & Enemy Hitbox"));
+        settingsPanel.child(makeColorPickerRow("Crosshair Color", ModConfig.crosshairColor, ModConfig.crosshairRainbow,
+            c -> ModConfig.crosshairColor = c,
+            () -> ModConfig.crosshairRainbow = !ModConfig.crosshairRainbow));
+
+        settingsPanel.child(makeToggleRow("Outline / Shadow", "Draw high-contrast outline border",
+            ModConfig.crosshairOutline,
+            () -> { ModConfig.crosshairOutline = !ModConfig.crosshairOutline; ModConfig.saveConfig(); buildSettings(); }));
+
+        settingsPanel.child(makeToggleRow("Enemy Crosshair", "Change crosshair when aiming at player or mob hitbox",
+            ModConfig.crosshairEnemyCrosshair,
+            () -> { ModConfig.crosshairEnemyCrosshair = !ModConfig.crosshairEnemyCrosshair; ModConfig.saveConfig(); buildSettings(); }));
+
+        if (ModConfig.crosshairEnemyCrosshair) {
+            String[] enemyModes = new String[]{"COLOR_CHANGE", "TARGET_LOCK_BOX", "RED_DOT", "CROSS_EXPAND"};
+            String enemyModeName = ModConfig.crosshairEnemyMode.replace('_', ' ');
+            settingsPanel.child(makeCycleRow("Enemy Hitbox Mode", enemyModeName, () -> {
+                int cur = 0;
+                for (int i = 0; i < enemyModes.length; i++) {
+                    if (enemyModes[i].equalsIgnoreCase(ModConfig.crosshairEnemyMode)) { cur = i; break; }
+                }
+                ModConfig.crosshairEnemyMode = enemyModes[(cur + 1) % enemyModes.length];
+                ModConfig.saveConfig(); buildSettings();
+            }));
+
+            settingsPanel.child(makeColorPickerRow("Enemy Hitbox Color", ModConfig.crosshairEnemyColor, false,
+                c -> ModConfig.crosshairEnemyColor = c,
+                () -> {}));
+        }
+
+        // 6. Dynamics
+        settingsPanel.child(makeSectionHeader("Behavior"));
+        settingsPanel.child(makeToggleRow("Dynamic Spread", "Expand gap while walking, sprinting or jumping",
+            ModConfig.crosshairDynamic,
+            () -> { ModConfig.crosshairDynamic = !ModConfig.crosshairDynamic; ModConfig.saveConfig(); buildSettings(); }));
+
+        settingsPanel.child(makeToggleRow("Attack Indicator", "Show weapon cooldown progress under crosshair",
+            ModConfig.crosshairAttackIndicator,
+            () -> { ModConfig.crosshairAttackIndicator = !ModConfig.crosshairAttackIndicator; ModConfig.saveConfig(); buildSettings(); }));
+
+        settingsPanel.child(makeToggleRow("3rd Person Visibility", "Keep crosshair visible in F5 / FreeLook mode",
+            ModConfig.crosshairThirdPerson,
+            () -> { ModConfig.crosshairThirdPerson = !ModConfig.crosshairThirdPerson; ModConfig.saveConfig(); buildSettings(); }));
+    }
+
+    private FlowLayout makeCrosshairLivePreview() {
+        FlowLayout container = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        container.gap(4);
+        container.padding(Insets.of(2, 4, 4, 4));
+
+        FlowLayout previewBox = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(56));
+        previewBox.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            int bgColor = CROSSHAIR_BG_COLORS[crosshairPreviewBgIndex % CROSSHAIR_BG_COLORS.length];
+            ctx.fill(x, y, x + w, y + h, bgColor);
+            ctx.drawBorder(x, y, w, h, BORDER_S);
+
+            int cx = x + w / 2;
+            int cy = y + h / 2;
+            com.velora.client.client.CustomCrosshairMod.renderCrosshair(ctx, cx, cy, 0.0f, 1.0f, false);
+        });
+
+        previewBox.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) {
+                crosshairPreviewBgIndex = (crosshairPreviewBgIndex + 1) % CROSSHAIR_BG_COLORS.length;
+                buildSettings();
+                return true;
+            }
+            return false;
+        });
+
+        String bgName = CROSSHAIR_BG_NAMES[crosshairPreviewBgIndex % CROSSHAIR_BG_NAMES.length];
+        FlowLayout labelRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(14));
+        labelRow.verticalAlignment(VerticalAlignment.CENTER);
+        labelRow.padding(Insets.of(0, 4, 0, 4));
+        labelRow.child(Components.label(Text.literal("Preview (Click box to test against: " + bgName + ")")).color(Color.ofArgb(TEXT_F)));
+
+        container.child(previewBox);
+        container.child(labelRow);
+        return container;
+    }
+
+    private FlowLayout makeCrosshairPixelGridEditor() {
+        FlowLayout gridContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        gridContainer.horizontalAlignment(HorizontalAlignment.CENTER);
+        gridContainer.padding(Insets.of(4, 0, 4, 0));
+        gridContainer.gap(1);
+
+        boolean[] grid = ModConfig.crosshairGrid;
+        if (grid == null || grid.length < 225) {
+            grid = com.velora.client.client.CustomCrosshairMod.getDefaultGrid();
+            ModConfig.crosshairGrid = grid;
+        }
+
+        int cellSize = 10;
+        int gridSize = 15;
+        for (int row = 0; row < gridSize; row++) {
+            final int r = row;
+            FlowLayout rowFlow = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(cellSize));
+            rowFlow.gap(1);
+
+            for (int col = 0; col < gridSize; col++) {
+                final int c = col;
+                final int idx = r * gridSize + c;
+
+                FlowLayout cell = Containers.horizontalFlow(Sizing.fixed(cellSize), Sizing.fixed(cellSize));
+                cell.surface((ctx, comp) -> {
+                    int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+                    boolean active = (ModConfig.crosshairGrid != null && idx < ModConfig.crosshairGrid.length && ModConfig.crosshairGrid[idx]);
+                    if (active) {
+                        ctx.fill(x, y, x + w, y + h, ModConfig.crosshairColor);
+                    } else {
+                        ctx.fill(x, y, x + w, y + h, 0x1AFFFFFF);
+                    }
+                    ctx.drawBorder(x, y, w, h, 0x33000000);
+                });
+
+                cell.mouseDown().subscribe((mx, my, btn) -> {
+                    if (btn == 0 && ModConfig.crosshairGrid != null && idx < ModConfig.crosshairGrid.length) {
+                        ModConfig.crosshairGrid[idx] = !ModConfig.crosshairGrid[idx];
+                        ModConfig.saveConfig();
+                        buildSettings();
+                        return true;
+                    }
+                    return false;
+                });
+
+                rowFlow.child(cell);
+            }
+            gridContainer.child(rowFlow);
+        }
+
+        return gridContainer;
+    }
+
+    private FlowLayout makeCrosshairTemplateRow() {
+        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+        row.verticalAlignment(VerticalAlignment.CENTER);
+        row.horizontalAlignment(HorizontalAlignment.CENTER);
+        row.gap(4);
+        row.padding(Insets.of(2, 4, 2, 4));
+
+        ButtonComponent boxBtn = Components.button(Text.literal("Box Feet"), b -> {
+            ModConfig.crosshairGrid = com.velora.client.client.CustomCrosshairMod.getBoxFeetTemplate();
+            ModConfig.saveConfig(); buildSettings();
+        });
+        boxBtn.sizing(Sizing.content(), Sizing.fixed(16));
+        boxBtn.renderer(ButtonComponent.Renderer.flat(SURF3, VIOLET, SURF3));
+
+        ButtonComponent plusBtn = Components.button(Text.literal("Plus"), b -> {
+            ModConfig.crosshairGrid = com.velora.client.client.CustomCrosshairMod.getDefaultGrid();
+            ModConfig.saveConfig(); buildSettings();
+        });
+        plusBtn.sizing(Sizing.content(), Sizing.fixed(16));
+        plusBtn.renderer(ButtonComponent.Renderer.flat(SURF3, VIOLET, SURF3));
+
+        ButtonComponent circleBtn = Components.button(Text.literal("Circle"), b -> {
+            ModConfig.crosshairGrid = com.velora.client.client.CustomCrosshairMod.getCircleTemplate();
+            ModConfig.saveConfig(); buildSettings();
+        });
+        circleBtn.sizing(Sizing.content(), Sizing.fixed(16));
+        circleBtn.renderer(ButtonComponent.Renderer.flat(SURF3, VIOLET, SURF3));
+
+        ButtonComponent diamondBtn = Components.button(Text.literal("Diamond"), b -> {
+            ModConfig.crosshairGrid = com.velora.client.client.CustomCrosshairMod.getDiamondTemplate();
+            ModConfig.saveConfig(); buildSettings();
+        });
+        diamondBtn.sizing(Sizing.content(), Sizing.fixed(16));
+        diamondBtn.renderer(ButtonComponent.Renderer.flat(SURF3, VIOLET, SURF3));
+
+        ButtonComponent clearBtn = Components.button(Text.literal("Clear"), b -> {
+            ModConfig.crosshairGrid = new boolean[225];
+            ModConfig.saveConfig(); buildSettings();
+        });
+        clearBtn.sizing(Sizing.content(), Sizing.fixed(16));
+        clearBtn.renderer(ButtonComponent.Renderer.flat(0xFF7F1D1D, RED, 0xFF7F1D1D));
+
+        row.child(boxBtn);
+        row.child(plusBtn);
+        row.child(circleBtn);
+        row.child(diamondBtn);
+        row.child(clearBtn);
+
         return row;
     }
 

@@ -90,8 +90,8 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
             public void setY(int y) { ModConfig.coordsY = y; }
             public float getScale() { return ModConfig.coordsScale; }
             public void setScale(float s) { ModConfig.coordsScale = s; }
-            public int getBaseWidth() { return 110; }
-            public int getBaseHeight() { return 18; }
+            public int getBaseWidth() { return 84; }
+            public int getBaseHeight() { return 44; }
         },
         DAY("[Day]") {
             public boolean isEnabled() { return ModConfig.showDayCounter; }
@@ -125,6 +125,17 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
             public void setScale(float s) { ModConfig.minimapScale = s; }
             public int getBaseWidth() { return com.velora.client.client.MinimapClient.getMinimapWidth(); }
             public int getBaseHeight() { return com.velora.client.client.MinimapClient.getMinimapHeight(); }
+        },
+        POTION("[Potions]") {
+            public boolean isEnabled() { return ModConfig.showPotionHud; }
+            public int getX() { return ModConfig.potionHudX; }
+            public void setX(int x) { ModConfig.potionHudX = x; }
+            public int getY() { return ModConfig.potionHudY; }
+            public void setY(int y) { ModConfig.potionHudY = y; }
+            public float getScale() { return ModConfig.potionHudScale; }
+            public void setScale(float s) { ModConfig.potionHudScale = s; }
+            public int getBaseWidth() { return com.velora.client.client.PotionHudMod.getPreviewWidth(); }
+            public int getBaseHeight() { return com.velora.client.client.PotionHudMod.getPreviewHeight(); }
         };
 
         private final String label;
@@ -178,20 +189,21 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     protected void build(FlowLayout root) {
-        root.verticalAlignment(VerticalAlignment.BOTTOM);
+        root.verticalAlignment(VerticalAlignment.TOP);
         root.horizontalAlignment(HorizontalAlignment.CENTER);
         root.surface(Surface.flat(0x00000000));
         root.sizing(Sizing.fill(100), Sizing.fill(100));
+        root.padding(Insets.of(6, 0, 0, 0));
 
-        FlowLayout toolbar = Containers.horizontalFlow(Sizing.fixed(420), Sizing.fixed(24));
+        FlowLayout toolbar = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(26));
         toolbar.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
             ctx.fill(x, y, x + w, y + h, SURF2);
             ctx.drawBorder(x, y, w, h, BORDER_S);
         });
         toolbar.verticalAlignment(VerticalAlignment.CENTER);
-        toolbar.padding(Insets.of(2, 6, 2, 6));
-        toolbar.gap(4);
+        toolbar.padding(Insets.of(3, 8, 3, 8));
+        toolbar.gap(6);
 
         ButtonComponent snapBtn = Components.button(
             Text.literal(ModConfig.hudSnap ? "Snap ON" : "Snap OFF"),
@@ -199,7 +211,7 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
                 ModConfig.hudSnap = !ModConfig.hudSnap;
                 btn.setMessage(Text.literal(ModConfig.hudSnap ? "Snap ON" : "Snap OFF"));
             });
-        snapBtn.sizing(Sizing.fixed(52), Sizing.fixed(18));
+        snapBtn.sizing(Sizing.fixed(56), Sizing.fixed(18));
         snapBtn.renderer(ButtonComponent.Renderer.flat(
             ModConfig.hudSnap ? GREEN_D : SURF3,
             ModConfig.hudSnap ? GREEN : SURF2,
@@ -216,18 +228,18 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
         doneBtn.sizing(Sizing.fixed(46), Sizing.fixed(18));
         doneBtn.renderer(ButtonComponent.Renderer.flat(VIOLET_S, VIOLET, VIOLET_S));
 
-        FlowLayout infoBox = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(18));
+        FlowLayout infoBox = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(18));
         infoBox.verticalAlignment(VerticalAlignment.CENTER);
-        infoBox.horizontalAlignment(HorizontalAlignment.RIGHT);
+        infoBox.padding(Insets.of(0, 4, 0, 0));
 
         if (selectedElement != null) {
             infoBox.child(Components.label(Text.literal(
                 selectedElement.getLabel() + " | " +
-                String.format("%.0fx%.0f", selectedElement.getScaledWidth(), selectedElement.getScaledHeight()) +
+                String.format("%.0fx%.0f", (float) selectedElement.getScaledWidth(), (float) selectedElement.getScaledHeight()) +
                 " | " + String.format("%.2fx", selectedElement.getScale())))
                 .color(Color.ofArgb(TEXT_M)));
         } else {
-            infoBox.child(Components.label(Text.literal("Click element to select, drag to move, scroll to resize"))
+            infoBox.child(Components.label(Text.literal("Click to select | Drag to move | Scroll to resize"))
                 .color(Color.ofArgb(TEXT_F)));
         }
 
@@ -236,12 +248,7 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
         toolbar.child(doneBtn);
         toolbar.child(infoBox);
 
-        FlowLayout wrapper = Containers.verticalFlow(Sizing.fill(100), Sizing.fixed(30));
-        wrapper.verticalAlignment(VerticalAlignment.CENTER);
-        wrapper.horizontalAlignment(HorizontalAlignment.CENTER);
-        wrapper.child(toolbar);
-
-        root.child(wrapper);
+        root.child(toolbar);
     }
 
     @Override
@@ -276,7 +283,7 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
             if (Math.abs(elemCY - cy) < 3) snapGuideY = cy;
         }
 
-        if (snapGuideX != -1) context.fill(snapGuideX, 30, snapGuideX + 1, this.height, 0xAA7C3AED);
+        if (snapGuideX != -1) context.fill(snapGuideX, 0, snapGuideX + 1, this.height, 0xAA7C3AED);
         if (snapGuideY != -1) context.fill(0, snapGuideY, this.width, snapGuideY + 1, 0xAA7C3AED);
 
         for (HudElement elem : HudElement.values()) {
@@ -292,14 +299,23 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
             int border = isSel ? 0xFFA78BFA : isHov ? 0xFF8B5CF6 : 0xFF6D28D9;
             drawOutline(context, bx, by, bw, bh, border);
 
-            context.drawText(this.textRenderer, elem.getLabel(), x, y + (h > 18 ? 4 : (h - 8) / 2), 0xFFFFFFFF, true);
+            if (elem == HudElement.POTION) {
+                context.getMatrices().push();
+                context.getMatrices().scale(elem.getScale(), elem.getScale(), 1.0f);
+                int unscaledX = (int) (x / elem.getScale());
+                int unscaledY = (int) (y / elem.getScale());
+                com.velora.client.client.PotionHudMod.renderPreview(context, unscaledX, unscaledY, this.textRenderer);
+                context.getMatrices().pop();
+            } else {
+                context.drawText(this.textRenderer, elem.getLabel(), x, y + (h > 18 ? 4 : (h - 8) / 2), 0xFFFFFFFF, true);
+            }
 
             if (isSel || isHov) {
                 String scaleStr = String.format("%.2fx", elem.getScale());
                 int badgeW = this.textRenderer.getWidth(scaleStr) + 6;
                 int badgeX = bx + bw - badgeW - 2;
                 int badgeY = by - 10;
-                if (badgeY < 32) badgeY = by + bh + 2;
+                if (badgeY < 2) badgeY = by + bh + 2;
                 context.fill(badgeX, badgeY, badgeX + badgeW, badgeY + 10, 0xFF16161A);
                 drawOutline(context, badgeX, badgeY, badgeW, 10, 0x44A78BFA);
                 context.drawText(this.textRenderer, scaleStr, badgeX + 3, badgeY + 1, 0xFFE4E4E7, false);
@@ -360,8 +376,9 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
             if (Math.abs(elemCY - cy) <= 6) { targetY = cy - elemH / 2; snapGuideY = cy; }
             else targetY = snapValue(targetY);
 
+            // Full screen placement - completely unblocked top to bottom
             targetX = Math.max(0, Math.min(this.width - elemW, targetX));
-            targetY = Math.max(0, Math.min(this.height - elemH - 28, targetY));
+            targetY = Math.max(0, Math.min(this.height - elemH, targetY));
 
             selectedElement.setX(targetX);
             selectedElement.setY(targetY);
@@ -393,7 +410,7 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (selectedElement != null) {
             int step = hasShiftDown() ? 5 : 1;
-            if (keyCode == GLFW.GLFW_KEY_UP)    { selectedElement.setY(Math.max(30, selectedElement.getY() - step)); return true; }
+            if (keyCode == GLFW.GLFW_KEY_UP)    { selectedElement.setY(Math.max(0, selectedElement.getY() - step)); return true; }
             if (keyCode == GLFW.GLFW_KEY_DOWN)  { selectedElement.setY(Math.min(this.height - selectedElement.getScaledHeight(), selectedElement.getY() + step)); return true; }
             if (keyCode == GLFW.GLFW_KEY_LEFT)  { selectedElement.setX(Math.max(0, selectedElement.getX() - step)); return true; }
             if (keyCode == GLFW.GLFW_KEY_RIGHT) { selectedElement.setX(Math.min(this.width - selectedElement.getScaledWidth(), selectedElement.getX() + step)); return true; }

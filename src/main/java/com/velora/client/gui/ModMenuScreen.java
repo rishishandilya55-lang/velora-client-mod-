@@ -64,6 +64,10 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
         {"Nametag",       "Visual",   "TAG",  0xFFA78BFA, "Custom nametag with rank badges"},
         {"Chat Colors",   "HUD",      "CHAT", 0xFF34D399, "Rank-based chat message coloring"},
         {"Item Tooltips", "HUD",      "TIPS", 0xFFC084FC, "Enhanced item tooltips with details"},
+        {"Hit Color",     "Visual",   "HIT",  0xFFF87171, "Custom entity damage flash color"},
+        {"Item Physics",  "Visual",   "PHY",  0xFF38BDF8, "Realistic flat physics for dropped items"},
+        {"Potion Status", "HUD",      "POT",  0xFFC084FC, "Shows active potion status effects"},
+        {"Crosshair",     "Visual",   "+",    0xFF34D399, "Custom crosshair, presets & pixel editor"},
     };
 
     private FlowLayout moduleGridContainer;
@@ -425,7 +429,11 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
                 return true;
             } else if (btn == 1) {
                 if (client != null) {
-                    client.setScreen(new ModuleSettingsScreen(name, this));
+                    if ("Crosshair".equalsIgnoreCase(name)) {
+                        client.setScreen(new CrosshairEditorScreen(this));
+                    } else {
+                        client.setScreen(new ModuleSettingsScreen(name, this));
+                    }
                 }
                 return true;
             }
@@ -470,6 +478,10 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
             case 16 -> ModConfig.showNametag;
             case 17 -> ModConfig.showChatColors;
             case 18 -> ModConfig.showItemTooltips;
+            case 19 -> ModConfig.showHitColor;
+            case 20 -> ModConfig.showItemPhysics;
+            case 21 -> ModConfig.showPotionHud;
+            case 22 -> ModConfig.enableCustomCrosshair;
             default -> false;
         };
     }
@@ -495,6 +507,10 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
             case 16 -> ModConfig.showNametag       = !ModConfig.showNametag;
             case 17 -> ModConfig.showChatColors    = !ModConfig.showChatColors;
             case 18 -> ModConfig.showItemTooltips  = !ModConfig.showItemTooltips;
+            case 19 -> ModConfig.showHitColor      = !ModConfig.showHitColor;
+            case 20 -> ModConfig.showItemPhysics   = !ModConfig.showItemPhysics;
+            case 21 -> ModConfig.showPotionHud     = !ModConfig.showPotionHud;
+            case 22 -> ModConfig.enableCustomCrosshair = !ModConfig.enableCustomCrosshair;
         }
         ModConfig.saveConfig();
     }

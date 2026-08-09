@@ -58,6 +58,12 @@ public class FpsDisplayClient implements ClientModInitializer {
         ChatColorsClient.init();
         LOGGER.debug("[Velora] Initializing ItemTooltipsClient");
         ItemTooltipsClient.init();
+        LOGGER.debug("[Velora] Initializing HitColorMod");
+        HitColorMod.init();
+        LOGGER.debug("[Velora] Initializing PotionHudMod");
+        PotionHudMod.init();
+        LOGGER.debug("[Velora] Initializing CustomCrosshairMod");
+        CustomCrosshairMod.init();
         LOGGER.info("[Velora] All modules initialized");
 
         // Clean up MinimapClient native resources on disconnect
@@ -70,7 +76,6 @@ public class FpsDisplayClient implements ClientModInitializer {
 
         // Register FPS Display HUD Render Callback
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
-            LOGGER.trace("[Velora] HUD render tick");
             if (!ModConfig.showFps) return;
 
             MinecraftClient client = MinecraftClient.getInstance();
@@ -78,7 +83,7 @@ public class FpsDisplayClient implements ClientModInitializer {
 
             TextRenderer textRenderer = client.textRenderer;
             int fps = client.getCurrentFps();
-            String fpsText = "FPS: " + fps;
+            String fpsText = ModConfig.fpsShowPrefix ? ("FPS: " + fps) : (fps + " FPS");
 
             drawContext.getMatrices().push();
             drawContext.getMatrices().scale(ModConfig.fpsScale, ModConfig.fpsScale, 1.0f);
@@ -87,8 +92,13 @@ public class FpsDisplayClient implements ClientModInitializer {
             int y = (int) (ModConfig.fpsY / ModConfig.fpsScale);
 
             int textWidth = textRenderer.getWidth(fpsText);
-            drawContext.fill(x - 4, y - 4, x + textWidth + 4, y + 12, 0x80000000);
-            drawContext.drawText(textRenderer, fpsText, x, y, 0xFFFFFFFF, true);
+            if (ModConfig.fpsBackground && ModConfig.hudShowBackground) {
+                int bg = (ModConfig.hudBackgroundOpacity << 24) | 0x000000;
+                drawContext.fill(x - 4, y - 4, x + textWidth + 4, y + 12, bg);
+            }
+
+            int color = com.velora.client.util.HudColorHelper.getEffectiveColor(ModConfig.fpsTextColor, ModConfig.fpsTextRainbow);
+            drawContext.drawText(textRenderer, fpsText, x, y, color, ModConfig.hudTextShadow);
 
             drawContext.getMatrices().pop();
         });

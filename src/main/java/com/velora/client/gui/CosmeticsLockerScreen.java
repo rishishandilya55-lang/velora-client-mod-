@@ -54,6 +54,7 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     protected void build(FlowLayout root) {
         isLockerOpen = true;
+        selectedCapeIndex = ModConfig.enableCape ? ModConfig.selectedCape : -1;
         CosmeticTextureCache.init();
 
         root.verticalAlignment(VerticalAlignment.CENTER);
@@ -232,9 +233,16 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
 
         textureView.mouseDown().subscribe((mx, my, btn) -> {
             if (btn == 0) {
-                selectedCapeIndex = registryIndex;
-                ModConfig.enableCape = true;
-                ModConfig.selectedCape = registryIndex;
+                if (selectedCapeIndex == registryIndex) {
+                    // Clicked already equipped cape -> toggle off & use Mojang cape!
+                    selectedCapeIndex = -1;
+                    ModConfig.enableCape = false;
+                    ModConfig.selectedCape = -1;
+                } else {
+                    selectedCapeIndex = registryIndex;
+                    ModConfig.enableCape = true;
+                    ModConfig.selectedCape = registryIndex;
+                }
                 ModConfig.saveConfig();
                 MinecraftClient.getInstance().execute(this::rebuildCardGrid);
                 return true;
@@ -318,6 +326,17 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
                 .shadow(true)
                 .sizing(Sizing.content(), Sizing.content()));
         panel.child(previewHeader);
+
+        ButtonComponent mojangCapeBtn = Components.button(Text.literal("Use Mojang / Account Cape"), btn -> {
+            selectedCapeIndex = -1;
+            ModConfig.enableCape = false;
+            ModConfig.selectedCape = -1;
+            ModConfig.saveConfig();
+            MinecraftClient.getInstance().execute(this::rebuildCardGrid);
+        });
+        mojangCapeBtn.sizing(Sizing.fill(100), Sizing.fixed(18));
+        mojangCapeBtn.renderer(ButtonComponent.Renderer.flat(VeloraColors.SURF2, VeloraColors.VIOLET_D, VeloraColors.SURF2));
+        panel.child(mojangCapeBtn);
 
         FlowLayout playerArea = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
         playerArea.verticalAlignment(VerticalAlignment.CENTER);
