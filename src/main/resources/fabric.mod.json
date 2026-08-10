@@ -3,9 +3,9 @@
   "id": "velora",
   "version": "${version}",
   "name": "Velora Client",
-  "description": "Velora Client - Next-Gen Client Suite by ItsRealRishi!",
+  "description": "Velora Client - Next-Gen Client Suite!",
   "authors": [
-    "ItsRealRishi"
+    "velora dev team"
   ],
   "contact": {},
   "license": "All-Rights-Reserved",

@@ -232,6 +232,8 @@ public class MinimapClient implements ClientModInitializer {
             renderEntityBlips(drawContext, client, centerX, centerY, halfSize - 4);
         }
 
+        renderWaypointBlips(drawContext, client, centerX, centerY, halfSize - 4);
+
         renderPlayerArrow(drawContext, centerX, centerY, playerYaw);
 
         if (ModConfig.minimapShowBiome && client.world != null) {
@@ -330,6 +332,42 @@ public class MinimapClient implements ClientModInitializer {
             } else if (dy < -4.0) {
                 context.drawText(client.textRenderer, "-", blipX + 4, blipY - 3, 0xFFEF4444, false);
             }
+        }
+    }
+
+    private static void renderWaypointBlips(DrawContext context, MinecraftClient client, int cx, int cy, int maxRadius) {
+        if (!ModConfig.minimapShowWaypoints || client.player == null) return;
+
+        java.util.List<com.velora.client.waypoints.Waypoint> waypoints = com.velora.client.waypoints.WaypointManager.getVisibleWaypointsForCurrentDimension();
+        if (waypoints.isEmpty()) return;
+
+        float zoom = Math.max(0.5f, Math.min(3.0f, ModConfig.minimapZoom));
+        double playerX = client.player.getX();
+        double playerZ = client.player.getZ();
+
+        for (com.velora.client.waypoints.Waypoint wp : waypoints) {
+            double dx = wp.x - playerX;
+            double dz = wp.z - playerZ;
+
+            double dist = Math.sqrt(dx * dx + dz * dz);
+            double clampedDist = Math.min(dist, maxRadius / zoom);
+
+            double angle = Math.atan2(dz, dx);
+            int blipX = (int) (cx + Math.cos(angle) * clampedDist * zoom);
+            int blipY = (int) (cy + Math.sin(angle) * clampedDist * zoom);
+
+            int color = wp.color | 0xFF000000;
+            String firstLetter = (wp.name != null && !wp.name.trim().isEmpty())
+                ? String.valueOf(Character.toUpperCase(wp.name.trim().charAt(0)))
+                : "W";
+
+            // Clean circular/square mini badge with waypoint color border
+            context.fill(blipX - 4, blipY - 4, blipX + 5, blipY + 5, 0xEE0F0F12);
+            context.drawBorder(blipX - 4, blipY - 4, 9, 9, color);
+
+            // Centered first letter
+            int letterW = client.textRenderer.getWidth(firstLetter);
+            context.drawText(client.textRenderer, firstLetter, blipX - letterW / 2 + 1, blipY - 3, color, true);
         }
     }
 

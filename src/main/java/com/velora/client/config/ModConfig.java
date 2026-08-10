@@ -3,6 +3,10 @@ package com.velora.client.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
+import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,6 +14,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ModConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger("Velora");
@@ -51,12 +57,11 @@ public class ModConfig {
     public static boolean potionHudShowIcon = true;
     public static int potionHudTextColor = 0xFFFFFFFF;
     public static boolean potionHudTextRainbow = false;
-    public static boolean showNametag = true;
-    public static boolean nametagShowRank = true;
-    public static boolean nametagShowBadge = true;
-    public static boolean nametagShowHealth = true;
-    public static boolean nametagShowDistance = false;
-    public static int nametagBackgroundOpacity = 128;
+    // Waypoints Options
+    public static boolean showWaypoints = true;
+    public static boolean minimapShowWaypoints = true;
+    public static boolean waypointsShowDistance = true;
+    public static boolean waypointsBeaconBeams = true;
 
     // Crosshair Mod Options
     public static boolean enableCustomCrosshair = true;
@@ -152,6 +157,23 @@ public class ModConfig {
 
     // Item Physics
     public static boolean showItemPhysics = true;
+
+    // View Model & Item Scale Options
+    public static boolean showViewModel = true;
+    public static float viewModelMainHandScale = 1.0f;
+    public static float viewModelOffHandScale = 1.0f;
+    public static float viewModelMainHandX = 0.0f;
+    public static float viewModelMainHandY = 0.0f;
+    public static float viewModelMainHandZ = 0.0f;
+    public static float viewModelOffHandX = 0.0f;
+    public static float viewModelOffHandY = 0.0f;
+    public static float viewModelOffHandZ = 0.0f;
+    public static float viewModelPitch = 0.0f;
+    public static float viewModelYaw = 0.0f;
+    public static float viewModelRoll = 0.0f;
+    public static Map<String, Float> itemScales = new HashMap<>();
+    public static Map<String, Float> itemGroundScales = new HashMap<>();
+    public static Map<String, Float> itemGuiScales = new HashMap<>();
 
     // Capes & Cape Physics
     public static boolean enableCape = true;
@@ -254,6 +276,103 @@ public class ModConfig {
         saveConfig();
     }
 
+    public static float getItemScale(ItemStack stack) {
+        if (!showViewModel || stack == null || stack.isEmpty()) return 1.0f;
+        // All enchanted items will be the same with normal items, EXCEPT enchanted golden apple which is separate!
+        if (stack.isOf(Items.ENCHANTED_GOLDEN_APPLE)) {
+            Float customScale = itemScales.get("minecraft:enchanted_golden_apple");
+            return customScale != null ? customScale : 1.0f;
+        }
+        Identifier id = Registries.ITEM.getId(stack.getItem());
+        if (id != null) {
+            Float customScale = itemScales.get(id.toString());
+            if (customScale != null) return customScale;
+        }
+        return 1.0f;
+    }
+
+    public static float getItemScaleById(String id) {
+        if (id == null) return 1.0f;
+        Float scale = itemScales.get(id);
+        return scale != null ? scale : 1.0f;
+    }
+
+    public static void setItemScale(String id, float scale) {
+        if (id == null) return;
+        if (Math.abs(scale - 1.0f) < 0.01f) {
+            itemScales.remove(id);
+        } else {
+            itemScales.put(id, Math.round(scale * 100.0f) / 100.0f);
+        }
+        saveConfig();
+    }
+
+    public static void resetItemScale(String id) {
+        if (id == null) return;
+        itemScales.remove(id);
+        saveConfig();
+    }
+
+    public static float getItemGroundScale(ItemStack stack) {
+        if (!showViewModel || stack == null || stack.isEmpty()) return 1.0f;
+        if (stack.isOf(Items.ENCHANTED_GOLDEN_APPLE)) {
+            Float customScale = itemGroundScales.get("minecraft:enchanted_golden_apple");
+            return customScale != null ? customScale : 1.0f;
+        }
+        Identifier id = Registries.ITEM.getId(stack.getItem());
+        if (id != null) {
+            Float customScale = itemGroundScales.get(id.toString());
+            if (customScale != null) return customScale;
+        }
+        return 1.0f;
+    }
+
+    public static float getItemGroundScaleById(String id) {
+        if (id == null) return 1.0f;
+        Float scale = itemGroundScales.get(id);
+        return scale != null ? scale : 1.0f;
+    }
+
+    public static void setItemGroundScale(String id, float scale) {
+        if (id == null) return;
+        if (Math.abs(scale - 1.0f) < 0.01f) {
+            itemGroundScales.remove(id);
+        } else {
+            itemGroundScales.put(id, Math.round(scale * 100.0f) / 100.0f);
+        }
+        saveConfig();
+    }
+
+    public static float getItemGuiScale(ItemStack stack) {
+        if (!showViewModel || stack == null || stack.isEmpty()) return 1.0f;
+        if (stack.isOf(Items.ENCHANTED_GOLDEN_APPLE)) {
+            Float customScale = itemGuiScales.get("minecraft:enchanted_golden_apple");
+            return customScale != null ? customScale : 1.0f;
+        }
+        Identifier id = Registries.ITEM.getId(stack.getItem());
+        if (id != null) {
+            Float customScale = itemGuiScales.get(id.toString());
+            if (customScale != null) return customScale;
+        }
+        return 1.0f;
+    }
+
+    public static float getItemGuiScaleById(String id) {
+        if (id == null) return 1.0f;
+        Float scale = itemGuiScales.get(id);
+        return scale != null ? scale : 1.0f;
+    }
+
+    public static void setItemGuiScale(String id, float scale) {
+        if (id == null) return;
+        if (Math.abs(scale - 1.0f) < 0.01f) {
+            itemGuiScales.remove(id);
+        } else {
+            itemGuiScales.put(id, Math.round(scale * 100.0f) / 100.0f);
+        }
+        saveConfig();
+    }
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static File getConfigFile() {
@@ -334,12 +453,10 @@ public class ModConfig {
         public int potionHudY = ModConfig.potionHudY;
         public float potionHudScale = ModConfig.potionHudScale;
 
-        public boolean showNametag = ModConfig.showNametag;
-        public boolean nametagShowRank = ModConfig.nametagShowRank;
-        public boolean nametagShowBadge = ModConfig.nametagShowBadge;
-        public boolean nametagShowHealth = ModConfig.nametagShowHealth;
-        public boolean nametagShowDistance = ModConfig.nametagShowDistance;
-        public int nametagBackgroundOpacity = ModConfig.nametagBackgroundOpacity;
+        public boolean showWaypoints = ModConfig.showWaypoints;
+        public boolean minimapShowWaypoints = ModConfig.minimapShowWaypoints;
+        public boolean waypointsShowDistance = ModConfig.waypointsShowDistance;
+        public boolean waypointsBeaconBeams = ModConfig.waypointsBeaconBeams;
 
         public boolean enableCustomCrosshair = ModConfig.enableCustomCrosshair;
         public String crosshairPreset = ModConfig.crosshairPreset;
@@ -427,6 +544,22 @@ public class ModConfig {
         public boolean tooltipShowId = ModConfig.tooltipShowId;
         public boolean tooltipShowFood = ModConfig.tooltipShowFood;
         public boolean showItemPhysics = ModConfig.showItemPhysics;
+
+        public boolean showViewModel = ModConfig.showViewModel;
+        public float viewModelMainHandScale = ModConfig.viewModelMainHandScale;
+        public float viewModelOffHandScale = ModConfig.viewModelOffHandScale;
+        public float viewModelMainHandX = ModConfig.viewModelMainHandX;
+        public float viewModelMainHandY = ModConfig.viewModelMainHandY;
+        public float viewModelMainHandZ = ModConfig.viewModelMainHandZ;
+        public float viewModelOffHandX = ModConfig.viewModelOffHandX;
+        public float viewModelOffHandY = ModConfig.viewModelOffHandY;
+        public float viewModelOffHandZ = ModConfig.viewModelOffHandZ;
+        public float viewModelPitch = ModConfig.viewModelPitch;
+        public float viewModelYaw = ModConfig.viewModelYaw;
+        public float viewModelRoll = ModConfig.viewModelRoll;
+        public Map<String, Float> itemScales = new HashMap<>(ModConfig.itemScales);
+        public Map<String, Float> itemGroundScales = new HashMap<>(ModConfig.itemGroundScales);
+        public Map<String, Float> itemGuiScales = new HashMap<>(ModConfig.itemGuiScales);
 
         public boolean showFreeLook = ModConfig.showFreeLook;
         public boolean showSnapLook = ModConfig.showSnapLook;
@@ -535,12 +668,10 @@ public class ModConfig {
             ModConfig.potionHudY = this.potionHudY;
             ModConfig.potionHudScale = Math.max(0.1f, Math.min(5.0f, this.potionHudScale));
 
-            ModConfig.showNametag = this.showNametag;
-            ModConfig.nametagShowRank = this.nametagShowRank;
-            ModConfig.nametagShowBadge = this.nametagShowBadge;
-            ModConfig.nametagShowHealth = this.nametagShowHealth;
-            ModConfig.nametagShowDistance = this.nametagShowDistance;
-            ModConfig.nametagBackgroundOpacity = Math.max(0, Math.min(255, this.nametagBackgroundOpacity));
+            ModConfig.showWaypoints = this.showWaypoints;
+            ModConfig.minimapShowWaypoints = this.minimapShowWaypoints;
+            ModConfig.waypointsShowDistance = this.waypointsShowDistance;
+            ModConfig.waypointsBeaconBeams = this.waypointsBeaconBeams;
 
             ModConfig.enableCustomCrosshair = this.enableCustomCrosshair;
             if (this.crosshairPreset != null) ModConfig.crosshairPreset = this.crosshairPreset;
@@ -698,6 +829,28 @@ public class ModConfig {
             ModConfig.dayScale = Math.max(0.1f, Math.min(5.0f, this.dayScale));
             ModConfig.blockInfoScale = Math.max(0.1f, Math.min(5.0f, this.blockInfoScale));
             ModConfig.minimapScale = Math.max(0.1f, Math.min(5.0f, this.minimapScale));
+
+            ModConfig.showViewModel = this.showViewModel;
+            ModConfig.viewModelMainHandScale = Math.max(0.1f, Math.min(3.0f, this.viewModelMainHandScale));
+            ModConfig.viewModelOffHandScale = Math.max(0.1f, Math.min(3.0f, this.viewModelOffHandScale));
+            ModConfig.viewModelMainHandX = Math.max(-2.0f, Math.min(2.0f, this.viewModelMainHandX));
+            ModConfig.viewModelMainHandY = Math.max(-2.0f, Math.min(2.0f, this.viewModelMainHandY));
+            ModConfig.viewModelMainHandZ = Math.max(-2.0f, Math.min(2.0f, this.viewModelMainHandZ));
+            ModConfig.viewModelOffHandX = Math.max(-2.0f, Math.min(2.0f, this.viewModelOffHandX));
+            ModConfig.viewModelOffHandY = Math.max(-2.0f, Math.min(2.0f, this.viewModelOffHandY));
+            ModConfig.viewModelOffHandZ = Math.max(-2.0f, Math.min(2.0f, this.viewModelOffHandZ));
+            ModConfig.viewModelPitch = Math.max(-180.0f, Math.min(180.0f, this.viewModelPitch));
+            ModConfig.viewModelYaw = Math.max(-180.0f, Math.min(180.0f, this.viewModelYaw));
+            ModConfig.viewModelRoll = Math.max(-180.0f, Math.min(180.0f, this.viewModelRoll));
+            if (this.itemScales != null) {
+                ModConfig.itemScales = new HashMap<>(this.itemScales);
+            }
+            if (this.itemGroundScales != null) {
+                ModConfig.itemGroundScales = new HashMap<>(this.itemGroundScales);
+            }
+            if (this.itemGuiScales != null) {
+                ModConfig.itemGuiScales = new HashMap<>(this.itemGuiScales);
+            }
         }
     }
 }

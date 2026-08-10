@@ -64,6 +64,10 @@ public class FpsDisplayClient implements ClientModInitializer {
         PotionHudMod.init();
         LOGGER.debug("[Velora] Initializing CustomCrosshairMod");
         CustomCrosshairMod.init();
+        LOGGER.debug("[Velora] Initializing ViewModelMod");
+        ViewModelMod.init();
+        LOGGER.debug("[Velora] Initializing WaypointsMod");
+        WaypointsMod.init();
         LOGGER.info("[Velora] All modules initialized");
 
         // Clean up MinimapClient native resources on disconnect

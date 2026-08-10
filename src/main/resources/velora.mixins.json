@@ -15,7 +15,6 @@
     "EntityMixin",
     "ScreenAccessor",
     "LightmapTextureManagerMixin",
-    "NameTagMixin",
     "ChatPrefixMixin",
     "TabListMixin",
     "OverlayTextureMixin",
@@ -24,6 +23,7 @@
     "LivingEntityRendererMixin",
     "ItemStackMixin",
     "ItemEntityRendererMixin",
+    "HeldItemRendererMixin",
     "SimpleOptionMixin",
     "InGameHudMixin"
   ],

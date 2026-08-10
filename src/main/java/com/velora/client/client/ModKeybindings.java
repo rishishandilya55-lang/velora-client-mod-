@@ -18,6 +18,7 @@ public class ModKeybindings implements ClientModInitializer {
     public static KeyBinding freeLookKey;
     public static KeyBinding snapLookKey;
     public static KeyBinding fullbrightKey;
+    public static KeyBinding waypointKey;
 
     public static void init() {
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -48,13 +49,26 @@ public class ModKeybindings implements ClientModInitializer {
             "category.velora.general"
         ));
 
-        LOGGER.info("[Velora] Keybindings registered: menu=RIGHT_SHIFT, freelook={}, snaplook={}, fullbright=F6",
+        waypointKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+            "key.velora.waypoints",
+            InputUtil.Type.KEYSYM,
+            GLFW.GLFW_KEY_U,
+            "category.velora.general"
+        ));
+
+        LOGGER.info("[Velora] Keybindings registered: menu=RIGHT_SHIFT, freelook={}, snaplook={}, fullbright=F6, waypoints=U",
                 ModConfig.freeLookKey, ModConfig.snapLookKey);
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKey.wasPressed()) {
                 LOGGER.debug("[Velora] Open menu key pressed");
                 client.setScreen(new ModMenuScreen());
+            }
+
+            while (waypointKey.wasPressed()) {
+                if (client.world != null) {
+                    client.setScreen(new com.velora.client.gui.WaypointManagerScreen(null));
+                }
             }
         });
     }

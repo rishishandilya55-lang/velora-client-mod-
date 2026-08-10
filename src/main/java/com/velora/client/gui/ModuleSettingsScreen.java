@@ -4,16 +4,21 @@ import com.velora.client.config.ModConfig;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
+import io.wispforest.owo.ui.component.LabelComponent;
+import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
 import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.*;
 import java.util.function.Consumer;
 
 public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
@@ -22,6 +27,7 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
     private final @Nullable Screen parent;
     private boolean listeningForKey = false;
     private FlowLayout settingsPanel;
+    private String itemSearchQuery = "";
 
     private static final int BG       = 0xFF08080A;
     private static final int SURF     = 0xFF0F0F12;
@@ -95,7 +101,7 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         panel.child(header);
 
         settingsPanel = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-        settingsPanel.padding(Insets.of(8, 14, 8, 14));
+        settingsPanel.padding(Insets.of(8, 14, 60, 14));
         settingsPanel.gap(3);
         buildSettings();
 
@@ -127,13 +133,14 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
             case "No Hurt Cam", "NoHurtCam" -> buildHurtCamSettings();
             case "Minimap" -> buildMinimapSettings();
             case "Capes & Physics" -> buildCapeSettings();
-            case "Nametag" -> buildNametagSettings();
+            case "Waypoints", "Waypoint", "WaypointsMod" -> buildWaypointsSettings();
             case "Chat Colors" -> buildChatColorSettings();
             case "Item Tooltips" -> buildItemTooltipSettings();
             case "Item Physics", "ItemPhysics" -> buildItemPhysicsSettings();
             case "Hit Color", "HitColor" -> buildHitColorSettings();
             case "Potion Status", "Potion HUD", "PotionHud" -> buildPotionSettings();
             case "Crosshair", "Custom Crosshair", "Crosshair Mod" -> buildCrosshairSettings();
+            case "Item Model", "ItemModel", "View Model", "ViewModel", "View Model Mod", "Item Scale" -> buildViewModelSettings();
             default -> buildGenericSettings();
         }
     }
@@ -443,6 +450,9 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         settingsPanel.child(makeToggleRow("Show Biome", "Display biome name and heading",
             ModConfig.minimapShowBiome,
             () -> { ModConfig.minimapShowBiome = !ModConfig.minimapShowBiome; ModConfig.saveConfig(); buildSettings(); }));
+        settingsPanel.child(makeToggleRow("Show Waypoints", "Display waypoint markers and names on radar map",
+            ModConfig.minimapShowWaypoints,
+            () -> { ModConfig.minimapShowWaypoints = !ModConfig.minimapShowWaypoints; ModConfig.saveConfig(); buildSettings(); }));
         settingsPanel.child(makeButtonRow("HUD Position & Scale", "Open HUD Editor",
             () -> { if (client != null) client.setScreen(new HudEditorScreen()); }));
     }
@@ -465,66 +475,35 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
             () -> { ModConfig.overrideDefaultCape = !ModConfig.overrideDefaultCape; ModConfig.saveConfig(); buildSettings(); }));
     }
 
-    private void buildNametagSettings() {
-        settingsPanel.child(makeSectionHeader("Nametag"));
-        settingsPanel.child(makeToggleRow("Show Nametag", "Display custom overhead IGN nametag",
-            ModConfig.showNametag,
-            () -> { ModConfig.showNametag = !ModConfig.showNametag; ModConfig.saveConfig(); buildSettings(); }));
-        settingsPanel.child(makeToggleRow("Show Health", "Display player health (e.g. 20❤) in nametag",
-            ModConfig.nametagShowHealth,
-            () -> { ModConfig.nametagShowHealth = !ModConfig.nametagShowHealth; ModConfig.saveConfig(); buildSettings(); }));
-        settingsPanel.child(makeToggleRow("Show Distance", "Display distance in meters (e.g. [15m]) to player",
-            ModConfig.nametagShowDistance,
-            () -> { ModConfig.nametagShowDistance = !ModConfig.nametagShowDistance; ModConfig.saveConfig(); buildSettings(); }));
-
-        int opacityPercent = (int) Math.round((ModConfig.nametagBackgroundOpacity / 255.0) * 100);
-        settingsPanel.child(makeCycleRow("BG Opacity", opacityPercent + "%", () -> {
-            if (ModConfig.nametagBackgroundOpacity <= 50) ModConfig.nametagBackgroundOpacity = 100;
-            else if (ModConfig.nametagBackgroundOpacity <= 100) ModConfig.nametagBackgroundOpacity = 160;
-            else if (ModConfig.nametagBackgroundOpacity <= 160) ModConfig.nametagBackgroundOpacity = 220;
-            else if (ModConfig.nametagBackgroundOpacity <= 220) ModConfig.nametagBackgroundOpacity = 255;
-            else ModConfig.nametagBackgroundOpacity = 0;
-            ModConfig.saveConfig();
-            buildSettings();
+    private void buildWaypointsSettings() {
+        settingsPanel.child(makeSectionHeader("Waypoints"));
+        settingsPanel.child(makeToggleRow("Enable Waypoints", "Show in-world 3D waypoint markers",
+            ModConfig.showWaypoints,
+            () -> { ModConfig.showWaypoints = !ModConfig.showWaypoints; ModConfig.saveConfig(); }));
+        settingsPanel.child(makeButtonRow("Waypoint Studio", "Open Waypoint Manager", () -> {
+            if (this.client != null) this.client.setScreen(new WaypointManagerScreen(this));
         }));
-        settingsPanel.child(makeNametagOpacitySlider());
-        settingsPanel.child(makeHintRow("Visible above head on players and on yourself in 3rd person (F5 / FreeLook)."));
-    }
+        settingsPanel.child(makeButtonRow("Quick Mark", "+ New Waypoint Here", () -> {
+            if (this.client != null) this.client.setScreen(new WaypointCreateScreen(this, null));
+        }));
 
-    private FlowLayout makeNametagOpacitySlider() {
-        FlowLayout container = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-        container.gap(2);
-        container.padding(Insets.of(0, 4, 0, 4));
+        settingsPanel.child(makeSectionHeader("Display Options"));
+        settingsPanel.child(makeToggleRow("Vertical Beacon Beams", "Shoot bright vertical beacon beams into the sky at waypoint locations",
+            ModConfig.waypointsBeaconBeams,
+            () -> { ModConfig.waypointsBeaconBeams = !ModConfig.waypointsBeaconBeams; ModConfig.saveConfig(); }));
+        settingsPanel.child(makeToggleRow("Show Distance", "Display distance in meters (e.g. [125m]) on waypoint tag",
+            ModConfig.waypointsShowDistance,
+            () -> { ModConfig.waypointsShowDistance = !ModConfig.waypointsShowDistance; ModConfig.saveConfig(); }));
+        settingsPanel.child(makeToggleRow("Show on Minimap", "Display waypoint blip markers on radar minimap",
+            ModConfig.minimapShowWaypoints,
+            () -> { ModConfig.minimapShowWaypoints = !ModConfig.minimapShowWaypoints; ModConfig.saveConfig(); }));
 
-        FlowLayout sliderBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(16));
-        sliderBar.surface((ctx, comp) -> {
-            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.drawBorder(x - 1, y - 1, w + 2, h + 2, BORDER_S);
-            for (int col = 0; col < w; col++) {
-                int a = (int) ((col / (float) Math.max(1, w)) * 255);
-                ctx.fill(x + col, y, x + col + 1, y + h, (a << 24) | 0x000000);
-            }
-            int markerX = x + (int) ((ModConfig.nametagBackgroundOpacity / 255.0f) * w);
-            ctx.fill(markerX - 2, y - 2, markerX + 2, y + h + 2, 0xFFFFFFFF);
-            ctx.fill(markerX - 1, y - 1, markerX + 1, y + h + 1, 0xFF000000);
-        });
+        settingsPanel.child(makeSectionHeader("Keybind"));
+        settingsPanel.child(makeButtonRow("Open Manager Shortcut", "Press 'U' Key In-Game", () -> {
+            if (this.client != null) this.client.setScreen(new WaypointManagerScreen(this));
+        }));
 
-        sliderBar.mouseDown().subscribe((mx, my, btn) -> {
-            if (btn == 0) {
-                int w = sliderBar.width();
-                if (w > 0) {
-                    float pct = Math.max(0.0f, Math.min(1f, (float) mx / (float) w));
-                    ModConfig.nametagBackgroundOpacity = Math.round(pct * 255f);
-                    ModConfig.saveConfig();
-                    buildSettings();
-                }
-                return true;
-            }
-            return false;
-        });
-
-        container.child(sliderBar);
-        return container;
+        settingsPanel.child(makeHintRow("Waypoints are isolated per server / singleplayer world and dimension automatically."));
     }
 
     private void buildChatColorSettings() {
@@ -1060,6 +1039,437 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         }
     }
 
+    private static String expandedItemId = null;
+    private static boolean showAdvancedTransforms = false;
+
+    private void buildViewModelSettings() {
+        // 1. Top Header Subtitle & Status
+        FlowLayout descBox = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        descBox.gap(2);
+        descBox.child(Components.label(Text.literal("Displays a 3D model of the item you're holding for better visualization"))
+            .color(Color.ofArgb(TEXT_F)));
+        settingsPanel.child(descBox);
+
+        // Quick Master & Reset Bar
+        FlowLayout masterBar = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+        masterBar.verticalAlignment(VerticalAlignment.CENTER);
+        masterBar.gap(6);
+
+        ButtonComponent toggleBtn = Components.button(
+            Text.literal(ModConfig.showViewModel ? "ENABLED (ON)" : "DISABLED (OFF)"),
+            b -> {
+                ModConfig.showViewModel = !ModConfig.showViewModel;
+                ModConfig.saveConfig();
+                buildSettings();
+            }
+        );
+        toggleBtn.sizing(Sizing.content(), Sizing.fixed(20));
+        toggleBtn.renderer(ButtonComponent.Renderer.flat(
+            ModConfig.showViewModel ? GREEN_D : SURF3,
+            ModConfig.showViewModel ? GREEN : TEXT_F,
+            ModConfig.showViewModel ? GREEN_D : SURF3
+        ));
+        masterBar.child(toggleBtn);
+
+        ButtonComponent resetAllBtn = Components.button(Text.literal("RESET ALL"), b -> {
+            ModConfig.itemScales.clear();
+            ModConfig.itemGroundScales.clear();
+            ModConfig.itemGuiScales.clear();
+            ModConfig.viewModelMainHandScale = 1.0f;
+            ModConfig.viewModelOffHandScale = 1.0f;
+            ModConfig.viewModelMainHandX = 0.0f;
+            ModConfig.viewModelMainHandY = 0.0f;
+            ModConfig.viewModelMainHandZ = 0.0f;
+            ModConfig.viewModelOffHandX = 0.0f;
+            ModConfig.viewModelOffHandY = 0.0f;
+            ModConfig.viewModelOffHandZ = 0.0f;
+            ModConfig.viewModelPitch = 0.0f;
+            ModConfig.viewModelYaw = 0.0f;
+            ModConfig.viewModelRoll = 0.0f;
+            ModConfig.saveConfig();
+            buildSettings();
+        });
+        resetAllBtn.sizing(Sizing.content(), Sizing.fixed(20));
+        resetAllBtn.renderer(ButtonComponent.Renderer.flat(SURF3, RED, SURF3));
+        masterBar.child(resetAllBtn);
+
+        settingsPanel.child(masterBar);
+
+        // 2. Search Bar
+        FlowLayout searchRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(26));
+        searchRow.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.fill(x, y, x + w, y + h, SURF);
+            ctx.drawBorder(x, y, w, h, BORDER_S);
+        });
+        searchRow.verticalAlignment(VerticalAlignment.CENTER);
+        searchRow.padding(Insets.of(2, 8, 2, 8));
+        searchRow.gap(6);
+        searchRow.child(Components.label(Text.literal("Search items...")).color(Color.ofArgb(TEXT_F)));
+
+        TextBoxComponent searchBox = Components.textBox(Sizing.fill(100), itemSearchQuery);
+        searchBox.sizing(Sizing.fill(100), Sizing.fixed(16));
+        searchBox.setMaxLength(50);
+        searchBox.onChanged().subscribe(val -> {
+            itemSearchQuery = val.trim().toLowerCase();
+            buildSettings();
+        });
+        searchRow.child(searchBox);
+        settingsPanel.child(searchRow);
+
+        // 3. Item List (with Accordion Expand/Collapse)
+        List<ItemDisplayEntry> itemsToDisplay = getItemsForSearch(itemSearchQuery);
+        if (itemsToDisplay.isEmpty()) {
+            settingsPanel.child(makeHintRow("No items found matching \"" + itemSearchQuery + "\""));
+        } else {
+            for (ItemDisplayEntry entry : itemsToDisplay) {
+                settingsPanel.child(buildAccordionItemCard(entry.displayName, entry.itemId));
+            }
+        }
+    }
+
+    private FlowLayout buildAccordionItemCard(String displayName, String itemId) {
+        boolean isExpanded = itemId.equals(expandedItemId);
+        float firstPersonScale = ModConfig.getItemScaleById(itemId);
+        float groundScale = ModConfig.getItemGroundScaleById(itemId);
+        float guiScale = ModConfig.getItemGuiScaleById(itemId);
+        boolean hasCustom = (firstPersonScale != 1.0f || groundScale != 1.0f || guiScale != 1.0f);
+
+        FlowLayout card = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        card.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            int bg = isExpanded ? SURF3 : (hasCustom ? 0x0AFFFFFF : SURF);
+            int bdr = isExpanded ? VIOLET_S : (hasCustom ? GREEN_D : BORDER);
+            ctx.fill(x, y, x + w, y + h, bg);
+            ctx.drawBorder(x, y, w, h, bdr);
+        });
+        card.padding(Insets.of(4, 8, 4, 8));
+        card.gap(4);
+
+        // Collapsed / Header Row
+        FlowLayout headerRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+        headerRow.verticalAlignment(VerticalAlignment.CENTER);
+        headerRow.gap(6);
+
+        int nameColor = hasCustom ? TEXT : TEXT_M;
+        if ("minecraft:enchanted_golden_apple".equals(itemId)) {
+            nameColor = 0xFFFCD34D;
+        }
+
+        headerRow.child(Components.label(Text.literal(displayName)).color(Color.ofArgb(nameColor)));
+        headerRow.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+
+        if (hasCustom && !isExpanded) {
+            String badge = String.format("1P:%.1fx | G:%.1fx", firstPersonScale, groundScale);
+            headerRow.child(Components.label(Text.literal(badge)).color(Color.ofArgb(GREEN)));
+        }
+
+        // Chevron
+        String chevron = isExpanded ? "v" : ">";
+        headerRow.child(Components.label(Text.literal(chevron)).color(Color.ofArgb(isExpanded ? VIOLET : TEXT_F)));
+
+        headerRow.mouseDown().subscribe((mx, my, btn) -> {
+            if (btn == 0) {
+                expandedItemId = isExpanded ? null : itemId;
+                buildSettings();
+                return true;
+            }
+            return false;
+        });
+
+        card.child(headerRow);
+
+        // Expanded Content Panel (Matching Video Frame 00:06 - 00:11)
+        if (isExpanded) {
+            FlowLayout expandedPanel = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+            expandedPanel.surface(Surface.flat(SURF2));
+            expandedPanel.padding(Insets.of(6, 8, 6, 8));
+            expandedPanel.gap(4);
+
+            // Preview Title Row
+            FlowLayout previewRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(16));
+            previewRow.verticalAlignment(VerticalAlignment.CENTER);
+            previewRow.child(Components.label(Text.literal("MODEL PREVIEW")).color(Color.ofArgb(TEXT_F)));
+            previewRow.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+            previewRow.child(Components.label(Text.literal(itemId)).color(Color.ofArgb(0xFF52525B)));
+            expandedPanel.child(previewRow);
+
+            // 3 Scale Rows: GROUND, 1ST PERSON, GUI
+            expandedPanel.child(makeModelScaleRow("GROUND", groundScale,
+                () -> { ModConfig.setItemGroundScale(itemId, Math.max(0.1f, Math.round((groundScale - 0.1f) * 10.0f) / 10.0f)); buildSettings(); },
+                () -> { ModConfig.setItemGroundScale(itemId, Math.min(4.0f, Math.round((groundScale + 0.1f) * 10.0f) / 10.0f)); buildSettings(); },
+                () -> { ModConfig.setItemGroundScale(itemId, 1.0f); buildSettings(); }
+            ));
+
+            expandedPanel.child(makeModelScaleRow("1ST PERSON", firstPersonScale,
+                () -> { ModConfig.setItemScale(itemId, Math.max(0.1f, Math.round((firstPersonScale - 0.1f) * 10.0f) / 10.0f)); buildSettings(); },
+                () -> { ModConfig.setItemScale(itemId, Math.min(4.0f, Math.round((firstPersonScale + 0.1f) * 10.0f) / 10.0f)); buildSettings(); },
+                () -> { ModConfig.setItemScale(itemId, 1.0f); buildSettings(); }
+            ));
+
+            expandedPanel.child(makeModelScaleRow("GUI", guiScale,
+                () -> { ModConfig.setItemGuiScale(itemId, Math.max(0.1f, Math.round((guiScale - 0.1f) * 10.0f) / 10.0f)); buildSettings(); },
+                () -> { ModConfig.setItemGuiScale(itemId, Math.min(4.0f, Math.round((guiScale + 0.1f) * 10.0f) / 10.0f)); buildSettings(); },
+                () -> { ModConfig.setItemGuiScale(itemId, 1.0f); buildSettings(); }
+            ));
+
+            // ADVANCED > Toggle
+            FlowLayout advRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(20));
+            advRow.verticalAlignment(VerticalAlignment.CENTER);
+            ButtonComponent advBtn = Components.button(
+                Text.literal(showAdvancedTransforms ? "ADVANCED (HIDE v)" : "ADVANCED >"),
+                b -> {
+                    showAdvancedTransforms = !showAdvancedTransforms;
+                    buildSettings();
+                }
+            );
+            advBtn.sizing(Sizing.content(), Sizing.fixed(18));
+            advBtn.renderer(ButtonComponent.Renderer.flat(SURF3, TEXT_M, SURF3));
+            advRow.child(advBtn);
+            expandedPanel.child(advRow);
+
+            if (showAdvancedTransforms) {
+                expandedPanel.child(makeStepRow("Main Hand X", String.format("%+.2f", ModConfig.viewModelMainHandX),
+                    () -> { ModConfig.viewModelMainHandX = Math.max(-2.0f, Math.round((ModConfig.viewModelMainHandX - 0.05f) * 100.0f) / 100.0f); ModConfig.saveConfig(); buildSettings(); },
+                    () -> { ModConfig.viewModelMainHandX = Math.min(2.0f, Math.round((ModConfig.viewModelMainHandX + 0.05f) * 100.0f) / 100.0f); ModConfig.saveConfig(); buildSettings(); },
+                    () -> { ModConfig.viewModelMainHandX = 0.0f; ModConfig.saveConfig(); buildSettings(); }
+                ));
+                expandedPanel.child(makeStepRow("Main Hand Y", String.format("%+.2f", ModConfig.viewModelMainHandY),
+                    () -> { ModConfig.viewModelMainHandY = Math.max(-2.0f, Math.round((ModConfig.viewModelMainHandY - 0.05f) * 100.0f) / 100.0f); ModConfig.saveConfig(); buildSettings(); },
+                    () -> { ModConfig.viewModelMainHandY = Math.min(2.0f, Math.round((ModConfig.viewModelMainHandY + 0.05f) * 100.0f) / 100.0f); ModConfig.saveConfig(); buildSettings(); },
+                    () -> { ModConfig.viewModelMainHandY = 0.0f; ModConfig.saveConfig(); buildSettings(); }
+                ));
+                expandedPanel.child(makeStepRow("Main Hand Z", String.format("%+.2f", ModConfig.viewModelMainHandZ),
+                    () -> { ModConfig.viewModelMainHandZ = Math.max(-2.0f, Math.round((ModConfig.viewModelMainHandZ - 0.05f) * 100.0f) / 100.0f); ModConfig.saveConfig(); buildSettings(); },
+                    () -> { ModConfig.viewModelMainHandZ = Math.min(2.0f, Math.round((ModConfig.viewModelMainHandZ + 0.05f) * 100.0f) / 100.0f); ModConfig.saveConfig(); buildSettings(); },
+                    () -> { ModConfig.viewModelMainHandZ = 0.0f; ModConfig.saveConfig(); buildSettings(); }
+                ));
+            }
+
+            card.child(expandedPanel);
+        }
+
+        return card;
+    }
+
+    private FlowLayout makeModelScaleRow(String label, float scaleVal, Runnable onMinus, Runnable onPlus, Runnable onReset) {
+        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(24));
+        row.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.fill(x, y, x + w, y + h, 0x06FFFFFF);
+        });
+        row.verticalAlignment(VerticalAlignment.CENTER);
+        row.padding(Insets.of(1, 6, 1, 6));
+        row.gap(6);
+
+        row.child(Components.label(Text.literal(label)).color(Color.ofArgb(TEXT_M)));
+        row.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+
+        String valStr = String.format("%.2fx", scaleVal);
+        int valColor = (scaleVal != 1.0f) ? ((scaleVal > 1.0f) ? GREEN : VIOLET) : TEXT_F;
+        row.child(Components.label(Text.literal(valStr)).color(Color.ofArgb(valColor)));
+
+        ButtonComponent minusBtn = Components.button(Text.literal("-"), b -> onMinus.run());
+        minusBtn.sizing(Sizing.fixed(16), Sizing.fixed(16));
+        minusBtn.renderer(ButtonComponent.Renderer.flat(SURF3, VIOLET_S, SURF3));
+        row.child(minusBtn);
+
+        ButtonComponent plusBtn = Components.button(Text.literal("+"), b -> onPlus.run());
+        plusBtn.sizing(Sizing.fixed(16), Sizing.fixed(16));
+        plusBtn.renderer(ButtonComponent.Renderer.flat(SURF3, VIOLET_S, SURF3));
+        row.child(plusBtn);
+
+        ButtonComponent resetBtn = Components.button(Text.literal("R"), b -> onReset.run());
+        resetBtn.sizing(Sizing.fixed(16), Sizing.fixed(16));
+        resetBtn.renderer(ButtonComponent.Renderer.flat(0xFF3F3F46, RED, 0xFF3F3F46));
+        row.child(resetBtn);
+
+        return row;
+    }
+
+    private record ItemDisplayEntry(String displayName, String itemId) {}
+
+    private List<ItemDisplayEntry> getItemsForSearch(String query) {
+        List<ItemDisplayEntry> results = new ArrayList<>();
+        Set<String> added = new HashSet<>();
+
+        if (query == null || query.isEmpty()) {
+            // Quick preset popular items
+            String[][] popular = {
+                {"Golden Apple", "minecraft:golden_apple"},
+                {"Enchanted Golden Apple", "minecraft:enchanted_golden_apple"},
+                {"Diamond Sword", "minecraft:diamond_sword"},
+                {"Netherite Sword", "minecraft:netherite_sword"},
+                {"Bow", "minecraft:bow"},
+                {"Crossbow", "minecraft:crossbow"},
+                {"Ender Pearl", "minecraft:ender_pearl"},
+                {"Totem of Undying", "minecraft:totem_of_undying"},
+                {"Shield", "minecraft:shield"},
+                {"Wind Charge", "minecraft:wind_charge"},
+                {"Mace", "minecraft:mace"},
+                {"Potion", "minecraft:potion"},
+                {"Splash Potion", "minecraft:splash_potion"},
+                {"End Crystal", "minecraft:end_crystal"},
+                {"Golden Carrot", "minecraft:golden_carrot"}
+            };
+            for (String[] p : popular) {
+                results.add(new ItemDisplayEntry(p[0], p[1]));
+                added.add(p[1]);
+            }
+            return results;
+        }
+
+        // Always check Golden Apple and Enchanted Golden Apple for query matches first
+        if ("golden apple".contains(query) || "apple".contains(query) || "gold".contains(query)) {
+            if (!added.contains("minecraft:golden_apple")) {
+                results.add(new ItemDisplayEntry("Golden Apple", "minecraft:golden_apple"));
+                added.add("minecraft:golden_apple");
+            }
+        }
+        if ("enchanted golden apple".contains(query) || "notch".contains(query) || "god apple".contains(query) || "enchanted".contains(query) || "gapple".contains(query)) {
+            if (!added.contains("minecraft:enchanted_golden_apple")) {
+                results.add(new ItemDisplayEntry("Enchanted Golden Apple", "minecraft:enchanted_golden_apple"));
+                added.add("minecraft:enchanted_golden_apple");
+            }
+        }
+
+        // Search through Registries.ITEM
+        for (Identifier id : Registries.ITEM.getIds()) {
+            if (results.size() >= 20) break;
+            String idStr = id.toString();
+            String path = id.getPath();
+            String formattedName = formatItemName(idStr);
+
+            if (path.toLowerCase().contains(query) || formattedName.toLowerCase().contains(query)) {
+                if (!added.contains(idStr)) {
+                    results.add(new ItemDisplayEntry(formattedName, idStr));
+                    added.add(idStr);
+                }
+            }
+        }
+
+        return results;
+    }
+
+    private static String formatItemName(String itemId) {
+        if ("minecraft:enchanted_golden_apple".equals(itemId)) return "Enchanted Golden Apple";
+        if ("minecraft:golden_apple".equals(itemId)) return "Golden Apple";
+
+        String path = itemId.contains(":") ? itemId.substring(itemId.indexOf(':') + 1) : itemId;
+        String[] words = path.split("_");
+        StringBuilder sb = new StringBuilder();
+        for (String w : words) {
+            if (!w.isEmpty()) {
+                sb.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1)).append(" ");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    private FlowLayout makeStepRow(String label, String valueText, Runnable onMinus, Runnable onPlus, Runnable onReset) {
+        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(28));
+        row.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.fill(x, y, x + w, y + h, 0x05FFFFFF);
+        });
+        row.verticalAlignment(VerticalAlignment.CENTER);
+        row.padding(Insets.of(2, 8, 2, 8));
+        row.gap(6);
+
+        row.child(Components.label(Text.literal(label)).color(Color.ofArgb(TEXT_M)));
+        row.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+
+        row.child(Components.label(Text.literal(valueText)).color(Color.ofArgb(VIOLET)));
+
+        ButtonComponent minusBtn = Components.button(Text.literal("-"), b -> onMinus.run());
+        minusBtn.sizing(Sizing.fixed(16), Sizing.fixed(16));
+        minusBtn.renderer(ButtonComponent.Renderer.flat(SURF3, VIOLET_S, SURF3));
+        row.child(minusBtn);
+
+        ButtonComponent plusBtn = Components.button(Text.literal("+"), b -> onPlus.run());
+        plusBtn.sizing(Sizing.fixed(16), Sizing.fixed(16));
+        plusBtn.renderer(ButtonComponent.Renderer.flat(SURF3, VIOLET_S, SURF3));
+        row.child(plusBtn);
+
+        ButtonComponent resetBtn = Components.button(Text.literal("R"), b -> onReset.run());
+        resetBtn.sizing(Sizing.fixed(16), Sizing.fixed(16));
+        resetBtn.renderer(ButtonComponent.Renderer.flat(0xFF3F3F46, TEXT_F, 0xFF3F3F46));
+        row.child(resetBtn);
+
+        return row;
+    }
+
+    private FlowLayout makeItemScaleRow(String displayName, String itemId) {
+        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(30));
+        row.surface((ctx, comp) -> {
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            float curScale = ModConfig.getItemScaleById(itemId);
+            if (curScale != 1.0f) {
+                ctx.fill(x, y, x + w, y + h, 0x0CFFFFFF);
+                ctx.fill(x, y, x + 2, y + h, (curScale > 1.0f) ? GREEN : VIOLET);
+            } else {
+                ctx.fill(x, y, x + w, y + h, 0x04FFFFFF);
+            }
+        });
+        row.verticalAlignment(VerticalAlignment.CENTER);
+        row.padding(Insets.of(2, 8, 2, 8));
+        row.gap(6);
+
+        FlowLayout labelCol = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        labelCol.gap(1);
+
+        float curScale = ModConfig.getItemScaleById(itemId);
+        int nameColor = (curScale != 1.0f) ? TEXT : TEXT_M;
+        if ("minecraft:enchanted_golden_apple".equals(itemId)) {
+            nameColor = 0xFFFCD34D;
+        }
+        labelCol.child(Components.label(Text.literal(displayName)).color(Color.ofArgb(nameColor)));
+        labelCol.child(Components.label(Text.literal(itemId)).color(Color.ofArgb(TEXT_F)));
+        row.child(labelCol);
+
+        String scaleBadge;
+        int badgeColor;
+        if (curScale > 1.0f) {
+            scaleBadge = String.format("%.1fx (Big)", curScale);
+            badgeColor = GREEN;
+        } else if (curScale < 1.0f) {
+            scaleBadge = String.format("%.1fx (Small)", curScale);
+            badgeColor = VIOLET;
+        } else {
+            scaleBadge = "1.0x (Normal)";
+            badgeColor = TEXT_F;
+        }
+        row.child(Components.label(Text.literal(scaleBadge)).color(Color.ofArgb(badgeColor)));
+
+        ButtonComponent minusBtn = Components.button(Text.literal("-"), b -> {
+            float s = Math.max(0.1f, Math.round((ModConfig.getItemScaleById(itemId) - 0.1f) * 10.0f) / 10.0f);
+            ModConfig.setItemScale(itemId, s);
+            buildSettings();
+        });
+        minusBtn.sizing(Sizing.fixed(18), Sizing.fixed(18));
+        minusBtn.renderer(ButtonComponent.Renderer.flat(SURF3, VIOLET_S, SURF3));
+        row.child(minusBtn);
+
+        ButtonComponent plusBtn = Components.button(Text.literal("+"), b -> {
+            float s = Math.min(3.0f, Math.round((ModConfig.getItemScaleById(itemId) + 0.1f) * 10.0f) / 10.0f);
+            ModConfig.setItemScale(itemId, s);
+            buildSettings();
+        });
+        plusBtn.sizing(Sizing.fixed(18), Sizing.fixed(18));
+        plusBtn.renderer(ButtonComponent.Renderer.flat(SURF3, VIOLET_S, SURF3));
+        row.child(plusBtn);
+
+        ButtonComponent resetBtn = Components.button(Text.literal("R"), b -> {
+            ModConfig.resetItemScale(itemId);
+            buildSettings();
+        });
+        resetBtn.sizing(Sizing.fixed(18), Sizing.fixed(18));
+        resetBtn.renderer(ButtonComponent.Renderer.flat(0xFF3F3F46, RED, 0xFF3F3F46));
+        row.child(resetBtn);
+
+        return row;
+    }
+
     private void buildGenericSettings() {
         settingsPanel.child(Components.label(Text.literal("Settings for " + moduleName))
             .color(Color.ofArgb(VIOLET)));
@@ -1077,11 +1487,12 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         return header;
     }
 
-    private FlowLayout makeToggleRow(String label, String desc, boolean enabled, Runnable action) {
+    private FlowLayout makeToggleRow(String label, String desc, boolean initialEnabled, Runnable action) {
+        final boolean[] state = new boolean[]{initialEnabled};
         FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(30));
         row.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            if (enabled) {
+            if (state[0]) {
                 ctx.fill(x, y, x + w, y + h, 0x0AFFFFFF);
                 ctx.fill(x, y, x + 2, y + h, VIOLET);
             }
@@ -1092,21 +1503,29 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
 
         FlowLayout info = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         info.gap(1);
-        info.child(Components.label(Text.literal(label)).color(Color.ofArgb(enabled ? TEXT : TEXT_M)));
+        LabelComponent titleLbl = Components.label(Text.literal(label));
+        titleLbl.color(Color.ofArgb(state[0] ? TEXT : TEXT_M));
+        info.child(titleLbl);
         info.child(Components.label(Text.literal(desc)).color(Color.ofArgb(TEXT_F)).sizing(Sizing.fill(100), Sizing.content()));
         row.child(info);
 
-        ButtonComponent toggle = Components.button(Text.literal(""), btn -> action.run());
+        Runnable toggleAction = () -> {
+            state[0] = !state[0];
+            titleLbl.color(Color.ofArgb(state[0] ? TEXT : TEXT_M));
+            action.run();
+        };
+
+        ButtonComponent toggle = Components.button(Text.literal(""), btn -> toggleAction.run());
         toggle.sizing(Sizing.fixed(28), Sizing.fixed(14));
         toggle.renderer((ctx, comp, delta) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, enabled ? GREEN_D : SURF3);
-            ctx.drawBorder(x, y, w, h, enabled ? GREEN : BORDER_S);
-            int knobX = enabled ? x + w - 10 : x + 2;
-            ctx.fill(knobX, y + 2, knobX + 8, y + h - 2, enabled ? GREEN : TEXT_F);
+            ctx.fill(x, y, x + w, y + h, state[0] ? GREEN_D : SURF3);
+            ctx.drawBorder(x, y, w, h, state[0] ? GREEN : BORDER_S);
+            int knobX = state[0] ? x + w - 10 : x + 2;
+            ctx.fill(knobX, y + 2, knobX + 8, y + h - 2, state[0] ? GREEN : TEXT_F);
         });
         row.child(toggle);
-        row.mouseDown().subscribe((mx, my, btn) -> { if (btn == 0) { action.run(); return true; } return false; });
+        row.mouseDown().subscribe((mx, my, btn) -> { if (btn == 0) { toggleAction.run(); return true; } return false; });
         return row;
     }
 
