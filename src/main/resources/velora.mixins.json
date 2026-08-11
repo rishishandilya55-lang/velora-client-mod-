@@ -25,7 +25,8 @@
     "ItemEntityRendererMixin",
     "HeldItemRendererMixin",
     "SimpleOptionMixin",
-    "InGameHudMixin"
+    "InGameHudMixin",
+    "WaypointRenderMixin"
   ],
   "injectors": {
     "defaultRequire": 1

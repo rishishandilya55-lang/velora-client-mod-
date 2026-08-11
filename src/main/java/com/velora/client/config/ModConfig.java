@@ -1,4 +1,4 @@
-package com.velora.client.config;
+buildpackage com.velora.client.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
