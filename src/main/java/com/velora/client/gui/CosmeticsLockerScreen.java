@@ -7,7 +7,6 @@ import com.velora.client.gui.cosmetic.MannequinModelRenderer;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.component.Components;
-import io.wispforest.owo.ui.component.EntityComponent;
 import io.wispforest.owo.ui.component.TextBoxComponent;
 import io.wispforest.owo.ui.container.Containers;
 import io.wispforest.owo.ui.container.FlowLayout;
@@ -15,7 +14,6 @@ import io.wispforest.owo.ui.container.ScrollContainer;
 import io.wispforest.owo.ui.core.*;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 
@@ -341,40 +339,10 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
         FlowLayout playerArea = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(100));
         playerArea.verticalAlignment(VerticalAlignment.CENTER);
         playerArea.horizontalAlignment(HorizontalAlignment.CENTER);
-
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc != null && mc.player != null) {
-            EntityComponent<LivingEntity> entityComp = Components.entity(Sizing.fixed(150), mc.player);
-            entityComp.scale(0.9f);
-            entityComp.allowMouseRotation(true);
-            entityComp.showNametag(false);
-            playerArea.child(entityComp);
-        } else {
-            FlowLayout silhouette = Containers.verticalFlow(Sizing.fixed(140), Sizing.fixed(150));
-            silhouette.verticalAlignment(VerticalAlignment.CENTER);
-            silhouette.horizontalAlignment(HorizontalAlignment.CENTER);
-            silhouette.surface((ctx, comp) -> {
-                int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-                int cx = x + w / 2;
-                int headS = 32;
-                int headX = cx - headS / 2;
-                int headY = y + 10;
-                ctx.fill(headX, headY, headX + headS, headY + headS, VeloraColors.SURF2);
-                ctx.drawBorder(headX, headY, headS, headS, VeloraColors.BORDER);
-                int bodyW = 24, bodyH = 36;
-                int bodyX = cx - bodyW / 2;
-                int bodyY = headY + headS + 4;
-                ctx.fill(bodyX, bodyY, bodyX + bodyW, bodyY + bodyH, VeloraColors.SURF2);
-                ctx.drawBorder(bodyX, bodyY, bodyW, bodyH, VeloraColors.BORDER);
-                int armW = 8, armH = 30;
-                ctx.fill(bodyX - armW - 2, bodyY, bodyX - 2, bodyY + armH, VeloraColors.SURF2);
-                ctx.fill(bodyX + bodyW + 2, bodyY, bodyX + bodyW + 2 + armW, bodyY + armH, VeloraColors.SURF2);
-                int legW = 10, legH = 30;
-                ctx.fill(cx - legW - 1, bodyY + bodyH + 2, cx - 1, bodyY + bodyH + 2 + legH, VeloraColors.SURF2);
-                ctx.fill(cx + 1, bodyY + bodyH + 2, cx + 1 + legW, bodyY + bodyH + 2 + legH, VeloraColors.SURF2);
-            });
-            playerArea.child(silhouette);
-        }
+        playerArea.surface((ctx, comp) -> {
+            CosmeticItem previewItem = getPreviewItem();
+            MannequinModelRenderer.renderPreviewLarge(ctx, comp.x(), comp.y(), comp.width(), comp.height(), previewItem);
+        });
         panel.child(playerArea);
 
         if (selectedCapeIndex >= 0) {
@@ -402,6 +370,17 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
         panel.child(helperRow);
 
         return panel;
+    }
+
+    private CosmeticItem getPreviewItem() {
+        List<CosmeticItem> items = CosmeticTextureCache.getItems();
+        if (selectedCapeIndex >= 0 && selectedCapeIndex < items.size()) {
+            return items.get(selectedCapeIndex);
+        }
+        if (ModConfig.enableCape && ModConfig.selectedCape >= 0 && ModConfig.selectedCape < items.size()) {
+            return items.get(ModConfig.selectedCape);
+        }
+        return null;
     }
 
     private void saveFavoritesToConfig() {

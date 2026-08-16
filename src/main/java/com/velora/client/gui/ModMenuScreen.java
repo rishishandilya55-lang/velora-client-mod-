@@ -79,6 +79,7 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
         {"Potion Status", "HUD",      "POT",  0xFFC084FC, "Active potion effects"},
         {"Crosshair",     "Visual",   "+",    0xFF34D399, "Custom crosshair studio"},
         {"Item Model",    "Visual",   "MDL",  0xFF38BDF8, "Custom 3D item scale"},
+        {"Nametag",       "Visual",   "TAG",  0xFFA78BFA, "Custom nametag with rank badges (P)"},
     };
 
     private int activeTopTab = 0;
@@ -698,6 +699,7 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
             case 21 -> ModConfig.showPotionHud;
             case 22 -> ModConfig.enableCustomCrosshair;
             case 23 -> ModConfig.showViewModel;
+            case 24 -> ModConfig.showNametag;
             default -> false;
         };
     }
@@ -728,6 +730,7 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
             case 21 -> ModConfig.showPotionHud = !ModConfig.showPotionHud;
             case 22 -> ModConfig.enableCustomCrosshair = !ModConfig.enableCustomCrosshair;
             case 23 -> ModConfig.showViewModel = !ModConfig.showViewModel;
+            case 24 -> ModConfig.showNametag = !ModConfig.showNametag;
         }
         ModConfig.saveConfig();
     }

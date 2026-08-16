@@ -19,6 +19,7 @@ public class ModKeybindings implements ClientModInitializer {
     public static KeyBinding snapLookKey;
     public static KeyBinding fullbrightKey;
     public static KeyBinding waypointKey;
+    public static KeyBinding nametagKey;
 
     public static void init() {
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -56,7 +57,14 @@ public class ModKeybindings implements ClientModInitializer {
             "category.velora.general"
         ));
 
-        LOGGER.info("[Velora] Keybindings registered: menu=RIGHT_SHIFT, freelook={}, snaplook={}, fullbright=F6, waypoints=U",
+        nametagKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+            "key.velora.nametag",
+            InputUtil.Type.KEYSYM,
+            GLFW.GLFW_KEY_P,
+            "category.velora.general"
+        ));
+
+        LOGGER.info("[Velora] Keybindings registered: menu=RIGHT_SHIFT, freelook={}, snaplook={}, fullbright=F6, waypoints=U, nametag=P",
                 ModConfig.freeLookKey, ModConfig.snapLookKey);
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -69,6 +77,12 @@ public class ModKeybindings implements ClientModInitializer {
                 if (client.world != null) {
                     client.setScreen(new com.velora.client.gui.WaypointManagerScreen(null));
                 }
+            }
+
+            while (nametagKey.wasPressed()) {
+                ModConfig.showNametag = !ModConfig.showNametag;
+                ModConfig.saveConfig();
+                LOGGER.info("[Velora] Nametag toggled to {}", ModConfig.showNametag);
             }
         });
     }

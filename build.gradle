@@ -9,6 +9,13 @@ base {
 	archivesName = project.mod_id
 }
 
+loom {
+	runConfigs.configureEach {
+		vmArg("-Xmx2G")
+		vmArg("-Xms512M")
+	}
+}
+
 repositories {
 	mavenCentral()
 	maven { url 'https://maven.wispforest.io/releases/' }

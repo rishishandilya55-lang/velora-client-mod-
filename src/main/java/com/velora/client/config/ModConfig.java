@@ -1,4 +1,4 @@
-buildpackage com.velora.client.config;
+package com.velora.client.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -57,6 +57,10 @@ public class ModConfig {
     public static boolean potionHudShowIcon = true;
     public static int potionHudTextColor = 0xFFFFFFFF;
     public static boolean potionHudTextRainbow = false;
+    // Nametag Options
+    public static boolean showNametag = true;
+    public static boolean nametagShowBadge = true;
+
     // Waypoints Options
     public static boolean showWaypoints = true;
     public static boolean minimapShowWaypoints = true;
@@ -453,6 +457,9 @@ public class ModConfig {
         public int potionHudY = ModConfig.potionHudY;
         public float potionHudScale = ModConfig.potionHudScale;
 
+        public boolean showNametag = ModConfig.showNametag;
+        public boolean nametagShowBadge = ModConfig.nametagShowBadge;
+
         public boolean showWaypoints = ModConfig.showWaypoints;
         public boolean minimapShowWaypoints = ModConfig.minimapShowWaypoints;
         public boolean waypointsShowDistance = ModConfig.waypointsShowDistance;
@@ -667,6 +674,9 @@ public class ModConfig {
             ModConfig.potionHudX = this.potionHudX;
             ModConfig.potionHudY = this.potionHudY;
             ModConfig.potionHudScale = Math.max(0.1f, Math.min(5.0f, this.potionHudScale));
+
+            ModConfig.showNametag = this.showNametag;
+            ModConfig.nametagShowBadge = this.nametagShowBadge;
 
             ModConfig.showWaypoints = this.showWaypoints;
             ModConfig.minimapShowWaypoints = this.minimapShowWaypoints;
