@@ -193,42 +193,45 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
         root.horizontalAlignment(HorizontalAlignment.CENTER);
         root.surface(Surface.flat(0x00000000));
         root.sizing(Sizing.fill(100), Sizing.fill(100));
-        root.padding(Insets.of(6, 0, 0, 0));
+        root.padding(Insets.of(10, 0, 0, 0));
 
-        FlowLayout toolbar = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(26));
+        FlowLayout toolbar = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(28));
         toolbar.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, SURF2);
-            ctx.drawBorder(x, y, w, h, BORDER_S);
+            VeloraRenderUtil.drawSolidPanel(ctx, x, y, w, h, VeloraColors.SURF2, VeloraColors.BORDER_S);
         });
         toolbar.verticalAlignment(VerticalAlignment.CENTER);
-        toolbar.padding(Insets.of(3, 8, 3, 8));
-        toolbar.gap(6);
+        toolbar.padding(Insets.of(3, 10, 3, 10));
+        toolbar.gap(8);
 
         ButtonComponent snapBtn = Components.button(
             Text.literal(ModConfig.hudSnap ? "Snap ON" : "Snap OFF"),
             btn -> {
                 ModConfig.hudSnap = !ModConfig.hudSnap;
                 btn.setMessage(Text.literal(ModConfig.hudSnap ? "Snap ON" : "Snap OFF"));
+                btn.renderer(ButtonComponent.Renderer.flat(
+                    ModConfig.hudSnap ? VeloraColors.GREEN_D : VeloraColors.SURF3,
+                    ModConfig.hudSnap ? VeloraColors.GREEN_S : VeloraColors.SURF4,
+                    ModConfig.hudSnap ? VeloraColors.GREEN_D : VeloraColors.SURF3));
             });
-        snapBtn.sizing(Sizing.fixed(56), Sizing.fixed(18));
+        snapBtn.sizing(Sizing.fixed(60), Sizing.fixed(20));
         snapBtn.renderer(ButtonComponent.Renderer.flat(
-            ModConfig.hudSnap ? GREEN_D : SURF3,
-            ModConfig.hudSnap ? GREEN : SURF2,
-            ModConfig.hudSnap ? GREEN_D : SURF3));
+            ModConfig.hudSnap ? VeloraColors.GREEN_D : VeloraColors.SURF3,
+            ModConfig.hudSnap ? VeloraColors.GREEN_S : VeloraColors.SURF4,
+            ModConfig.hudSnap ? VeloraColors.GREEN_D : VeloraColors.SURF3));
 
         ButtonComponent resetBtn = Components.button(Text.literal("Reset"), btn -> {
             ModConfig.resetHudPositions();
             selectedElement = null;
         });
-        resetBtn.sizing(Sizing.fixed(46), Sizing.fixed(18));
-        resetBtn.renderer(ButtonComponent.Renderer.flat(0xFF7F1D1D, RED, 0xFF7F1D1D));
+        resetBtn.sizing(Sizing.fixed(48), Sizing.fixed(20));
+        resetBtn.renderer(ButtonComponent.Renderer.flat(VeloraColors.SURF3, VeloraColors.RED_F, VeloraColors.SURF3));
 
         ButtonComponent doneBtn = Components.button(Text.literal("Done"), btn -> this.close());
-        doneBtn.sizing(Sizing.fixed(46), Sizing.fixed(18));
-        doneBtn.renderer(ButtonComponent.Renderer.flat(VIOLET_S, VIOLET, VIOLET_S));
+        doneBtn.sizing(Sizing.fixed(48), Sizing.fixed(20));
+        doneBtn.renderer(ButtonComponent.Renderer.flat(VeloraColors.VIOLET_D, VeloraColors.VIOLET_S, VeloraColors.VIOLET_D));
 
-        FlowLayout infoBox = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(18));
+        FlowLayout infoBox = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(20));
         infoBox.verticalAlignment(VerticalAlignment.CENTER);
         infoBox.padding(Insets.of(0, 4, 0, 0));
 
@@ -237,10 +240,10 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
                 selectedElement.getLabel() + " | " +
                 String.format("%.0fx%.0f", (float) selectedElement.getScaledWidth(), (float) selectedElement.getScaledHeight()) +
                 " | " + String.format("%.2fx", selectedElement.getScale())))
-                .color(Color.ofArgb(TEXT_M)));
+                .color(Color.ofArgb(VeloraColors.TEXT_M)));
         } else {
-            infoBox.child(Components.label(Text.literal("Click to select | Drag to move | Scroll to resize"))
-                .color(Color.ofArgb(TEXT_F)));
+            infoBox.child(Components.label(Text.literal("Click element to select • Drag to position • Scroll wheel to scale"))
+                .color(Color.ofArgb(VeloraColors.TEXT_F)));
         }
 
         toolbar.child(snapBtn);
@@ -253,14 +256,14 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        context.fill(0, 0, this.width, this.height, BG);
+        context.fill(0, 0, this.width, this.height, VeloraColors.BG_OVERLAY);
 
         if (ModConfig.hudSnap) {
             int gridStep = ModConfig.snapGridSize > 0 ? ModConfig.snapGridSize : 10;
             for (int gx = 0; gx < this.width; gx += gridStep * 2)
-                context.fill(gx, 0, gx + 1, this.height, 0x08FFFFFF);
+                context.fill(gx, 0, gx + 1, this.height, 0x06FFFFFF);
             for (int gy = 0; gy < this.height; gy += gridStep * 2)
-                context.fill(0, gy, this.width, gy + 1, 0x08FFFFFF);
+                context.fill(0, gy, this.width, gy + 1, 0x06FFFFFF);
         }
 
         int cx = this.width / 2;
@@ -283,8 +286,8 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
             if (Math.abs(elemCY - cy) < 3) snapGuideY = cy;
         }
 
-        if (snapGuideX != -1) context.fill(snapGuideX, 0, snapGuideX + 1, this.height, 0xAA7C3AED);
-        if (snapGuideY != -1) context.fill(0, snapGuideY, this.width, snapGuideY + 1, 0xAA7C3AED);
+        if (snapGuideX != -1) context.fill(snapGuideX, 0, snapGuideX + 1, this.height, 0x66818CF8);
+        if (snapGuideY != -1) context.fill(0, snapGuideY, this.width, snapGuideY + 1, 0x66818CF8);
 
         for (HudElement elem : HudElement.values()) {
             if (!elem.isEnabled()) continue;
@@ -292,11 +295,11 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
             int w = elem.getScaledWidth(), h = elem.getScaledHeight();
             boolean isSel = (selectedElement == elem), isHov = (hoveredElement == elem);
 
-            int fill = isSel ? 0x55A78BFA : isHov ? 0x33A78BFA : 0x14A78BFA;
+            int fill = isSel ? 0x30818CF8 : isHov ? 0x1E818CF8 : 0x0E818CF8;
             int bx = x - 4, by = y - 4, bw = w + 8, bh = h + 8;
             context.fill(bx, by, bx + bw, by + bh, fill);
 
-            int border = isSel ? 0xFFA78BFA : isHov ? 0xFF8B5CF6 : 0xFF6D28D9;
+            int border = isSel ? VeloraColors.VIOLET : isHov ? VeloraColors.VIOLET_S : VeloraColors.BORDER_S;
             drawOutline(context, bx, by, bw, bh, border);
 
             if (elem == HudElement.POTION) {
@@ -307,18 +310,18 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
                 com.velora.client.client.PotionHudMod.renderPreview(context, unscaledX, unscaledY, this.textRenderer);
                 context.getMatrices().pop();
             } else {
-                context.drawText(this.textRenderer, elem.getLabel(), x, y + (h > 18 ? 4 : (h - 8) / 2), 0xFFFFFFFF, true);
+                context.drawText(this.textRenderer, elem.getLabel(), x, y + (h > 18 ? 4 : (h - 8) / 2), VeloraColors.TEXT, true);
             }
 
             if (isSel || isHov) {
                 String scaleStr = String.format("%.2fx", elem.getScale());
-                int badgeW = this.textRenderer.getWidth(scaleStr) + 6;
+                int badgeW = this.textRenderer.getWidth(scaleStr) + 8;
                 int badgeX = bx + bw - badgeW - 2;
-                int badgeY = by - 10;
+                int badgeY = by - 12;
                 if (badgeY < 2) badgeY = by + bh + 2;
-                context.fill(badgeX, badgeY, badgeX + badgeW, badgeY + 10, 0xFF16161A);
-                drawOutline(context, badgeX, badgeY, badgeW, 10, 0x44A78BFA);
-                context.drawText(this.textRenderer, scaleStr, badgeX + 3, badgeY + 1, 0xFFE4E4E7, false);
+                context.fill(badgeX, badgeY, badgeX + badgeW, badgeY + 11, VeloraColors.SURF3);
+                drawOutline(context, badgeX, badgeY, badgeW, 11, VeloraColors.DIVIDER);
+                context.drawText(this.textRenderer, scaleStr, badgeX + 4, badgeY + 2, VeloraColors.TEXT_M, false);
             }
         }
 

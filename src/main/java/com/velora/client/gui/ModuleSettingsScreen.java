@@ -64,49 +64,48 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
     protected void build(FlowLayout root) {
         root.verticalAlignment(VerticalAlignment.CENTER);
         root.horizontalAlignment(HorizontalAlignment.CENTER);
-        root.surface(Surface.flat(0xAA000000));
+        root.surface(Surface.flat(0x00000000));
         root.sizing(Sizing.fill(100), Sizing.fill(100));
 
-        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(420), Sizing.fixed(320));
+        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(460), Sizing.fixed(360));
         panel.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, SURF2);
-            ctx.drawBorder(x, y, w, h, BORDER_S);
+            VeloraRenderUtil.drawSolidPanel(ctx, x, y, w, h, VeloraColors.SURF2, VeloraColors.BORDER_S);
         });
         panel.padding(Insets.none());
 
-        FlowLayout header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32));
+        FlowLayout header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(36));
         header.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, SURF3);
-            ctx.fill(x, y + h - 1, x + w, y + h, BORDER_S);
+            ctx.fill(x, y, x + w, y + h, VeloraColors.SURF3);
+            ctx.fill(x, y + h - 1, x + w, y + h, VeloraColors.DIVIDER);
         });
         header.verticalAlignment(VerticalAlignment.CENTER);
-        header.padding(Insets.of(0, 12, 0, 12));
-        header.gap(6);
+        header.padding(Insets.of(0, 14, 0, 14));
+        header.gap(8);
 
         header.child(Components.label(Text.literal(moduleName))
-            .color(Color.ofArgb(VIOLET))
+            .color(Color.ofArgb(VeloraColors.VIOLET))
             .shadow(true));
         header.child(Components.label(Text.literal("Settings"))
-            .color(Color.ofArgb(TEXT))
+            .color(Color.ofArgb(VeloraColors.TEXT))
             .shadow(true));
-        header.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        header.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
 
-        ButtonComponent closeBtn = Components.button(Text.literal("X"), btn -> this.close());
-        closeBtn.sizing(Sizing.fixed(18), Sizing.fixed(18));
-        closeBtn.renderer(ButtonComponent.Renderer.flat(SURF3, 0x33EF4444, SURF3));
+        ButtonComponent closeBtn = Components.button(Text.literal("✕"), btn -> this.close());
+        closeBtn.sizing(Sizing.fixed(20), Sizing.fixed(20));
+        closeBtn.renderer(ButtonComponent.Renderer.flat(VeloraColors.SURF3, VeloraColors.RED_F, VeloraColors.SURF3));
         header.child(closeBtn);
 
         panel.child(header);
 
         settingsPanel = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         settingsPanel.padding(Insets.of(8, 14, 60, 14));
-        settingsPanel.gap(3);
+        settingsPanel.gap(4);
         buildSettings();
 
         ScrollContainer<FlowLayout> scroll = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(100), settingsPanel);
-        scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(BORDER_S)));
+        scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(VeloraColors.BORDER_S)));
         panel.child(scroll);
 
         root.child(panel);
@@ -1157,7 +1156,7 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         }
 
         headerRow.child(Components.label(Text.literal(displayName)).color(Color.ofArgb(nameColor)));
-        headerRow.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        headerRow.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
 
         if (hasCustom && !isExpanded) {
             String badge = String.format("1P:%.1fx | G:%.1fx", firstPersonScale, groundScale);
@@ -1190,7 +1189,7 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
             FlowLayout previewRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(16));
             previewRow.verticalAlignment(VerticalAlignment.CENTER);
             previewRow.child(Components.label(Text.literal("MODEL PREVIEW")).color(Color.ofArgb(TEXT_F)));
-            previewRow.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+            previewRow.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
             previewRow.child(Components.label(Text.literal(itemId)).color(Color.ofArgb(0xFF52525B)));
             expandedPanel.child(previewRow);
 
@@ -1263,7 +1262,7 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         row.gap(6);
 
         row.child(Components.label(Text.literal(label)).color(Color.ofArgb(TEXT_M)));
-        row.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        row.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
 
         String valStr = String.format("%.2fx", scaleVal);
         int valColor = (scaleVal != 1.0f) ? ((scaleVal > 1.0f) ? GREEN : VIOLET) : TEXT_F;
@@ -1377,7 +1376,7 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         row.gap(6);
 
         row.child(Components.label(Text.literal(label)).color(Color.ofArgb(TEXT_M)));
-        row.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        row.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
 
         row.child(Components.label(Text.literal(valueText)).color(Color.ofArgb(VIOLET)));
 
@@ -1479,50 +1478,48 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
     // ── Row builders ──────────────────────────────────────────────────────────
 
     private FlowLayout makeSectionHeader(String title) {
-        FlowLayout header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(18));
+        FlowLayout header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(20));
         header.verticalAlignment(VerticalAlignment.CENTER);
-        header.padding(Insets.of(4, 0, 2, 0));
-        header.child(Components.label(Text.literal(title.toUpperCase())).color(Color.ofArgb(TEXT_F)));
-        header.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        header.padding(Insets.of(6, 2, 2, 2));
+        header.child(Components.label(Text.literal(title.toUpperCase())).color(Color.ofArgb(VeloraColors.VIOLET)));
+        header.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
         return header;
     }
 
     private FlowLayout makeToggleRow(String label, String desc, boolean initialEnabled, Runnable action) {
         final boolean[] state = new boolean[]{initialEnabled};
-        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(30));
+        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(34));
         row.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.fill(x, y, x + w, y + h, state[0] ? VeloraColors.CARD_ACTIVE : VeloraColors.CARD_BG);
             if (state[0]) {
-                ctx.fill(x, y, x + w, y + h, 0x0AFFFFFF);
-                ctx.fill(x, y, x + 2, y + h, VIOLET);
+                ctx.fill(x, y, x + 3, y + h, VeloraColors.VIOLET);
             }
         });
         row.verticalAlignment(VerticalAlignment.CENTER);
         row.padding(Insets.of(2, 8, 2, 8));
         row.gap(6);
 
-        FlowLayout info = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        FlowLayout info = Containers.verticalFlow(Sizing.content(), Sizing.content());
         info.gap(1);
         LabelComponent titleLbl = Components.label(Text.literal(label));
-        titleLbl.color(Color.ofArgb(state[0] ? TEXT : TEXT_M));
+        titleLbl.color(Color.ofArgb(state[0] ? VeloraColors.TEXT : VeloraColors.TEXT_M));
         info.child(titleLbl);
-        info.child(Components.label(Text.literal(desc)).color(Color.ofArgb(TEXT_F)).sizing(Sizing.fill(100), Sizing.content()));
+        info.child(Components.label(Text.literal(desc)).color(Color.ofArgb(VeloraColors.TEXT_F)));
         row.child(info);
+
+        row.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
 
         Runnable toggleAction = () -> {
             state[0] = !state[0];
-            titleLbl.color(Color.ofArgb(state[0] ? TEXT : TEXT_M));
+            titleLbl.color(Color.ofArgb(state[0] ? VeloraColors.TEXT : VeloraColors.TEXT_M));
             action.run();
         };
 
-        ButtonComponent toggle = Components.button(Text.literal(""), btn -> toggleAction.run());
-        toggle.sizing(Sizing.fixed(28), Sizing.fixed(14));
-        toggle.renderer((ctx, comp, delta) -> {
+        FlowLayout toggle = Containers.horizontalFlow(Sizing.fixed(28), Sizing.fixed(14));
+        toggle.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, state[0] ? GREEN_D : SURF3);
-            ctx.drawBorder(x, y, w, h, state[0] ? GREEN : BORDER_S);
-            int knobX = state[0] ? x + w - 10 : x + 2;
-            ctx.fill(knobX, y + 2, knobX + 8, y + h - 2, state[0] ? GREEN : TEXT_F);
+            VeloraRenderUtil.drawToggleSwitch(ctx, x, y, w, h, state[0]);
         });
         row.child(toggle);
         row.mouseDown().subscribe((mx, my, btn) -> { if (btn == 0) { toggleAction.run(); return true; } return false; });
@@ -1530,51 +1527,51 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
     }
 
     private FlowLayout makeCycleRow(String label, String value, Runnable onClick) {
-        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(26));
+        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(28));
         row.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, 0x05FFFFFF);
+            ctx.fill(x, y, x + w, y + h, VeloraColors.CARD_BG);
         });
         row.verticalAlignment(VerticalAlignment.CENTER);
         row.padding(Insets.of(2, 8, 2, 8));
         row.gap(6);
-        row.child(Components.label(Text.literal(label)).color(Color.ofArgb(TEXT_M)));
-        row.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
-        row.child(Components.label(Text.literal("[ " + value + " ]")).color(Color.ofArgb(VIOLET)));
+        row.child(Components.label(Text.literal(label)).color(Color.ofArgb(VeloraColors.TEXT_M)));
+        row.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
+        row.child(Components.label(Text.literal("[ " + value + " ]")).color(Color.ofArgb(VeloraColors.VIOLET)));
         row.mouseDown().subscribe((mx, my, btn) -> { if (btn == 0) { onClick.run(); return true; } return false; });
         return row;
     }
 
     private FlowLayout makeKeybindRow(String label, String key, int color, Runnable onClick) {
-        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(26));
+        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(28));
         row.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, 0x05FFFFFF);
+            ctx.fill(x, y, x + w, y + h, VeloraColors.CARD_BG);
         });
         row.verticalAlignment(VerticalAlignment.CENTER);
         row.padding(Insets.of(2, 8, 2, 8));
         row.gap(6);
-        row.child(Components.label(Text.literal(label)).color(Color.ofArgb(TEXT_M)));
-        row.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        row.child(Components.label(Text.literal(label)).color(Color.ofArgb(VeloraColors.TEXT_M)));
+        row.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
         row.child(Components.label(Text.literal("[ " + key + " ]")).color(Color.ofArgb(color)));
         row.mouseDown().subscribe((mx, my, btn) -> { if (btn == 0) { onClick.run(); return true; } return false; });
         return row;
     }
 
     private FlowLayout makeButtonRow(String label, String btnLabel, Runnable action) {
-        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(26));
+        FlowLayout row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(28));
         row.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, 0x05FFFFFF);
+            ctx.fill(x, y, x + w, y + h, VeloraColors.CARD_BG);
         });
         row.verticalAlignment(VerticalAlignment.CENTER);
         row.padding(Insets.of(2, 8, 2, 8));
         row.gap(6);
-        row.child(Components.label(Text.literal(label)).color(Color.ofArgb(TEXT_M)));
-        row.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        row.child(Components.label(Text.literal(label)).color(Color.ofArgb(VeloraColors.TEXT_M)));
+        row.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
         ButtonComponent btn = Components.button(Text.literal(btnLabel), b -> action.run());
-        btn.sizing(Sizing.content(), Sizing.fixed(16));
-        btn.renderer(ButtonComponent.Renderer.flat(VIOLET_D, VIOLET_S, VIOLET_D));
+        btn.sizing(Sizing.content(), Sizing.fixed(18));
+        btn.renderer(ButtonComponent.Renderer.flat(VeloraColors.VIOLET_D, VeloraColors.VIOLET_S, VeloraColors.VIOLET_D));
         row.child(btn);
         return row;
     }

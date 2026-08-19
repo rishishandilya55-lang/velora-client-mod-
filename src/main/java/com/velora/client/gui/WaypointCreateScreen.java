@@ -28,21 +28,21 @@ public class WaypointCreateScreen extends BaseOwoScreen<FlowLayout> {
     private String selectedDimension = "minecraft:overworld";
     private boolean chroma = false;
 
-    private static final int BG_COLOR = 0xCC08080A;
-    private static final int SURF     = 0xFF0F0F12;
-    private static final int SURF2    = 0xFF16161A;
-    private static final int SURF3    = 0xFF1D1D22;
-    private static final int TEXT     = 0xFFF4F4F5;
-    private static final int TEXT_M   = 0xFFA1A1AA;
-    private static final int TEXT_F   = 0xFF71717A;
-    private static final int BORDER   = 0x14FFFFFF;
-    private static final int BORDER_S = 0x29FFFFFF;
-    private static final int VIOLET   = 0xFFA78BFA;
-    private static final int VIOLET_S = 0xFF8B5CF6;
-    private static final int VIOLET_D = 0xFF6D28D9;
-    private static final int GREEN    = 0xFF34D399;
-    private static final int CYAN     = 0xFF38BDF8;
-    private static final int RED      = 0xFFEF4444;
+    private static final int BG_COLOR = VeloraColors.BG_OVERLAY;
+    private static final int SURF     = VeloraColors.SURF;
+    private static final int SURF2    = VeloraColors.SURF2;
+    private static final int SURF3    = VeloraColors.SURF3;
+    private static final int TEXT     = VeloraColors.TEXT;
+    private static final int TEXT_M   = VeloraColors.TEXT_M;
+    private static final int TEXT_F   = VeloraColors.TEXT_F;
+    private static final int BORDER   = VeloraColors.BORDER;
+    private static final int BORDER_S = VeloraColors.BORDER_S;
+    private static final int VIOLET   = VeloraColors.VIOLET;
+    private static final int VIOLET_S = VeloraColors.VIOLET_S;
+    private static final int VIOLET_D = VeloraColors.VIOLET_D;
+    private static final int GREEN    = VeloraColors.GREEN;
+    private static final int CYAN     = VeloraColors.CYAN;
+    private static final int RED      = VeloraColors.RED;
 
     private static final int[] PALETTE = new int[]{
         0xFFEF4444, // Red
@@ -62,7 +62,7 @@ public class WaypointCreateScreen extends BaseOwoScreen<FlowLayout> {
     };
 
     public WaypointCreateScreen(Screen parent, Waypoint existing) {
-        super(Text.literal(existing != null ? "Edit A Waypoint" : "Create Waypoint"));
+        super(Text.literal(existing != null ? "Edit Waypoint" : "Create Waypoint"));
         this.parent = parent;
         this.existingWaypoint = existing;
         if (existing != null) {
@@ -85,11 +85,10 @@ public class WaypointCreateScreen extends BaseOwoScreen<FlowLayout> {
         root.verticalAlignment(VerticalAlignment.CENTER);
         root.sizing(Sizing.fill(100), Sizing.fill(100));
 
-        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(380), Sizing.content());
+        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(400), Sizing.content());
         panel.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, SURF2);
-            ctx.drawBorder(x, y, w, h, BORDER_S);
+            VeloraRenderUtil.drawSolidPanel(ctx, x, y, w, h, VeloraColors.SURF2, VeloraColors.BORDER_S);
         });
         panel.padding(Insets.of(16, 20, 16, 20));
         panel.gap(10);
@@ -99,7 +98,7 @@ public class WaypointCreateScreen extends BaseOwoScreen<FlowLayout> {
         header.verticalAlignment(VerticalAlignment.CENTER);
         String titleText = (existingWaypoint != null) ? "Edit A Waypoint" : "Create A Waypoint";
         header.child(Components.label(Text.literal(titleText)).color(Color.ofArgb(TEXT)).shadow(true));
-        header.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        header.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
 
         // Live In-Game Preview Box
         String previewName = (nameField != null && !nameField.getText().trim().isEmpty()) ? nameField.getText().trim() : ((existingWaypoint != null) ? existingWaypoint.name : "Waypoint");
@@ -142,15 +141,15 @@ public class WaypointCreateScreen extends BaseOwoScreen<FlowLayout> {
         coordRow.gap(6);
 
         xField = Components.textBox(Sizing.fill(33));
-        xField.setText(String.format("%.1f", defX).replace(',', '.'));
+        xField.setText(String.format(java.util.Locale.ROOT, "%.1f", defX));
         xField.sizing(Sizing.fill(33), Sizing.fixed(20));
 
         yField = Components.textBox(Sizing.fill(33));
-        yField.setText(String.format("%.1f", defY).replace(',', '.'));
+        yField.setText(String.format(java.util.Locale.ROOT, "%.1f", defY));
         yField.sizing(Sizing.fill(33), Sizing.fixed(20));
 
         zField = Components.textBox(Sizing.fill(34));
-        zField.setText(String.format("%.1f", defZ).replace(',', '.'));
+        zField.setText(String.format(java.util.Locale.ROOT, "%.1f", defZ));
         zField.sizing(Sizing.fill(34), Sizing.fixed(20));
 
         coordRow.child(xField);
@@ -180,7 +179,7 @@ public class WaypointCreateScreen extends BaseOwoScreen<FlowLayout> {
         FlowLayout colorHeader = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(16));
         colorHeader.verticalAlignment(VerticalAlignment.CENTER);
         colorHeader.child(Components.label(Text.literal("Color")).color(Color.ofArgb(TEXT_M)));
-        colorHeader.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        colorHeader.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
         
         String hexStr = String.format("#%06X", (selectedColor & 0xFFFFFF));
         colorHeader.child(Components.label(Text.literal(hexStr)).color(Color.ofArgb(selectedColor | 0xFF000000)));

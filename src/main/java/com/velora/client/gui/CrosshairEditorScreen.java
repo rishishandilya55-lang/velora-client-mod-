@@ -28,17 +28,17 @@ public class CrosshairEditorScreen extends BaseOwoScreen<FlowLayout> {
     private int currentDrawButton = -1; // 0 = Paint, 1 = Erase
 
     // Theme Colors
-    private static final int BG_COLOR = 0xEE09090C;
-    private static final int PANEL_BG = 0xCC111116;
-    private static final int CARD_BG = 0xFF16161D;
-    private static final int BORDER_C = 0x33A78BFA;
-    private static final int VIOLET_D = 0xFF7C3AED;
-    private static final int VIOLET_S = 0xFFA78BFA;
-    private static final int GREEN = 0xFF22C55E;
-    private static final int RED = 0xFFEF4444;
-    private static final int TEXT_H = 0xFFFFFFFF;
-    private static final int TEXT_M = 0xFFE4E4E7;
-    private static final int TEXT_F = 0xFFA1A1AA;
+    private static final int BG_COLOR = VeloraColors.BG_OVERLAY;
+    private static final int PANEL_BG = VeloraColors.SURF2;
+    private static final int CARD_BG = VeloraColors.CARD_BG;
+    private static final int BORDER_C = VeloraColors.BORDER_S;
+    private static final int VIOLET_D = VeloraColors.VIOLET_D;
+    private static final int VIOLET_S = VeloraColors.VIOLET_S;
+    private static final int GREEN = VeloraColors.GREEN;
+    private static final int RED = VeloraColors.RED;
+    private static final int TEXT_H = VeloraColors.TEXT;
+    private static final int TEXT_M = VeloraColors.TEXT_M;
+    private static final int TEXT_F = VeloraColors.TEXT_F;
 
     private static final int[] PREVIEW_BGS = new int[]{0xFF111115, 0xFF38BDF8, 0xFF15803D, 0xFFE2E8F0, 0xFF7F1D1D};
     private static final String[] PREVIEW_BG_NAMES = new String[]{"Dark", "Sky", "Grass", "Snow", "Nether"};
@@ -46,6 +46,7 @@ public class CrosshairEditorScreen extends BaseOwoScreen<FlowLayout> {
     private FlowLayout contentContainer;
 
     public CrosshairEditorScreen(Screen parent) {
+        super(Text.literal("Crosshair Editor"));
         this.parent = parent;
     }
 
@@ -65,15 +66,17 @@ public class CrosshairEditorScreen extends BaseOwoScreen<FlowLayout> {
         header.verticalAlignment(VerticalAlignment.CENTER);
         header.gap(10);
 
-        ButtonComponent backBtn = Components.button(Text.literal("< Back"), b -> close());
+        ButtonComponent backBtn = Components.button(Text.literal("← Back"), b -> close());
         backBtn.sizing(Sizing.fixed(56), Sizing.fixed(20));
-        backBtn.renderer(ButtonComponent.Renderer.flat(0x33FFFFFF, VIOLET_D, 0x33FFFFFF));
+        backBtn.renderer(ButtonComponent.Renderer.flat(VeloraColors.SURF3, VeloraColors.VIOLET_D, VeloraColors.SURF3));
         header.child(backBtn);
 
-        FlowLayout titleBox = Containers.verticalFlow(Sizing.content(), Sizing.content());
-        titleBox.gap(2);
-        titleBox.child(Components.label(Text.literal("CROSSHAIR")).color(Color.ofArgb(TEXT_H)));
-        titleBox.child(Components.label(Text.literal("Replace the default Minecraft crosshair with a customizable crosshair.")).color(Color.ofArgb(TEXT_F)));
+        FlowLayout titleBox = Containers.horizontalFlow(Sizing.content(), Sizing.content());
+        titleBox.gap(6);
+        titleBox.verticalAlignment(VerticalAlignment.CENTER);
+        titleBox.child(Components.label(Text.literal("CROSSHAIR STUDIO")).color(Color.ofArgb(VeloraColors.VIOLET)).shadow(true));
+        titleBox.child(Components.label(Text.literal("•")).color(Color.ofArgb(VeloraColors.TEXT_F)));
+        titleBox.child(Components.label(Text.literal("Custom crosshair designs and presets")).color(Color.ofArgb(VeloraColors.TEXT_F)));
         header.child(titleBox);
 
         root.child(header);
@@ -461,7 +464,7 @@ public class CrosshairEditorScreen extends BaseOwoScreen<FlowLayout> {
         scaleRow.child(Components.label(Text.literal("Use Custom Scale")).color(Color.ofArgb(TEXT_H)));
 
         // Scale Pills: [ SMALL ] [ NORMAL ] [ LARGE ] [ AUTO ]
-        scaleRow.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        scaleRow.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
         String[] scales = new String[]{"SMALL", "NORMAL", "LARGE", "AUTO"};
         for (String s : scales) {
             boolean sel = s.equalsIgnoreCase(ModConfig.crosshairScaleMode);
@@ -622,7 +625,7 @@ public class CrosshairEditorScreen extends BaseOwoScreen<FlowLayout> {
         row.gap(8);
 
         row.child(Components.label(Text.literal(label)).color(Color.ofArgb(TEXT_H)));
-        row.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        row.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
 
         FlowLayout swatch = Containers.horizontalFlow(Sizing.fixed(16), Sizing.fixed(16));
         swatch.surface((ctx, comp) -> {
@@ -647,7 +650,7 @@ public class CrosshairEditorScreen extends BaseOwoScreen<FlowLayout> {
         row.gap(8);
 
         row.child(Components.label(Text.literal(label)).color(Color.ofArgb(TEXT_H)));
-        row.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        row.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
 
         ButtonComponent btn = Components.button(Text.literal(valueName), b -> onCycle.run());
         btn.sizing(Sizing.content(), Sizing.fixed(18));

@@ -23,23 +23,23 @@ public class WaypointManagerScreen extends BaseOwoScreen<FlowLayout> {
     private int selectedDimFilter = 0; // 0 = ALL, 1 = OVERWORLD, 2 = NETHER, 3 = END
     private FlowLayout waypointList;
 
-    private static final int BG_COLOR = 0xCC08080A;
-    private static final int SURF     = 0xFF0F0F12;
-    private static final int SURF2    = 0xFF16161A;
-    private static final int SURF3    = 0xFF1D1D22;
-    private static final int TEXT     = 0xFFF4F4F5;
-    private static final int TEXT_M   = 0xFFA1A1AA;
-    private static final int TEXT_F   = 0xFF71717A;
-    private static final int BORDER   = 0x14FFFFFF;
-    private static final int BORDER_S = 0x29FFFFFF;
-    private static final int VIOLET   = 0xFFA78BFA;
-    private static final int VIOLET_S = 0xFF8B5CF6;
-    private static final int VIOLET_D = 0xFF6D28D9;
-    private static final int GREEN    = 0xFF34D399;
-    private static final int CYAN     = 0xFF38BDF8;
-    private static final int RED      = 0xFFEF4444;
+    private static final int BG_COLOR = VeloraColors.BG_OVERLAY;
+    private static final int SURF     = VeloraColors.SURF;
+    private static final int SURF2    = VeloraColors.SURF2;
+    private static final int SURF3    = VeloraColors.SURF3;
+    private static final int TEXT     = VeloraColors.TEXT;
+    private static final int TEXT_M   = VeloraColors.TEXT_M;
+    private static final int TEXT_F   = VeloraColors.TEXT_F;
+    private static final int BORDER   = VeloraColors.BORDER;
+    private static final int BORDER_S = VeloraColors.BORDER_S;
+    private static final int VIOLET   = VeloraColors.VIOLET;
+    private static final int VIOLET_S = VeloraColors.VIOLET_S;
+    private static final int VIOLET_D = VeloraColors.VIOLET_D;
+    private static final int GREEN    = VeloraColors.GREEN;
+    private static final int CYAN     = VeloraColors.CYAN;
+    private static final int RED      = VeloraColors.RED;
 
-    private static final String[] DIM_TABS = {"ALL", "WORLD", "NETHER", "END"};
+    private static final String[] DIM_TABS = {"ALL", "OVERWORLD", "NETHER", "END"};
 
     public WaypointManagerScreen(Screen parent) {
         super(Text.literal("Waypoint Manager"));
@@ -58,36 +58,35 @@ public class WaypointManagerScreen extends BaseOwoScreen<FlowLayout> {
         root.verticalAlignment(VerticalAlignment.CENTER);
         root.sizing(Sizing.fill(100), Sizing.fill(100));
 
-        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(560), Sizing.fixed(330));
+        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(580), Sizing.fixed(360));
         panel.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, SURF2);
-            ctx.drawBorder(x, y, w, h, BORDER_S);
+            VeloraRenderUtil.drawSolidPanel(ctx, x, y, w, h, VeloraColors.SURF2, VeloraColors.BORDER_S);
         });
         panel.padding(Insets.none());
 
         // 1. Header Bar
-        FlowLayout header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32));
+        FlowLayout header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(36));
         header.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, SURF3);
-            ctx.fill(x, y + h - 1, x + w, y + h, BORDER_S);
+            ctx.fill(x, y, x + w, y + h, VeloraColors.SURF3);
+            ctx.fill(x, y + h - 1, x + w, y + h, VeloraColors.DIVIDER);
         });
         header.verticalAlignment(VerticalAlignment.CENTER);
-        header.padding(Insets.of(0, 10, 0, 10));
+        header.padding(Insets.of(0, 14, 0, 14));
         header.gap(8);
 
         FlowLayout brand = Containers.horizontalFlow(Sizing.content(), Sizing.content());
         brand.verticalAlignment(VerticalAlignment.CENTER);
-        brand.gap(4);
-        brand.child(Components.label(Text.literal("VELORA")).color(Color.ofArgb(VIOLET)).shadow(true));
-        brand.child(Components.label(Text.literal("Waypoints")).color(Color.ofArgb(TEXT)).shadow(true));
+        brand.gap(5);
+        brand.child(Components.label(Text.literal("VELORA")).color(Color.ofArgb(VeloraColors.VIOLET)).shadow(true));
+        brand.child(Components.label(Text.literal("Waypoints")).color(Color.ofArgb(VeloraColors.TEXT)).shadow(true));
         header.child(brand);
 
-        header.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        header.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
 
-        // Dimension Tabs: [ ALL ] [ WORLD ] [ NETHER ] [ END ]
-        FlowLayout dimTabs = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(20));
+        // Dimension Tabs: [ ALL ] [ OVERWORLD ] [ NETHER ] [ END ]
+        FlowLayout dimTabs = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(22));
         dimTabs.verticalAlignment(VerticalAlignment.CENTER);
         dimTabs.gap(4);
         for (int i = 0; i < DIM_TABS.length; i++) {
@@ -100,15 +99,15 @@ public class WaypointManagerScreen extends BaseOwoScreen<FlowLayout> {
             });
             pill.sizing(Sizing.content(), Sizing.fixed(18));
             if (i == selectedDimFilter) {
-                pill.renderer(ButtonComponent.Renderer.flat(VIOLET_D, VIOLET_S, VIOLET_D));
+                pill.renderer(ButtonComponent.Renderer.flat(VeloraColors.CYAN_D, VeloraColors.CYAN, VeloraColors.CYAN_D));
             } else {
-                pill.renderer(ButtonComponent.Renderer.flat(SURF3, BORDER_S, SURF3));
+                pill.renderer(ButtonComponent.Renderer.flat(VeloraColors.SURF3, VeloraColors.SURF4, VeloraColors.SURF3));
             }
             dimTabs.child(pill);
         }
         header.child(dimTabs);
 
-        header.child(Containers.horizontalFlow(Sizing.fixed(30), Sizing.fixed(1)));
+        header.child(Containers.horizontalFlow(Sizing.fixed(16), Sizing.fixed(1)));
 
         // Filter Scope Button: Current World vs All
         ButtonComponent filterBtn = Components.button(
@@ -121,7 +120,7 @@ public class WaypointManagerScreen extends BaseOwoScreen<FlowLayout> {
             }
         );
         filterBtn.sizing(Sizing.content(), Sizing.fixed(18));
-        filterBtn.renderer(ButtonComponent.Renderer.flat(SURF3, TEXT_M, SURF3));
+        filterBtn.renderer(ButtonComponent.Renderer.flat(VeloraColors.SURF3, VeloraColors.BORDER_S, VeloraColors.SURF3));
         header.child(filterBtn);
 
         // + Create Waypoint Button
@@ -131,12 +130,12 @@ public class WaypointManagerScreen extends BaseOwoScreen<FlowLayout> {
             }
         });
         newBtn.sizing(Sizing.content(), Sizing.fixed(18));
-        newBtn.renderer(ButtonComponent.Renderer.flat(VIOLET_D, VIOLET, VIOLET_D));
+        newBtn.renderer(ButtonComponent.Renderer.flat(VeloraColors.CYAN_D, VeloraColors.CYAN, VeloraColors.CYAN_D));
         header.child(newBtn);
 
-        ButtonComponent closeBtn = Components.button(Text.literal("X"), btn -> close());
-        closeBtn.sizing(Sizing.fixed(18), Sizing.fixed(18));
-        closeBtn.renderer(ButtonComponent.Renderer.flat(SURF3, 0x33EF4444, SURF3));
+        ButtonComponent closeBtn = Components.button(Text.literal("✕"), b -> close());
+        closeBtn.sizing(Sizing.fixed(20), Sizing.fixed(20));
+        closeBtn.renderer(ButtonComponent.Renderer.flat(VeloraColors.SURF3, VeloraColors.RED_F, VeloraColors.SURF3));
         header.child(closeBtn);
 
         panel.child(header);
@@ -230,14 +229,15 @@ public class WaypointManagerScreen extends BaseOwoScreen<FlowLayout> {
         card.child(swatch);
 
         // Waypoint Name & Coords
-        FlowLayout info = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        FlowLayout info = Containers.verticalFlow(Sizing.content(), Sizing.content());
         info.gap(1);
         info.child(Components.label(Text.literal(wp.name))
-            .color(Color.ofArgb(wp.enabled ? TEXT : TEXT_F))
-            .sizing(Sizing.fill(100), Sizing.content()));
+            .color(Color.ofArgb(wp.enabled ? TEXT : TEXT_F)));
         String coordStr = String.format("%.0f, %.0f, %.0f", wp.x, wp.y, wp.z);
         info.child(Components.label(Text.literal(coordStr)).color(Color.ofArgb(TEXT_F)));
         card.child(info);
+
+        card.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
 
         // Action 1: Edit Pencil Button (✏)
         ButtonComponent editBtn = Components.button(Text.literal("✏"), b -> {

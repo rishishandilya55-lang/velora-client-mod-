@@ -66,26 +66,26 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
         FlowLayout mainCanvas = Containers.verticalFlow(Sizing.fixed(canvasW), Sizing.fixed(canvasH));
         mainCanvas.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, VeloraColors.SURF2);
-            ctx.drawBorder(x, y, w, h, VeloraColors.BORDER_S);
-            ctx.fill(x, y, x + w, y + 1, VeloraColors.VIOLET_F);
+            VeloraRenderUtil.drawSolidPanel(ctx, x, y, w, h, VeloraColors.SURF2, VeloraColors.BORDER_S);
         });
         mainCanvas.padding(Insets.of(8));
         mainCanvas.gap(6);
 
-        FlowLayout topHeader = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(26));
+        FlowLayout topHeader = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32));
         topHeader.surface((ctx, comp) -> {
-            ctx.fill(comp.x(), comp.y(), comp.x() + comp.width(), comp.y() + comp.height(), VeloraColors.SURF3);
+            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
+            ctx.fill(x, y, x + w, y + h, VeloraColors.SURF3);
+            ctx.fill(x, y + h - 1, x + w, y + h, VeloraColors.DIVIDER);
         });
         topHeader.verticalAlignment(VerticalAlignment.CENTER);
-        topHeader.padding(Insets.of(0, 8, 0, 8));
-        topHeader.child(Components.label(Text.literal("Velora Locker"))
+        topHeader.padding(Insets.of(0, 12, 0, 12));
+        topHeader.child(Components.label(Text.literal("VELORA LOCKER"))
                 .color(Color.ofArgb(VeloraColors.VIOLET)).shadow(true)
                 .sizing(Sizing.content(), Sizing.content()));
-        topHeader.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
-        ButtonComponent closeBtn = Components.button(Text.literal("X"), btn -> this.close());
+        topHeader.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
+        ButtonComponent closeBtn = Components.button(Text.literal("✕"), btn -> this.close());
         closeBtn.sizing(Sizing.fixed(20), Sizing.fixed(20));
-        closeBtn.renderer(ButtonComponent.Renderer.flat(VeloraColors.SURF2, 0x33EF4444, VeloraColors.SURF2));
+        closeBtn.renderer(ButtonComponent.Renderer.flat(VeloraColors.SURF3, VeloraColors.RED_F, VeloraColors.SURF3));
         topHeader.child(closeBtn);
         mainCanvas.child(topHeader);
 
@@ -127,7 +127,7 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
             catRow.child(Components.label(Text.literal(category.getIcon() + " " + labelText))
                     .color(Color.ofArgb(selectedCategory == category ? VeloraColors.VIOLET : VeloraColors.TEXT_M))
                     .sizing(Sizing.content(), Sizing.content()));
-            catRow.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+            catRow.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
             catRow.mouseDown().subscribe((mx, my, btn) -> {
                 if (btn == 0) {
                     selectedCategory = category;
@@ -318,7 +318,7 @@ public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
         previewHeader.child(Components.label(Text.literal("Preview"))
                 .color(Color.ofArgb(VeloraColors.TEXT_F))
                 .sizing(Sizing.content(), Sizing.content()));
-        previewHeader.child(Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1)));
+        previewHeader.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
         previewHeader.child(Components.label(Text.literal("Selected: " + selectedName))
                 .color(Color.ofArgb(selectedCapeIndex >= 0 ? VeloraColors.VIOLET : VeloraColors.TEXT_F))
                 .shadow(true)
