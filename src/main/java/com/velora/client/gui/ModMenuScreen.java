@@ -26,10 +26,10 @@ import java.util.stream.Collectors;
 public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
 
     // ── Layout constants ──────────────────────────────────────────
-    private static final int PANEL_W    = 570;
+    private static final int PANEL_W    = 560;
     private static final int PANEL_H    = 340;
     private static final int HDR_H      = 32;
-    private static final int SIDEBAR_W  = 52;
+    private static final int SIDEBAR_W  = 40;  // narrower — single-icon sidebar
     private static final int CONTENT_W  = PANEL_W - SIDEBAR_W;
     private static final int COLS       = 3;
     private static final int TILE_SIZE  = 72;
@@ -140,8 +140,7 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
         header.gap(8);
 
         header.child(Components.label(Text.literal("VELORA"))
-            .color(Color.ofArgb(VeloraColors.TEXT)).shadow(true));
-        header.child(Components.label(Text.literal("·")).color(Color.ofArgb(VeloraColors.TEXT_DIM)));
+            .color(Color.ofArgb(VeloraColors.VIOLET)).shadow(true));
 
         FlowLayout topNav = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(22));
         topNav.verticalAlignment(VerticalAlignment.CENTER);
@@ -161,18 +160,18 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
         header.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
 
         if (activeTopTab == 0) {
-            FlowLayout searchBox = Containers.horizontalFlow(Sizing.fixed(120), Sizing.fixed(20));
+            FlowLayout searchBox = Containers.horizontalFlow(Sizing.fixed(88), Sizing.fixed(18));
             searchBox.surface((ctx, comp) -> {
                 int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-                ctx.fill(x, y, x + w, y + h, VeloraColors.SURF);
-                ctx.drawBorder(x, y, w, h, VeloraColors.BORDER);
+                ctx.fill(x, y, x + w, y + h, 0x220E0F1C);
+                ctx.drawBorder(x, y, w, h, 0x33818CF8);
             });
-            searchBox.padding(Insets.of(0, 5, 0, 5));
+            searchBox.padding(Insets.of(0, 4, 0, 4));
             searchBox.verticalAlignment(VerticalAlignment.CENTER);
-            searchBox.gap(4);
+            searchBox.gap(3);
             searchBox.child(Components.label(Text.literal("⌕")).color(Color.ofArgb(VeloraColors.TEXT_DIM)));
             TextBoxComponent searchInput = Components.textBox(Sizing.fill(100), searchQuery);
-            searchInput.sizing(Sizing.fill(100), Sizing.fixed(14));
+            searchInput.sizing(Sizing.fill(100), Sizing.fixed(12));
             searchInput.onChanged().subscribe(val -> { searchQuery = val.toLowerCase().trim(); rebuildGrid(); });
             searchBox.child(searchInput);
             header.child(searchBox);
@@ -627,20 +626,21 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
     //  Shared helpers
     // ═══════════════════════════════════════════════════════════════
     private FlowLayout makeSidebarNav(String icon, String label, boolean active, Runnable action) {
-        String shortLabel = label.substring(0, Math.min(label.length(), 4)).toUpperCase();
-        FlowLayout btn = Containers.verticalFlow(Sizing.fixed(SIDEBAR_W), Sizing.fixed(40));
+        FlowLayout btn = Containers.verticalFlow(Sizing.fixed(SIDEBAR_W), Sizing.fixed(38));
         btn.verticalAlignment(VerticalAlignment.CENTER);
         btn.horizontalAlignment(HorizontalAlignment.CENTER);
-        btn.gap(2);
         btn.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
             if (active) {
-                ctx.fill(x, y, x + w, y + h, VeloraColors.SURF);
-                ctx.fill(x, y + 4, x + 2, y + h - 4, VeloraColors.VIOLET);
+                ctx.fill(x, y, x + w, y + h, 0x1A818CF8);
+                // Left violet bar indicator
+                ctx.fill(x, y + 5, x + 2, y + h - 5, VeloraColors.VIOLET);
             }
         });
-        btn.child(Components.label(Text.literal(icon)).color(Color.ofArgb(active ? VeloraColors.VIOLET : VeloraColors.TEXT_DIM)).shadow(active));
-        btn.child(Components.label(Text.literal(shortLabel)).color(Color.ofArgb(active ? VeloraColors.TEXT_M : VeloraColors.TEXT_DIM)));
+        // Single icon label only — no cluttered second line
+        btn.child(Components.label(Text.literal(icon))
+            .color(Color.ofArgb(active ? VeloraColors.VIOLET : VeloraColors.TEXT_DIM))
+            .shadow(active));
         btn.mouseDown().subscribe((mx, my, b) -> { if (b == 0) { action.run(); return true; } return false; });
         return btn;
     }
