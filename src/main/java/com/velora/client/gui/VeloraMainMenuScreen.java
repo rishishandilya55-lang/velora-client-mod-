@@ -169,7 +169,7 @@ public class VeloraMainMenuScreen extends BaseOwoScreen<FlowLayout> {
 
         FlowLayout leftLabel = Containers.horizontalFlow(Sizing.content(), Sizing.fixed(12));
         leftLabel.surface(Surface.flat(0x00000000));
-        leftLabel.child(Components.label(Text.literal("Velora Client v1.0.0"))
+        leftLabel.child(Components.label(Text.literal("Velora Client v1.21.11"))
             .color(Color.ofArgb(VeloraColors.TEXT_F))
             .sizing(Sizing.content(), Sizing.content()));
         bar.child(leftLabel);
