@@ -13,7 +13,7 @@ import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
-public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
+public class HudEditorScreen extends AnimatedOwoScreen {
 
     private enum HudElement {
         FPS("[FPS]") {
@@ -154,21 +154,21 @@ public class HudEditorScreen extends BaseOwoScreen<FlowLayout> {
         public int getScaledHeight() { return (int)(getBaseHeight() * getScale()); }
     }
 
-    private static final int BG       = 0xCC08080A;
-    private static final int SURF     = 0xFF0F0F12;
-    private static final int SURF2    = 0xFF16161A;
-    private static final int SURF3    = 0xFF1D1D22;
-    private static final int TEXT     = 0xFFF4F4F5;
-    private static final int TEXT_M   = 0xFFA1A1AA;
-    private static final int TEXT_F   = 0xFF71717A;
-    private static final int BORDER   = 0x14FFFFFF;
-    private static final int BORDER_S = 0x29FFFFFF;
-    private static final int VIOLET   = 0xFFA78BFA;
-    private static final int VIOLET_S = 0xFF8B5CF6;
-    private static final int VIOLET_F = 0x1FA78BFA;
-    private static final int GREEN    = 0xFF34D399;
-    private static final int GREEN_D  = 0xFF166534;
-    private static final int RED      = 0xFFEF4444;
+    private static final int BG       = VeloraColors.BG_OVERLAY;
+    private static final int SURF     = VeloraColors.SURF;
+    private static final int SURF2    = VeloraColors.SURF2;
+    private static final int SURF3    = VeloraColors.SURF3;
+    private static final int TEXT     = VeloraColors.TEXT;
+    private static final int TEXT_M   = VeloraColors.TEXT_M;
+    private static final int TEXT_F   = VeloraColors.TEXT_F;
+    private static final int BORDER   = VeloraColors.BORDER;
+    private static final int BORDER_S = VeloraColors.BORDER_S;
+    private static final int VIOLET   = VeloraColors.VIOLET;
+    private static final int VIOLET_S = VeloraColors.VIOLET_S;
+    private static final int VIOLET_F = VeloraColors.VIOLET_F;
+    private static final int GREEN    = VeloraColors.GREEN;
+    private static final int GREEN_D  = VeloraColors.GREEN_D;
+    private static final int RED      = VeloraColors.RED;
 
     private HudElement selectedElement = null;
     private HudElement hoveredElement = null;

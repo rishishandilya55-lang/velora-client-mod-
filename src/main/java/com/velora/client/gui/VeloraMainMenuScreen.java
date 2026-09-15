@@ -16,7 +16,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 
-public class VeloraMainMenuScreen extends BaseOwoScreen<FlowLayout> {
+public class VeloraMainMenuScreen extends AnimatedOwoScreen {
 
     private static final Identifier LOGO = Identifier.of("velora", "textures/gui/logo.png");
     private static final Identifier PANORAMA = Identifier.of("minecraft", "textures/gui/title/background/panorama");

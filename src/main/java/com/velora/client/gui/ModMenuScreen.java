@@ -20,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
+public class ModMenuScreen extends AnimatedOwoScreen {
 
     // ── Ultra-Compact Layout constants ───────────────────────────────
     private static final int SIDEBAR_W  = 100;
@@ -443,10 +443,10 @@ public class ModMenuScreen extends BaseOwoScreen<FlowLayout> {
     @Override
     public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
         if (this.client != null && this.client.world == null) {
-            this.panoramaRenderer.render(context, this.width, this.height, 1.0F, delta);
-            context.fillGradient(0, 0, this.width, this.height, 0xD8090A0F, 0xF2090A0F);
+            this.panoramaRenderer.render(context, this.width, this.height, getAnimationProgress(), delta);
+            context.fillGradient(0, 0, this.width, this.height, getFadeColor(0xD8090A0F), getFadeColor(0xF2090A0F));
         } else {
-            context.fillGradient(0, 0, this.width, this.height, 0x88000000, 0xAA000000);
+            context.fillGradient(0, 0, this.width, this.height, getFadeColor(0x88000000), getFadeColor(0xAA000000));
         }
     }
 }

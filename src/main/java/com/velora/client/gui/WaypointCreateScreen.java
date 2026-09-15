@@ -14,7 +14,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 
-public class WaypointCreateScreen extends BaseOwoScreen<FlowLayout> {
+public class WaypointCreateScreen extends AnimatedOwoScreen {
 
     private final Screen parent;
     private final Waypoint existingWaypoint;

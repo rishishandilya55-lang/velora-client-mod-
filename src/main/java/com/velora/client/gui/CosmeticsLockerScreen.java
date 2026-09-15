@@ -20,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CosmeticsLockerScreen extends BaseOwoScreen<FlowLayout> {
+public class CosmeticsLockerScreen extends AnimatedOwoScreen {
 
     private static boolean isLockerOpen = false;
     private static int selectedCapeIndex = -1;

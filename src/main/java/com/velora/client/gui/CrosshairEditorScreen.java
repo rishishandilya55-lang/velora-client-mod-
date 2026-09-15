@@ -18,7 +18,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.function.Consumer;
 
-public class CrosshairEditorScreen extends BaseOwoScreen<FlowLayout> {
+public class CrosshairEditorScreen extends AnimatedOwoScreen {
 
     private final Screen parent;
     private int activeTab = 2; // 0 = SIMPLE, 1 = PRESETS, 2 = CUSTOM

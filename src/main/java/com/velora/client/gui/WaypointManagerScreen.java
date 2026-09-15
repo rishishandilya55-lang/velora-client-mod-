@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class WaypointManagerScreen extends BaseOwoScreen<FlowLayout> {
+public class WaypointManagerScreen extends AnimatedOwoScreen {
 
     private final Screen parent;
     private boolean showAllWorlds = false;

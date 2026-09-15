@@ -244,7 +244,7 @@ public class ModConfig {
     public static int dayY = 260;
 
     public static int blockInfoX = 10;
-    public static int blockInfoY = 290;
+    public static int blockInfoY = 150;
 
     public static int minimapX = 10;
     public static int minimapY = 320;
@@ -274,7 +274,7 @@ public class ModConfig {
         armorX = 10; armorY = 200; armorScale = 1.0f;
         coordsX = 10; coordsY = 230; coordsScale = 1.0f;
         dayX = 10; dayY = 260; dayScale = 1.0f;
-        blockInfoX = 10; blockInfoY = 290; blockInfoScale = 1.0f;
+        blockInfoX = 10; blockInfoY = 150; blockInfoScale = 1.0f;
         minimapX = 10; minimapY = 320; minimapScale = 1.0f;
         potionHudX = 10; potionHudY = 350; potionHudScale = 1.0f;
         saveConfig();

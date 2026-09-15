@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-public class ItemModelSettingsScreen extends BaseOwoScreen<FlowLayout> {
+public class ItemModelSettingsScreen extends AnimatedOwoScreen {
 
     private final Screen parent;
     private static String expandedItemId = null;

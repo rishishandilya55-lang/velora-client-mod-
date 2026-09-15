@@ -12,7 +12,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 
-public class ClientSettingsScreen extends BaseOwoScreen<FlowLayout> {
+public class ClientSettingsScreen extends AnimatedOwoScreen {
 
     private FlowLayout settingsContainer;
 
