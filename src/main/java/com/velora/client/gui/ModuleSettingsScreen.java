@@ -68,44 +68,34 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
         root.surface(Surface.flat(0x00000000));
         root.sizing(Sizing.fill(100), Sizing.fill(100));
 
-        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(460), Sizing.fixed(360));
+        FlowLayout panel = Containers.verticalFlow(Sizing.fixed(570), Sizing.fixed(370));
         panel.surface((ctx, comp) -> {
-            int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            // Frosted glass base
-            ctx.fill(x, y, x + w, y + h, 0xE2101220);
-            // Inner top shimmer
-            ctx.fillGradient(x, y, x + w, y + 24, 0x16FFFFFF, 0x00000000);
-            // Violet-tinted border
-            ctx.drawBorder(x, y, w, h, 0x55818CF8);
-            // 2px violet accent top line
-            ctx.fill(x, y, x + w, y + 2, VeloraColors.VIOLET_D);
+            VeloraRenderUtil.drawSmoothWindow(ctx, comp.x(), comp.y(), comp.width(), comp.height());
         });
         panel.padding(Insets.none());
 
         // ── Header ──────────────────────────────────────────────────
-        FlowLayout header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(36));
+        FlowLayout header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(32));
         header.surface((ctx, comp) -> {
             int x = comp.x(), y = comp.y(), w = comp.width(), h = comp.height();
-            ctx.fill(x, y, x + w, y + h, 0xCC0E0F1C);
-            ctx.fill(x, y + 2, x + w, y + 3, 0x14FFFFFF);
-            ctx.fill(x, y + h - 1, x + w, y + h, 0x33818CF8);
+            ctx.fill(x, y + h - 1, x + w, y + h, 0x1AFFFFFF);
         });
         header.verticalAlignment(VerticalAlignment.CENTER);
-        header.padding(Insets.of(0, 14, 0, 14));
-        header.gap(8);
+        header.padding(Insets.of(0, 12, 0, 12));
+        header.gap(6);
 
         // Back / close button on the left
         if (parent != null) {
             ButtonComponent backBtn = Components.button(Text.literal("←"), btn -> this.close());
             backBtn.sizing(Sizing.fixed(20), Sizing.fixed(20));
-            backBtn.renderer(ButtonComponent.Renderer.flat(0x00000000, VeloraColors.TEXT_M, 0x00000000));
+            backBtn.renderer(ButtonComponent.Renderer.flat(0x00000000, 0xFFFFFFFF, 0x00000000));
             header.child(backBtn);
         }
 
-        // Module name in violet + "Settings" in white
+        // Module name in white + "Settings" label
         header.child(Components.label(Text.literal(moduleName))
-            .color(Color.ofArgb(VeloraColors.VIOLET))
-            .shadow(true));
+            .color(Color.ofArgb(0xFFFFFFFF))
+            .shadow(false));
         header.child(Components.label(Text.literal("Settings"))
             .color(Color.ofArgb(VeloraColors.TEXT_M)));
         header.child(Containers.horizontalFlow(Sizing.expand(1), Sizing.fixed(1)));
@@ -118,12 +108,12 @@ public class ModuleSettingsScreen extends BaseOwoScreen<FlowLayout> {
 
         // ── Content ──────────────────────────────────────────────────
         settingsPanel = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-        settingsPanel.padding(Insets.of(8, 14, 60, 14));
-        settingsPanel.gap(3);
+        settingsPanel.padding(Insets.of(8, 12, 30, 12));
+        settingsPanel.gap(4);
         buildSettings();
 
         ScrollContainer<FlowLayout> scroll = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(100), settingsPanel);
-        scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(0x44818CF8)));
+        scroll.scrollbar(ScrollContainer.Scrollbar.flat(Color.ofArgb(0x44FFFFFF)));
         panel.child(scroll);
 
         root.child(panel);

@@ -45,3 +45,13 @@ run/
 # Mod build outputs
 build/
 bin/
+
+# Local JDK / Java 21 installations
+jdk21/
+jdk21.zip
+jdk*/
+*.jdk
+
+# Scratch scripts & temporary workspace files
+scratch/
+
